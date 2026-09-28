@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}JudgeForge | Hackathon Platform{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <a href="/projects" style="display:flex;align-items:center;gap:0.75rem;text-decoration:none;">
+        <div class="brand-logo">JF</div>
+        <div class="brand-text">JudgeForge</div>
+      </a>
+      <span class="brand-badge">Dogfood 2026</span>
+    </div>
+
+    <ul class="nav-links">
+      <li><a href="/projects" class="{% if request.url.path.startswith('/projects') %}active{% endif %}">Gallery</a></li>
+      {% if user and user.role in ['judge', 'organizer'] %}
+      <li><a href="/judge" class="{% if request.url.path.startswith('/judge') %}active{% endif %}">Judging</a></li>
+      {% endif %}
+      {% if user and user.role == 'organizer' %}
+      <li><a href="/organizer" class="{% if request.url.path.startswith('/organizer') %}active{% endif %}">Organizer</a></li>
+      {% endif %}
+    </ul>
+
+    <div class="nav-auth">
+      {% if user %}
+        <div class="user-badge">
+          <span>{{ user.name }}</span>
+          <span class="role-pill role-{{ user.role }}">{{ user.role }}</span>
+        </div>
+        <button onclick="handleLogout()" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">Logout</button>
+      {% else %}
+        <a href="/login" class="btn btn-primary" style="padding:0.4rem 1rem;font-size:0.85rem;">Login</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>JudgeForge &bull; Self-hosted hackathon submissions and fair judging, with zero cloud dependencies.</p>
+  </footer>
+
+  <script>
+    async function handleLogout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/projects';
+    }
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

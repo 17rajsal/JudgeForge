@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ project.title }} | JudgeForge{% endblock %}
+
+{% block content %}
+<div style="margin-bottom:1.5rem;">
+  <a href="/projects" style="color:var(--text-secondary);font-size:0.9rem;">&larr; Back to Gallery</a>
+</div>
+
+<div class="card" style="padding:2.5rem;margin-bottom:2rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+    <div>
+      <span class="card-tag" style="margin-bottom:0.5rem;display:inline-block;">{{ project.track.name if project.track else 'General' }}</span>
+      <h1 style="font-size:2.2rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ project.title }}</h1>
+      <p style="color:var(--text-secondary);font-size:1.1rem;margin-top:0.25rem;">
+        Team: <strong style="color:var(--text-primary);">{{ project.team.name if project.team else 'Independent' }}</strong>
+      </p>
+    </div>
+    
+    <div>
+      {% if is_closed %}
+      <div style="background:rgba(244, 63, 94, 0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;">
+        &bull; Submissions Closed (Locked)
+      </div>
+      {% else %}
+      <div style="background:rgba(16, 185, 129, 0.15);border:1px solid var(--accent-emerald);color:var(--accent-emerald);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;">
+        &bull; Open for Editing
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="border-top:1px solid var(--card-border);padding-top:1.5rem;margin-bottom:1.5rem;">
+    <h3 style="font-size:1.1rem;margin-bottom:0.75rem;color:var(--text-primary);">About the Project</h3>
+    <p style="color:var(--text-secondary);font-size:1.05rem;line-height:1.7;">
+      {{ project.summary or 'No detailed description provided.' }}
+    </p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:2rem;background:var(--bg-secondary);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid var(--card-border);">
+    <div>
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Submitted At</div>
+      <div style="font-size:0.95rem;color:var(--text-primary);margin-top:0.2rem;">
+        {{ project.submitted_at.strftime('%Y-%m-%d %H:%M:%S UTC') if project.submitted_at else 'Unknown' }}
+      </div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Project ID</div>
+      <div style="font-size:0.95rem;color:var(--font-mono);margin-top:0.2rem;">{{ project.id }}</div>
+    </div>
+    <div>
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Source Code</div>
+      <div style="font-size:0.95rem;margin-top:0.2rem;">
+        {% if project.repo_url %}
+        <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer">{{ project.repo_url }}</a>
+        {% else %}
+        <span style="color:var(--text-muted);">None provided</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if is_team_member and not is_closed %}
+<div class="card" style="padding:2rem;">
+  <h3 style="margin-bottom:1rem;">Edit Submission</h3>
+  <form id="editForm" onsubmit="handleEditProject(event)">
+    <div class="form-group">
+      <label>Project Title</label>
+      <input type="text" id="editTitle" value="{{ project.title }}" required>
+    </div>
+    <div class="form-group">
+      <label>Summary / Pitch</label>
+      <textarea id="editSummary" rows="4">{{ project.summary or '' }}</textarea>
+    </div>
+    <div class="form-group">
+      <label>Repository URL</label>
+      <input type="url" id="editRepo" value="{{ project.repo_url or '' }}">
+    </div>
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+  </form>
+</div>
+
+<script>
+async function handleEditProject(e) {
+  e.preventDefault();
+  const res = await fetch('/api/projects/{{ project.id }}', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: document.getElementById('editTitle').value,
+      summary: document.getElementById('editSummary').value,
+      repo_url: document.getElementById('editRepo').value
+    })
+  });
+  if (res.ok) {
+    alert('Project updated successfully');
+    window.location.reload();
+  } else {
+    const err = await res.json();
+    alert('Failed to update: ' + (err.detail || 'Unknown error'));
+  }
+}
+</script>
+{% endif %}
+
+{% endblock %}

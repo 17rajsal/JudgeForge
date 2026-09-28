@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Login | JudgeForge{% endblock %}
+
+{% block content %}
+<div style="max-width:550px;margin:2rem auto;">
+  <div class="card" style="padding:2.5rem;">
+    <h2 style="margin-bottom:0.5rem;">Sign In</h2>
+    <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
+      Select a pre-seeded demo role to instantly sign in or enter an email address.
+    </p>
+
+    {% if error %}
+    <div style="background:rgba(244,63,94,0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:0.75rem 1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;font-size:0.9rem;">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom:2rem;">
+      <label style="margin-bottom:0.75rem;">Fast Demo Sign In</label>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <button type="button" onclick="loginWithEmail('organizer@judgeforge.local')" class="btn btn-secondary" style="justify-content:space-between;">
+          <span><strong>Organizer</strong> (Head Organizer)</span>
+          <span class="role-pill role-organizer">organizer</span>
+        </button>
+        <button type="button" onclick="loginWithEmail('tomas.varga@example.org')" class="btn btn-secondary" style="justify-content:space-between;">
+          <span><strong>Judge A</strong> (Tomas Varga &bull; jdg_01)</span>
+          <span class="role-pill role-judge">judge</span>
+        </button>
+        <button type="button" onclick="loginWithEmail('wei.lindqvist@example.org')" class="btn btn-secondary" style="justify-content:space-between;">
+          <span><strong>Judge B</strong> (Wei Lindqvist &bull; jdg_02)</span>
+          <span class="role-pill role-judge">judge</span>
+        </button>
+        <button type="button" onclick="loginWithEmail('priya1@example.org')" class="btn btn-secondary" style="justify-content:space-between;">
+          <span><strong>Participant</strong> (Priya Nair &bull; NorthKiln)</span>
+          <span class="role-pill role-participant">participant</span>
+        </button>
+      </div>
+    </div>
+
+    <div style="position:relative;text-align:center;margin:1.5rem 0;">
+      <hr style="border:none;border-top:1px solid var(--card-border);">
+      <span style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--card-bg);padding:0 0.75rem;color:var(--text-muted);font-size:0.8rem;">or enter email</span>
+    </div>
+
+    <form onsubmit="handleManualLogin(event)">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="your.name@example.org" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
+    </form>
+  </div>
+</div>
+
+<script>
+async function loginWithEmail(email) {
+  const res = await fetch('/api/auth/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  });
+  if (res.ok) {
+    const data = await res.json();
+    if (data.user.role === 'judge') {
+      window.location.href = '/judge';
+    } else if (data.user.role === 'organizer') {
+      window.location.href = '/organizer';
+    } else {
+      window.location.href = '/projects';
+    }
+  } else {
+    alert('Login failed');
+  }
+}
+
+async function handleManualLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  await loginWithEmail(email);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+[portal]
+base_url = "http://127.0.0.1:8000"
+
+[tiers]
+claimed = ["T1", "T2"]
+pitch = "Self-hosted hackathon submissions and fair judging, with zero cloud dependencies."
+
+[auth]
+organizer   = "Authorization: Bearer token_organizer"
+judge_a     = "Authorization: Bearer token_judge_a"
+judge_b     = "Authorization: Bearer token_judge_b"
+participant = "Authorization: Bearer token_participant"
+
+[routes]
+gallery      = "/projects"
+submit       = "/api/projects"
+judge_scores = "/api/judge/scores"
+peer_scores  = "/api/judge/scores?judge=jdg_01"
+csv_export   = "/api/export.csv"

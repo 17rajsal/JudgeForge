@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+
+{% block title %}Organizer Command Center | JudgeForge{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1.5rem;">
+    <div>
+      <h1>Organizer Command Center</h1>
+      <p>Overall hackathon management, judge progress monitoring, rubric weighting, and export.</p>
+    </div>
+    <div>
+      <a href="/api/export.csv" class="btn btn-primary" download style="display:inline-flex;gap:0.5rem;align-items:center;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Official CSV
+      </a>
+    </div>
+  </div>
+
+  <div class="event-banner">
+    <div class="event-stat">
+      <span>Event:</span>
+      <span class="stat-val">{{ event.name if event else 'Sample Hack 2026' }}</span>
+    </div>
+    <div class="event-stat">
+      <span>Submissions:</span>
+      <span class="stat-val">{{ leaderboard | length }} Projects</span>
+    </div>
+    <div class="event-stat">
+      <span>Judges:</span>
+      <span class="stat-val">{{ judges | length }} Active</span>
+    </div>
+    <div class="event-stat">
+      <span>Normalization:</span>
+      <span class="stat-val" style="color:var(--accent-emerald);">Z-Score + Zero Variance Proof</span>
+    </div>
+  </div>
+</div>
+
+<!-- Rubric Configuration -->
+<div class="card" style="margin-bottom:2rem;padding:1.75rem;">
+  <h3 style="margin-bottom:0.75rem;">Rubric Criteria & Weights</h3>
+  <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.25rem;">
+    Customize weights for scoring categories. Normalization will recalculate rankings dynamically based on these values.
+  </p>
+  <form id="rubricForm" onsubmit="handleRubricUpdate(event)" style="display:flex;flex-wrap:wrap;gap:1.5rem;align-items:flex-end;">
+    {% for c in criteria %}
+    <div style="flex:1;min-width:180px;">
+      <label>{{ c.label }} Weight</label>
+      <input type="number" step="0.1" min="0" max="10" id="weight_{{ c.name }}" value="{{ c.weight }}">
+    </div>
+    {% endfor %}
+    <div>
+      <button type="submit" class="btn btn-secondary">Update Weights</button>
+    </div>
+  </form>
+</div>
+
+<!-- Leaderboard -->
+<div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <h2>Live Results & Normalized Rankings</h2>
+  <span style="color:var(--text-muted);font-size:0.85rem;">Ranked by Z-Score Normalized Average</span>
+</div>
+
+<div class="table-container" style="margin-bottom:2.5rem;">
+  <table>
+    <thead>
+      <tr>
+        <th style="width:60px;">Rank</th>
+        <th>Project Title</th>
+        <th>Track</th>
+        <th>Team</th>
+        <th>Reviews</th>
+        <th>Raw Score</th>
+        <th>Normalized Score</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in leaderboard %}
+      <tr>
+        <td style="font-weight:700;font-size:1.1rem;color:{% if loop.index == 1 %}var(--accent-amber){% elif loop.index <= 3 %}var(--accent-cyan){% else %}var(--text-secondary){% endif %};">
+          #{{ row.rank }}
+        </td>
+        <td>
+          <a href="/projects/{{ row.project_id }}" style="font-weight:600;">{{ row.title }}</a>
+        </td>
+        <td><span class="card-tag">{{ row.track_name }}</span></td>
+        <td>{{ row.team_name }}</td>
+        <td>{{ row.review_count }}</td>
+        <td style="font-family:var(--font-mono);">{{ '%.3f' | format(row.raw_score) }}</td>
+        <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-emerald);">
+          {{ '%.4f' | format(row.normalized_score) }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Judge Progress Overview -->
+<div class="page-header">
+  <h2>Judge Progress Overview</h2>
+</div>
+
+<div class="table-container" style="margin-bottom:2.5rem;">
+  <table>
+    <thead>
+      <tr>
+        <th>Judge ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Assigned Tracks</th>
+        <th>Reviews Completed</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for j in judges %}
+      <tr>
+        <td style="font-family:var(--font-mono);">{{ j.id }}</td>
+        <td><strong>{{ j.name }}</strong></td>
+        <td style="color:var(--text-secondary);">{{ j.email }}</td>
+        <td>
+          {% for t in j.tracks %}
+          <span class="card-tag" style="font-size:0.7rem;">{{ t.name }}</span>
+          {% endfor %}
+        </td>
+        <td style="font-weight:600;">
+          {{ j.scores | length }}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Audit Trail -->
+<div class="page-header">
+  <h2>Recent Audit Logs</h2>
+</div>
+
+<div class="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in audit_logs %}
+      <tr>
+        <td style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);">
+          {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
+        </td>
+        <td><span class="card-tag" style="background:rgba(59,130,246,0.15);color:var(--accent-blue);">{{ log.action }}</span></td>
+        <td style="font-family:var(--font-mono);font-size:0.85rem;">{{ log.target_type }}:{{ log.target_id }}</td>
+        <td style="color:var(--text-secondary);font-size:0.85rem;">{{ log.details or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+async function handleRubricUpdate(e) {
+  e.preventDefault();
+  const weights = {};
+  {% for c in criteria %}
+  weights['{{ c.name }}'] = parseFloat(document.getElementById('weight_{{ c.name }}').value);
+  {% endfor %}
+
+  const res = await fetch('/api/organizer/rubric', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ weights: weights })
+  });
+  if (res.ok) {
+    alert('Rubric weights updated successfully');
+    window.location.reload();
+  } else {
+    alert('Failed to update rubric');
+  }
+}
+</script>
+{% endblock %}

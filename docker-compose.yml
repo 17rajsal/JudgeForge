@@ -1,0 +1,16 @@
+services:
+  judgeforge:
+    build: .
+    container_name: judgeforge-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/judgeforge.db
+      - FIXTURES_PATH=./fixtures.json
+      - PORT=8000
+    volumes:
+      - judgeforge_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  judgeforge_data:
