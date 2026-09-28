@@ -51,11 +51,14 @@ class Event(Base):
     name = Column(String, nullable=False)
     submissions_close = Column(DateTime, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    results_published = Column(Integer, nullable=False, default=0)
+    results_published_at = Column(DateTime, nullable=True)
 
     tracks = relationship("Track", back_populates="event", cascade="all, delete-orphan")
     teams = relationship("Team", back_populates="event", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="event", cascade="all, delete-orphan")
     rubric_criteria = relationship("RubricCriterion", back_populates="event", cascade="all, delete-orphan")
+    prizes = relationship("Prize", back_populates="event", cascade="all, delete-orphan")
 
 
 class Track(Base):
@@ -118,12 +121,27 @@ class Project(Base):
     title = Column(String, nullable=False)
     summary = Column(Text, nullable=True)
     repo_url = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="submitted")  # "draft" or "submitted"
     submitted_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
     event = relationship("Event", back_populates="projects")
     team = relationship("Team", back_populates="projects")
     track = relationship("Track", back_populates="projects")
     scores = relationship("Score", back_populates="project", cascade="all, delete-orphan")
+
+
+class Prize(Base):
+    __tablename__ = "prizes"
+
+    id = Column(String, primary_key=True, index=True)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    amount = Column(String, nullable=False)  # value / amount, e.g. "$5,000"
+    placement = Column(String, nullable=False)  # placement / category, e.g. "1st Place", "Grand Prize"
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    event = relationship("Event", back_populates="prizes")
 
 
 class RubricCriterion(Base):

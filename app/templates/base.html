@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}JudgeForge | Hackathon Platform{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v=bright-1">
   {% block head %}{% endblock %}
 </head>
 <body>
-{% if user %}<div style="padding:0.75rem 2rem"><a href="/workspace">Your workspace · Events & teams</a></div>{% endif %}
+{% if user %}<div style="padding:0.75rem 2rem"><a href="/workspace">Your workspace &middot; Events &amp; teams</a></div>{% endif %}
   <nav class="navbar">
     <div class="nav-brand">
       <a href="/projects" style="display:flex;align-items:center;gap:0.75rem;text-decoration:none;">
@@ -19,12 +19,16 @@
     </div>
 
     <ul class="nav-links">
+      {% if user %}
+      <li><a href="/workspace" class="{% if request.url.path == '/workspace' %}active{% endif %}">Workspace</a></li>
+      {% endif %}
       <li><a href="/projects" class="{% if request.url.path.startswith('/projects') %}active{% endif %}">Gallery</a></li>
+      <li><a href="/results" class="{% if request.url.path.startswith('/results') %}active{% endif %}">Results</a></li>
       <li><a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}">Submit</a></li>
-      {% if user and user.role in ['judge', 'organizer'] %}
+      {% if user and user.role in ['judge', 'organizer', 'admin'] %}
       <li><a href="/judge" class="{% if request.url.path.startswith('/judge') %}active{% endif %}">Judging</a></li>
       {% endif %}
-      {% if user and user.role == 'organizer' %}
+      {% if user and user.role in ['organizer', 'admin'] %}
       <li><a href="/organizer" class="{% if request.url.path.startswith('/organizer') %}active{% endif %}">Organizer</a></li>
       {% endif %}
     </ul>

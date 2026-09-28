@@ -18,10 +18,31 @@ TEMPLATES_DIR = Path("app/templates")
 TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def ensure_schema_migrations(eng):
+    with eng.connect() as conn:
+        try:
+            res = conn.exec_driver_sql("PRAGMA table_info(events)").fetchall()
+            cols = {row[1] for row in res}
+            if cols and "results_published" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN results_published INTEGER NOT NULL DEFAULT 0")
+            if cols and "results_published_at" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN results_published_at TIMESTAMP NULL")
+
+            res = conn.exec_driver_sql("PRAGMA table_info(projects)").fetchall()
+            cols = {row[1] for row in res}
+            if cols and "status" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR NOT NULL DEFAULT 'submitted'")
+
+            conn.commit()
+        except Exception:
+            pass
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 1. Initialize schema
+    # 1. Initialize schema and apply any pending column additions to existing tables
     Base.metadata.create_all(bind=engine)
+    ensure_schema_migrations(engine)
 
     # 2. Seed database idempotently
     with SessionLocal() as db:

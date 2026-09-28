@@ -25,6 +25,7 @@ class ProjectCreateSchema(BaseModel):
     track_id: Optional[str] = None
     team_id: Optional[str] = None
     event_id: Optional[str] = None
+    status: Optional[str] = "submitted"
 
 
 class ProjectUpdateSchema(BaseModel):
@@ -32,6 +33,7 @@ class ProjectUpdateSchema(BaseModel):
     summary: Optional[str] = None
     repo_url: Optional[str] = None
     track_id: Optional[str] = None
+    status: Optional[str] = None
 
 
 @router.get("/submit", response_class=HTMLResponse)
@@ -70,7 +72,7 @@ def view_gallery(
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    query = db.query(Project)
+    query = db.query(Project).filter(Project.status == "submitted")
     if track:
         query = query.filter(Project.track_id == track)
     if q:
@@ -103,7 +105,7 @@ def list_projects_api(
     q: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    query = db.query(Project)
+    query = db.query(Project).filter(Project.status == "submitted")
     if track:
         query = query.filter(Project.track_id == track)
     if q:
@@ -122,6 +124,7 @@ def list_projects_api(
             "track_name": p.track.name if p.track else None,
             "team_id": p.team_id,
             "team_name": p.team.name if p.team else None,
+            "status": p.status,
             "submitted_at": p.submitted_at.isoformat() if p.submitted_at else None,
         }
         for p in projects
@@ -141,7 +144,7 @@ def view_project_detail(
 
     is_team_member = False
     if user:
-        if user.role == "organizer":
+        if user.role in ["organizer", "admin"]:
             is_team_member = True
         else:
             team_membership = (
@@ -151,6 +154,9 @@ def view_project_detail(
             )
             if team_membership:
                 is_team_member = True
+
+    if project.status == "draft" and not is_team_member:
+        raise HTTPException(status_code=404, detail="Project not found")
 
     event = project.event or db.query(Event).first()
     now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -241,6 +247,12 @@ def submit_project(
     prj_count = db.query(Project).count()
     project_id = "prj_" + secrets.token_hex(12)
 
+    proj_status = "submitted"
+    if payload.status:
+        s = payload.status.strip().lower()
+        if s in ("draft", "submitted"):
+            proj_status = s
+
     project = Project(
         id=project_id,
         event_id=event.id,
@@ -249,6 +261,7 @@ def submit_project(
         title=payload.title.strip(),
         summary=payload.summary.strip() if payload.summary else "",
         repo_url=payload.repo_url.strip() if payload.repo_url else "",
+        status=proj_status,
         submitted_at=now_utc,
     )
     db.add(project)
@@ -260,7 +273,7 @@ def submit_project(
             action="CREATE_PROJECT",
             target_type="Project",
             target_id=project.id,
-            details=f"Title: {project.title}, Team: {team_id}, Track: {track_id}",
+            details=f"Title: {project.title}, Team: {team_id}, Track: {track_id}, Status: {proj_status}",
         )
     )
 
@@ -274,8 +287,9 @@ def submit_project(
         "repo_url": project.repo_url,
         "team_id": project.team_id,
         "track_id": project.track_id,
+        "status": project.status,
         "submitted_at": project.submitted_at.isoformat(),
-        "message": "Project submitted successfully",
+        "message": "Project submitted successfully" if proj_status == "submitted" else "Project draft saved successfully",
     }
 
 
@@ -290,8 +304,8 @@ def update_project(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    # 1. Enforce Deadline Server-Side (except for organizers)
-    if current_user.role != "organizer":
+    # 1. Enforce Deadline Server-Side (except for organizers and admins)
+    if current_user.role not in ["organizer", "admin"]:
         event = project.event or db.query(Event).first()
         now_utc = datetime.datetime.now(datetime.timezone.utc)
         close_time = event.submissions_close if event else None
@@ -326,6 +340,10 @@ def update_project(
         if not track or track.event_id != project.event_id:
             raise HTTPException(400, "Track must belong to this event")
         project.track_id = payload.track_id
+    if payload.status is not None:
+        s = payload.status.strip().lower()
+        if s in ("draft", "submitted"):
+            project.status = s
 
     db.add(
         AuditLog(
@@ -339,7 +357,67 @@ def update_project(
     db.commit()
     db.refresh(project)
 
-    return {"message": "Project updated successfully", "id": project.id}
+    return {"message": "Project updated successfully", "id": project.id, "status": project.status}
+
+
+@router.post("/api/projects/{project_id}/submit")
+def finalize_project_submission(
+    project_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_participant_or_organizer),
+):
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    event = project.event or db.query(Event).first()
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    close_time = event.submissions_close if event else None
+    if close_time and close_time.tzinfo is None:
+        close_time = close_time.replace(tzinfo=datetime.timezone.utc)
+
+    # 1. Enforce deadline server-side
+    if close_time and now_utc > close_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Submissions are closed. Drafts cannot be submitted after the deadline.",
+        )
+
+    # 2. Check team authorization
+    if current_user.role not in ["organizer", "admin"]:
+        membership = (
+            db.query(TeamMember)
+            .filter(TeamMember.team_id == project.team_id, TeamMember.user_id == current_user.id)
+            .first()
+        )
+        if not membership:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only team members can submit this project",
+            )
+
+    project.status = "submitted"
+    project.submitted_at = now_utc
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="SUBMIT_PROJECT",
+            target_type="Project",
+            target_id=project.id,
+            details=f"Draft finalized and submitted by {current_user.email}",
+        )
+    )
+    db.commit()
+    db.refresh(project)
+
+    return {
+        "message": "Project submitted successfully",
+        "id": project.id,
+        "title": project.title,
+        "status": project.status,
+        "submitted_at": project.submitted_at.isoformat(),
+    }
 
 
 class TeamCreateSchema(BaseModel):

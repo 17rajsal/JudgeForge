@@ -36,10 +36,10 @@ erDiagram
 Represents authenticable actors on the platform.
 | Column | Type | Constraints | Description |
 |---|---|---|---|
-| `id` | `VARCHAR` | PK | Unique user identifier (e.g. `usr_organizer`, `usr_jdg_01`) |
+| `id` | `VARCHAR` | PK | Unique user identifier (e.g. `usr_admin`, `usr_organizer`, `usr_jdg_01`) |
 | `email` | `VARCHAR` | UNIQUE, NOT NULL, INDEX | User login and contact email |
 | `name` | `VARCHAR` | NOT NULL | Display name |
-| `role` | `VARCHAR` | NOT NULL, DEFAULT `'participant'` | Role: `organizer`, `judge`, `participant`, `visitor` |
+| `role` | `VARCHAR` | NOT NULL, DEFAULT `'participant'` | Role: `admin`, `organizer`, `judge`, `participant` |
 | `created_at` | `DATETIME` | NOT NULL | UTC account creation timestamp |
 
 ### `session_tokens`
@@ -58,6 +58,8 @@ Hackathon competition details and deadline configurations.
 | `name` | `VARCHAR` | NOT NULL | Event title (e.g. `Sample Hack 2026`) |
 | `submissions_close` | `DATETIME` | NOT NULL | UTC deadline after which submissions and edits are rejected |
 | `created_at` | `DATETIME` | NOT NULL | UTC creation timestamp |
+| `results_published` | `INTEGER` | NOT NULL, DEFAULT `0` | Boolean flag (0/1) controlling public visibility of official results |
+| `results_published_at` | `DATETIME` | NULLABLE | UTC timestamp when results were officially announced |
 
 ### `tracks`
 Themed competition tracks.
@@ -112,7 +114,20 @@ Project submissions presented in the public gallery and evaluated by judges.
 | `title` | `VARCHAR` | NOT NULL | Project title |
 | `summary` | `TEXT` | NULLABLE | Pitch and description |
 | `repo_url` | `VARCHAR` | NULLABLE | Source code repository link |
+| `status` | `VARCHAR` | NOT NULL, DEFAULT `'submitted'` | Status: `'draft'` or `'submitted'` |
 | `submitted_at` | `DATETIME` | NOT NULL | UTC submission timestamp |
+
+### `prizes`
+Event awards, monetary prizes, and special recognitions.
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `VARCHAR` | PK | Prize identifier (e.g. `prz_01`) |
+| `event_id` | `VARCHAR` | FK(`events.id`), NOT NULL, INDEX | Event association |
+| `title` | `VARCHAR` | NOT NULL | Prize title (e.g. `1st Place Overall`) |
+| `description` | `TEXT` | NULLABLE | Criteria and award description |
+| `amount` | `VARCHAR` | NOT NULL | Monetary/reward value (e.g. `$5,000`) |
+| `placement` | `VARCHAR` | NOT NULL | Placement or category (e.g. `1st`, `Special`) |
+| `created_at` | `DATETIME` | NOT NULL | UTC creation timestamp |
 
 ### `rubric_criteria`
 Configurable scoring dimensions and weights.

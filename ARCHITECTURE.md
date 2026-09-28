@@ -108,5 +108,11 @@ The platform runs inside a minimal `python:3.12-slim` container:
 - Port 8000 is exposed and bound to host.
 
 
-## Authentication and workflow update
-Email/password login checks the separate `password_credentials` table before creating a session. Registration creates participants only. `/workspace` connects event creation, teams, single-use invite acceptance and event-specific submissions. Startup creates new tables without resetting existing data, and seed errors now fail startup rather than reporting a misleading healthy app. Tests create and seed isolated in-memory databases for every test, without changing the running portal database.
+## Authentication and lifecycle features
+Email/password login checks the separate `password_credentials` table before creating a session. Registration creates participants only. A distinct `admin` role exists separate from `organizer`, with exclusive authority to manage user roles (`/api/admin/users`, `/api/admin/users/{id}/role`) while retaining organizer-level management capabilities.
+
+The platform includes full event lifecycle extensions:
+- **Event Prize Configuration**: Organizers and administrators configure event prizes (`/api/events/{id}/prizes`, `/api/prizes/{id}`) with titles, placements, and reward values, presented in the participant workspace, event details, and official results page.
+- **Project Draft Workflow**: Participants can save drafts prior to the event deadline (`status="draft"`), edit their drafts, and explicitly finalize submissions (`/api/projects/{id}/submit`). Drafts remain private to team members and organizers, and only finalized `submitted` projects appear in public gallery queries and leaderboard scoring. All draft and submission mutations are strictly blocked once the event deadline passes.
+- **Results Publication Workflow**: Official standings remain private to organizers and admins until explicitly published (`/api/events/{id}/publish`). The public results interface (`/results` and `/api/results`) displays aggregated normalized scores, ranks, and prize awards while strictly preserving judge privacy—individual judge identities, individual scores, and notes are never exposed.
+- **Volume Preservation & Schema Migration**: Application startup applies non-destructive schema migrations for existing persistent SQLite databases across container restarts without data loss or volume resets. Tests execute against isolated in-memory databases with automatic teardown.

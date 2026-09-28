@@ -30,7 +30,7 @@ def list_judge_scores(
     current_user: User = Depends(get_current_user),
 ):
     # 1. Enforce RBAC: participant or visitor is blocked
-    if current_user.role not in ("judge", "organizer"):
+    if current_user.role not in ("judge", "organizer", "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden: Only judges and organizers can access judging scores",
@@ -106,7 +106,7 @@ def submit_or_update_score(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role not in ("judge", "organizer"):
+    if current_user.role not in ("judge", "organizer", "admin"):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden: Only judges and organizers can submit scores",
@@ -196,7 +196,7 @@ def view_judge_dashboard(
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    if not user or user.role not in ("judge", "organizer"):
+    if not user or user.role not in ("judge", "organizer", "admin"):
         return templates.TemplateResponse(
             request=request,
             name="login.html",
@@ -207,11 +207,11 @@ def view_judge_dashboard(
     assigned_tracks = judge.tracks if judge else []
     assigned_track_ids = [t.id for t in assigned_tracks]
 
-    # Find projects in assigned tracks
+    # Find projects in assigned tracks (submitted only)
     if assigned_track_ids:
-        projects = db.query(Project).filter(Project.track_id.in_(assigned_track_ids)).all()
+        projects = db.query(Project).filter(Project.status == "submitted", Project.track_id.in_(assigned_track_ids)).all()
     else:
-        projects = db.query(Project).all()
+        projects = db.query(Project).filter(Project.status == "submitted").all()
 
     # Scores by this judge
     judge_id = judge.id if judge else "jdg_01"

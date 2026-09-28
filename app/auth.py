@@ -32,7 +32,7 @@ def get_current_user_optional(
     token_str = extract_token_from_request(request)
     if not token_str:
         return None
-    if not demo_enabled() and token_str in {"token_organizer", "org_7f2a", "token_judge_a", "jdg_a_91bc", "token_judge_b", "jdg_b_44de", "token_participant", "prt_2e88"}:
+    if not demo_enabled() and token_str in {"token_admin", "adm_9a11", "token_organizer", "org_7f2a", "token_judge_a", "jdg_a_91bc", "token_judge_b", "jdg_b_44de", "token_participant", "prt_2e88"}:
         return None
 
     session_record = db.query(SessionToken).filter(SessionToken.token == token_str).first()
@@ -72,9 +72,10 @@ def require_role(*allowed_roles: str):
     return role_checker
 
 
-require_organizer = require_role("organizer")
-require_judge_or_organizer = require_role("judge", "organizer")
-require_participant_or_organizer = require_role("participant", "organizer")
+require_admin = require_role("admin")
+require_organizer = require_role("organizer", "admin")
+require_judge_or_organizer = require_role("judge", "organizer", "admin")
+require_participant_or_organizer = require_role("participant", "organizer", "admin")
 
 
 def create_session(user_id: str, db: Session) -> str:

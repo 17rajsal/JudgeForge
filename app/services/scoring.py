@@ -57,8 +57,8 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
     all_scores = query.all()
 
     if not all_scores:
-        # Return all projects with 0 scores
-        projects = db.query(Project).all()
+        # Return all submitted projects with 0 scores
+        projects = db.query(Project).filter(Project.status == "submitted").all()
         return [
             {
                 "project_id": p.id,
@@ -131,8 +131,8 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
             "normalized": normalized,
         })
 
-    # 4. Fetch projects
-    p_query = db.query(Project)
+    # 4. Fetch submitted projects
+    p_query = db.query(Project).filter(Project.status == "submitted")
     if event_id:
         p_query = p_query.filter(Project.event_id == event_id)
     projects = p_query.all()

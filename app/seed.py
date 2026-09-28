@@ -236,8 +236,22 @@ def seed_database(db: Session | None = None) -> dict:
             db.add(org_user)
             db.flush()
 
+        # Admin
+        admin_user = db.query(User).filter(User.email == "admin@judgeforge.local").first()
+        if not admin_user:
+            admin_user = User(
+                id="usr_admin",
+                email="admin@judgeforge.local",
+                name="System Administrator",
+                role="admin",
+            )
+            db.add(admin_user)
+            db.flush()
+
         # Deterministic session tokens for testing
         demo_tokens = [
+            ("token_admin", admin_user.id),
+            ("adm_9a11", admin_user.id),
             ("token_organizer", org_user.id),
             ("org_7f2a", org_user.id),
         ]
@@ -269,6 +283,41 @@ def seed_database(db: Session | None = None) -> dict:
         for tok, uid in demo_tokens:
             if not db.query(SessionToken).filter(SessionToken.token == tok).first():
                 db.add(SessionToken(token=tok, user_id=uid))
+
+        # 9. Default Prizes
+        from app.models import Prize
+        if not db.query(Prize).filter(Prize.event_id == event.id).first():
+            db.add(
+                Prize(
+                    id="prz_01",
+                    event_id=event.id,
+                    title="1st Place Overall",
+                    description="Grand prize for the top scoring project",
+                    amount="$5,000",
+                    placement="1st",
+                )
+            )
+            db.add(
+                Prize(
+                    id="prz_02",
+                    event_id=event.id,
+                    title="Runner Up",
+                    description="Second place overall across all tracks",
+                    amount="$2,500",
+                    placement="2nd",
+                )
+            )
+            db.add(
+                Prize(
+                    id="prz_03",
+                    event_id=event.id,
+                    title="Best Technical Architecture",
+                    description="Excellence in system design, offline resilience and code quality",
+                    amount="$1,000",
+                    placement="Special",
+                )
+            )
+            db.flush()
 
         from app.models import PasswordCredential
         from app.passwords import hash_password, demo_enabled

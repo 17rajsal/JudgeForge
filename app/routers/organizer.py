@@ -8,8 +8,8 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, Judge, Project, Score, Track, RubricCriterion, AuditLog, Event
-from app.auth import get_current_user, get_current_user_optional, require_organizer
+from app.models import User, Judge, Project, Score, Track, RubricCriterion, AuditLog, Event, Prize
+from app.auth import get_current_user, get_current_user_optional, require_organizer, require_admin
 from app.services.scoring import compute_leaderboard, generate_results_csv
 
 router = APIRouter(tags=["Organizer"])
@@ -122,11 +122,11 @@ def view_organizer_dashboard(
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    if not user or user.role != "organizer":
+    if not user or user.role not in ["organizer", "admin"]:
         return templates.TemplateResponse(
             request=request,
             name="login.html",
-            context={"user": user, "error": "Organizer access required."},
+            context={"user": user, "error": "Organizer or Admin access required."},
         )
 
     leaderboard = compute_leaderboard(db)
@@ -135,6 +135,8 @@ def view_organizer_dashboard(
     criteria = db.query(RubricCriterion).all()
     audit_logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(20).all()
     event = db.query(Event).first()
+    prizes = db.query(Prize).filter(Prize.event_id == event.id).all() if event else []
+    all_users = db.query(User).order_by(User.role.asc(), User.email.asc()).all() if user.role == "admin" else []
 
     return templates.TemplateResponse(
         request=request,
@@ -146,6 +148,8 @@ def view_organizer_dashboard(
             "tracks": tracks,
             "judges": judges,
             "criteria": criteria,
+            "prizes": prizes,
+            "all_users": all_users,
             "audit_logs": audit_logs,
         },
     )
@@ -304,5 +308,379 @@ def update_event(
         "id": event.id,
         "name": event.name,
         "submissions_close": event.submissions_close.isoformat(),
+    }
+
+
+# ============================================================================
+# Event Prizes
+# ============================================================================
+class PrizeCreateSchema(BaseModel):
+    title: str
+    description: Optional[str] = None
+    amount: str
+    placement: str
+
+
+class PrizeUpdateSchema(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    amount: Optional[str] = None
+    placement: Optional[str] = None
+
+
+@router.get("/api/events/{event_id}/prizes")
+def list_event_prizes(
+    event_id: str,
+    db: Session = Depends(get_db),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    prizes = db.query(Prize).filter(Prize.event_id == event_id).order_by(Prize.created_at.asc()).all()
+    return [
+        {
+            "id": p.id,
+            "event_id": p.event_id,
+            "title": p.title,
+            "description": p.description,
+            "amount": p.amount,
+            "placement": p.placement,
+        }
+        for p in prizes
+    ]
+
+
+@router.post("/api/events/{event_id}/prizes", status_code=status.HTTP_201_CREATED)
+def create_prize(
+    event_id: str,
+    payload: PrizeCreateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+    if not payload.title.strip() or not payload.amount.strip() or not payload.placement.strip():
+        raise HTTPException(status_code=400, detail="Title, amount, and placement are required")
+
+    prize_id = "prz_" + secrets.token_hex(6)
+    prize = Prize(
+        id=prize_id,
+        event_id=event.id,
+        title=payload.title.strip(),
+        description=payload.description.strip() if payload.description else "",
+        amount=payload.amount.strip(),
+        placement=payload.placement.strip(),
+    )
+    db.add(prize)
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="CREATE_PRIZE",
+            target_type="Prize",
+            target_id=prize.id,
+            details=f"Created prize {prize.title} ({prize.amount}) for event {event.id}",
+        )
+    )
+    db.commit()
+    db.refresh(prize)
+    return {
+        "id": prize.id,
+        "event_id": prize.event_id,
+        "title": prize.title,
+        "description": prize.description,
+        "amount": prize.amount,
+        "placement": prize.placement,
+    }
+
+
+@router.put("/api/prizes/{prize_id}")
+def update_prize(
+    prize_id: str,
+    payload: PrizeUpdateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    prize = db.query(Prize).filter(Prize.id == prize_id).first()
+    if not prize:
+        raise HTTPException(status_code=404, detail="Prize not found")
+
+    if payload.title is not None:
+        if not payload.title.strip():
+            raise HTTPException(status_code=400, detail="Title cannot be empty")
+        prize.title = payload.title.strip()
+    if payload.description is not None:
+        prize.description = payload.description.strip()
+    if payload.amount is not None:
+        if not payload.amount.strip():
+            raise HTTPException(status_code=400, detail="Amount cannot be empty")
+        prize.amount = payload.amount.strip()
+    if payload.placement is not None:
+        if not payload.placement.strip():
+            raise HTTPException(status_code=400, detail="Placement cannot be empty")
+        prize.placement = payload.placement.strip()
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="UPDATE_PRIZE",
+            target_type="Prize",
+            target_id=prize.id,
+            details=f"Updated prize {prize.title}",
+        )
+    )
+    db.commit()
+    db.refresh(prize)
+    return {
+        "id": prize.id,
+        "event_id": prize.event_id,
+        "title": prize.title,
+        "description": prize.description,
+        "amount": prize.amount,
+        "placement": prize.placement,
+    }
+
+
+@router.delete("/api/prizes/{prize_id}")
+def delete_prize(
+    prize_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    prize = db.query(Prize).filter(Prize.id == prize_id).first()
+    if not prize:
+        raise HTTPException(status_code=404, detail="Prize not found")
+
+    event_id = prize.event_id
+    db.delete(prize)
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="DELETE_PRIZE",
+            target_type="Prize",
+            target_id=prize_id,
+            details=f"Deleted prize {prize_id} from event {event_id}",
+        )
+    )
+    db.commit()
+    return {"message": "Prize deleted successfully", "id": prize_id}
+
+
+# ============================================================================
+# Results Publication
+# ============================================================================
+@router.post("/api/events/{event_id}/publish")
+def publish_results(
+    event_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    import datetime
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    now = datetime.datetime.now(datetime.timezone.utc)
+    event.results_published = 1
+    event.results_published_at = now
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="PUBLISH_RESULTS",
+            target_type="Event",
+            target_id=event.id,
+            details=f"Results published by {current_user.email}",
+        )
+    )
+    db.commit()
+    return {
+        "message": "Results published successfully",
+        "event_id": event.id,
+        "results_published": True,
+        "results_published_at": now.isoformat(),
+    }
+
+
+@router.post("/api/events/{event_id}/unpublish")
+def unpublish_results(
+    event_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    event.results_published = 0
+    event.results_published_at = None
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="UNPUBLISH_RESULTS",
+            target_type="Event",
+            target_id=event.id,
+            details=f"Results unpublished by {current_user.email}",
+        )
+    )
+    db.commit()
+    return {
+        "message": "Results unpublished successfully",
+        "event_id": event.id,
+        "results_published": False,
+    }
+
+
+@router.get("/api/results")
+def get_public_results(
+    request: Request,
+    event_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    user = get_current_user_optional(request, db)
+    target_event_id = event_id or "evt_01"
+    event = db.query(Event).filter(Event.id == target_event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    # If unpublished, only organizer and admin can preview
+    if not event.results_published:
+        if not user or user.role not in ["organizer", "admin"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Results have not been published yet",
+            )
+        is_preview = True
+    else:
+        is_preview = False
+
+    leaderboard = compute_leaderboard(db, event.id)
+    prizes = db.query(Prize).filter(Prize.event_id == event.id).order_by(Prize.created_at.asc()).all()
+
+    # NOTE: leaderboard computes aggregated scores (raw_score, normalized_score, rank)
+    # Individual judge scores and judge names are NEVER included here!
+    return {
+        "event_id": event.id,
+        "event_name": event.name,
+        "published": bool(event.results_published),
+        "published_at": event.results_published_at.isoformat() if event.results_published_at else None,
+        "preview": is_preview,
+        "prizes": [
+            {
+                "id": p.id,
+                "title": p.title,
+                "description": p.description,
+                "amount": p.amount,
+                "placement": p.placement,
+            }
+            for p in prizes
+        ],
+        "leaderboard": [
+            {
+                "rank": row["rank"],
+                "project_id": row["project_id"],
+                "title": row["title"],
+                "team_name": row["team_name"],
+                "track_name": row["track_name"],
+                "raw_score": row["raw_score"],
+                "normalized_score": row["normalized_score"],
+                "review_count": row["review_count"],
+            }
+            for row in leaderboard
+        ],
+    }
+
+
+@router.get("/results", response_class=HTMLResponse)
+def view_public_results(
+    request: Request,
+    event_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user_optional),
+):
+    target_event_id = event_id or "evt_01"
+    event = db.query(Event).filter(Event.id == target_event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    is_organizer_or_admin = bool(user and user.role in ["organizer", "admin"])
+    leaderboard = []
+    if event.results_published or is_organizer_or_admin:
+        leaderboard = compute_leaderboard(db, event.id)
+
+    prizes = db.query(Prize).filter(Prize.event_id == event.id).order_by(Prize.created_at.asc()).all()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="results.html",
+        context={
+            "user": user,
+            "event": event,
+            "prizes": prizes,
+            "leaderboard": leaderboard,
+            "is_published": bool(event.results_published),
+            "is_organizer_or_admin": is_organizer_or_admin,
+        },
+    )
+
+
+# ============================================================================
+# Admin User Role Management
+# ============================================================================
+class UserRoleUpdateSchema(BaseModel):
+    role: str
+
+
+@router.get("/api/admin/users")
+def list_users_for_admin(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    users = db.query(User).order_by(User.role.asc(), User.email.asc()).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "name": u.name,
+            "role": u.role,
+        }
+        for u in users
+    ]
+
+
+@router.put("/api/admin/users/{user_id}/role")
+def update_user_role(
+    user_id: str,
+    payload: UserRoleUpdateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    valid_roles = {"participant", "judge", "organizer", "admin"}
+    new_role = payload.role.strip().lower()
+    if new_role not in valid_roles:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Allowed roles: {', '.join(sorted(valid_roles))}")
+
+    old_role = target_user.role
+    target_user.role = new_role
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="UPDATE_USER_ROLE",
+            target_type="User",
+            target_id=target_user.id,
+            details=f"Changed role of {target_user.email} from {old_role} to {new_role}",
+        )
+    )
+    db.commit()
+    db.refresh(target_user)
+    return {
+        "id": target_user.id,
+        "email": target_user.email,
+        "name": target_user.name,
+        "role": target_user.role,
+        "message": f"User role updated to {target_user.role}",
     }
 

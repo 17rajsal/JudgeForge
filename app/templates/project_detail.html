@@ -17,7 +17,17 @@
       </p>
     </div>
     
-    <div>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      {% if project.status == 'draft' %}
+      <div style="background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:700;">
+        &bull; DRAFT (Not Submitted)
+      </div>
+      {% else %}
+      <div style="background:#d1fae5;border:1px solid #a7f3d0;color:#065f46;padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:700;">
+        &bull; SUBMITTED
+      </div>
+      {% endif %}
+
       {% if is_closed %}
       <div style="background:rgba(244, 63, 94, 0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;">
         &bull; Submissions Closed (Locked)
@@ -77,7 +87,14 @@
       <label>Repository URL</label>
       <input type="url" id="editRepo" value="{{ project.repo_url or '' }}">
     </div>
-    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;align-items:center;">
+      <button type="submit" class="btn btn-secondary">Save Changes</button>
+      {% if project.status == 'draft' %}
+      <button type="button" onclick="handleFinalizeSubmit()" class="btn btn-primary">
+        Finalize &amp; Submit Project
+      </button>
+      {% endif %}
+    </div>
   </form>
 </div>
 
@@ -99,6 +116,20 @@ async function handleEditProject(e) {
   } else {
     const err = await res.json();
     alert('Failed to update: ' + (err.detail || 'Unknown error'));
+  }
+}
+
+async function handleFinalizeSubmit() {
+  if (!confirm("Are you sure you want to finalize and submit this project? It will become visible in the public gallery.")) return;
+  const res = await fetch('/api/projects/{{ project.id }}/submit', {
+    method: 'POST'
+  });
+  if (res.ok) {
+    alert('Project submitted successfully!');
+    window.location.reload();
+  } else {
+    const err = await res.json();
+    alert('Submission failed: ' + (err.detail || 'Unknown error'));
   }
 }
 </script>

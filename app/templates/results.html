@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block title %}Official Results | JudgeForge{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1.5rem;">
+    <div>
+      <div class="hero-eyebrow">FINAL RESULTS &amp; STANDINGS</div>
+      <h1>{{ event.name if event else 'Dogfood Hackathon 2026' }}</h1>
+      <p>
+        {% if is_published %}
+          Official results and normalized standings published on {{ event.results_published_at.strftime('%B %d, %Y at %H:%M UTC') if event.results_published_at else 'recently' }}.
+        {% else %}
+          Hackathon judging and results center.
+        {% endif %}
+      </p>
+    </div>
+    {% if is_organizer_or_admin %}
+    <div style="display:flex;gap:0.75rem;align-items:center;">
+      {% if is_published %}
+        <span class="card-tag" style="background:#d1fae5;color:#065f46;padding:0.5rem 0.85rem;font-weight:700;">&bull; Published to Public</span>
+        <button onclick="handleUnpublish()" class="btn btn-secondary" style="font-size:0.85rem;">Unpublish</button>
+      {% else %}
+        <span class="card-tag" style="background:#fef3c7;color:#92400e;padding:0.5rem 0.85rem;font-weight:700;">&bull; Draft (Private Preview)</span>
+        <button onclick="handlePublish()" class="btn btn-primary" style="font-size:0.85rem;">Publish Official Results</button>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="event-banner">
+    <div class="event-stat">
+      <span>Status:</span>
+      <span class="stat-val" style="color:{% if is_published %}var(--accent-emerald){% else %}var(--accent-amber){% endif %};">
+        {% if is_published %}Published{% else %}Judging Underway{% endif %}
+      </span>
+    </div>
+    <div class="event-stat">
+      <span>Total Submissions:</span>
+      <span class="stat-val">{{ leaderboard | length if (is_published or is_organizer_or_admin) else '41' }} Projects</span>
+    </div>
+    <div class="event-stat">
+      <span>Scoring Engine:</span>
+      <span class="stat-val" style="color:var(--accent-purple);">Z-Score Normalized (Zero-Variance Proof)</span>
+    </div>
+  </div>
+</div>
+
+<!-- Event Prizes Section -->
+{% if prizes %}
+<div class="page-header" style="margin-top:2rem;">
+  <h2>Event Prizes &amp; Awards</h2>
+</div>
+<div class="cards-grid" style="margin-bottom:2.5rem;">
+  {% for prz in prizes %}
+  <div class="card" style="padding:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.75rem;">
+      <span class="card-tag">{{ prz.placement }}</span>
+      <span style="font-size:1.35rem;font-weight:800;color:var(--accent-emerald);">{{ prz.amount }}</span>
+    </div>
+    <h3 class="card-title" style="margin-bottom:0.5rem;">{{ prz.title }}</h3>
+    <p class="card-body" style="color:var(--text-secondary);font-size:0.92rem;">
+      {{ prz.description or 'Awarded to outstanding hackathon submissions.' }}
+    </p>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Results Content -->
+{% if is_published or is_organizer_or_admin %}
+  {% if not is_published and is_organizer_or_admin %}
+  <div style="background:#fffbeb;border:1px solid #fde68a;padding:1rem 1.25rem;border-radius:var(--radius-md);margin-bottom:1.5rem;color:#92400e;">
+    <strong>Organizer / Admin Preview:</strong> Official results are currently private. Only organizers and administrators can view this standings preview. Click "Publish Official Results" above to release to the public gallery.
+  </div>
+  {% endif %}
+
+  <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+    <h2>Final Leaderboard &amp; Rankings</h2>
+    <span style="color:var(--text-muted);font-size:0.85rem;">Ranked by Normalized Score</span>
+  </div>
+
+  <div class="table-container" style="margin-bottom:3rem;">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:65px;">Rank</th>
+          <th>Project Title</th>
+          <th>Track</th>
+          <th>Team</th>
+          <th>Reviews</th>
+          <th>Raw Avg</th>
+          <th>Normalized Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in leaderboard %}
+        <tr>
+          <td style="font-weight:800;font-size:1.15rem;color:{% if row.rank == 1 %}var(--accent-amber){% elif row.rank <= 3 %}var(--accent-cyan){% else %}var(--text-secondary){% endif %};">
+            {% if row.rank == 1 %}&#127942; #1{% elif row.rank == 2 %}&#129352; #2{% elif row.rank == 3 %}&#129353; #3{% else %}#{{ row.rank }}{% endif %}
+          </td>
+          <td>
+            <a href="/projects/{{ row.project_id }}" style="font-weight:700;">{{ row.title }}</a>
+          </td>
+          <td><span class="card-tag">{{ row.track_name }}</span></td>
+          <td>{{ row.team_name }}</td>
+          <td>{{ row.review_count }}</td>
+          <td style="font-family:var(--font-mono);font-size:0.9rem;">{{ '%.3f' | format(row.raw_score) }}</td>
+          <td style="font-family:var(--font-mono);font-weight:700;color:var(--accent-emerald);font-size:1.05rem;">
+            {{ '%.4f' | format(row.normalized_score) }}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="text-align:center;padding:2rem;color:var(--text-muted);">
+            No submitted projects found for scoring.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <!-- Unpublished Public State -->
+  <div class="card" style="padding:3.5rem 2rem;text-align:center;margin:2rem 0;">
+    <div style="font-size:3rem;margin-bottom:1rem;">&#9203;</div>
+    <h2 style="font-size:1.8rem;margin-bottom:0.75rem;">Judging In Progress</h2>
+    <p style="color:var(--text-secondary);max-width:550px;margin:0 auto 1.5rem;font-size:1.05rem;line-height:1.6;">
+      Submissions are undergoing peer review and deliberation by the judging panel. Official winners and normalized rankings will be posted here as soon as organizers announce the results.
+    </p>
+    <a href="/projects" class="btn btn-secondary">Explore Project Showcase</a>
+  </div>
+{% endif %}
+
+{% if is_organizer_or_admin %}
+<script>
+async function handlePublish() {
+  if (!confirm("Are you sure you want to publish official results? This will make final rankings public.")) return;
+  const res = await fetch('/api/events/{{ event.id }}/publish', { method: 'POST' });
+  if (res.ok) {
+    location.reload();
+  } else {
+    const err = await res.json();
+    alert('Failed to publish: ' + (err.detail || 'Unknown error'));
+  }
+}
+
+async function handleUnpublish() {
+  if (!confirm("Are you sure you want to unpublish results? Standings will be hidden from public view.")) return;
+  const res = await fetch('/api/events/{{ event.id }}/unpublish', { method: 'POST' });
+  if (res.ok) {
+    location.reload();
+  } else {
+    const err = await res.json();
+    alert('Failed to unpublish: ' + (err.detail || 'Unknown error'));
+  }
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -43,7 +43,10 @@
 
       <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
         <a href="/projects" class="btn btn-secondary">Cancel</a>
-        <button type="submit" class="btn btn-primary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+          Save as Draft
+        </button>
+        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
           Submit Project
         </button>
       </div>
@@ -52,26 +55,32 @@
 </div>
 
 <script>
-async function handleSubmitProject(e) {
+async function handleSubmitProject(e, targetStatus) {
   e.preventDefault();
+  const title = document.getElementById('projTitle').value.trim();
+  if (!title) {
+    alert('Project title is required');
+    return;
+  }
   const res = await fetch('/api/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       event_id: {{ event.id | tojson }},
-      title: document.getElementById('projTitle').value,
+      title: title,
       track_id: document.getElementById('projTrack').value,
       summary: document.getElementById('projSummary').value,
-      repo_url: document.getElementById('projRepo').value
+      repo_url: document.getElementById('projRepo').value,
+      status: targetStatus || 'submitted'
     })
   });
   if (res.ok) {
     const data = await res.json();
-    alert('Project submitted successfully!');
+    alert(targetStatus === 'draft' ? 'Draft saved successfully!' : 'Project submitted successfully!');
     window.location.href = '/projects/' + data.id;
   } else {
     const err = await res.json();
-    alert('Submission failed: ' + (err.detail || 'Unknown error'));
+    alert('Action failed: ' + (err.detail || 'Unknown error'));
   }
 }
 </script>

@@ -3,13 +3,25 @@
 {% block content %}
 <h1>Your workspace</h1><p id="status" role="status"></p>
 <div id="invitation" class="card" hidden><p>You have a team invitation.</p><button class="btn btn-primary" onclick="acceptInvite()">Accept invitation</button></div>
-<div class="card" style="padding:1.5rem;margin:1rem 0"><h2>Events</h2>
-{% for e in events %}<p><strong>{{ e.name }}</strong> · closes {{ e.submissions_close }} UTC · <a href="/submit?event_id={{ e.id }}">Submit project</a></p>{% endfor %}</div>
+<div class="card" style="padding:1.5rem;margin:1rem 0"><h2>Events &amp; Prizes</h2>
+{% for e in events %}
+<div style="margin-bottom:1rem;border-bottom:1px solid var(--card-border);padding-bottom:0.75rem;">
+  <p><strong>{{ e.name }}</strong> &middot; closes {{ e.submissions_close }} UTC &middot; <a href="/submit?event_id={{ e.id }}">Submit project</a></p>
+  {% if e.prizes %}
+  <div style="font-size:0.9rem;margin-top:0.4rem;color:var(--text-secondary);">
+    <strong>Prizes:</strong>
+    {% for prz in e.prizes %}
+      <span class="card-tag" style="margin-right:0.35rem;">{{ prz.placement }}: {{ prz.title }} ({{ prz.amount }})</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}</div>
 <div class="card" style="padding:1.5rem;margin:1rem 0"><h2>Create a team</h2>
 <form onsubmit="createTeam(event)"><label>Team name<input id="teamName" required maxlength="100"></label><label>Event<select id="teamEvent">{% for e in events %}<option value="{{ e.id }}">{{ e.name }}</option>{% endfor %}</select></label><button class="btn btn-primary">Create team</button></form></div>
 <div class="card" style="padding:1.5rem;margin:1rem 0"><h2>Your teams</h2>
 {% for t in teams %}<p>{{ t.name }} <button class="btn btn-secondary" onclick="invite('{{ t.id }}')">Create invitation link</button></p>{% else %}<p>No teams yet.</p>{% endfor %}<p id="inviteLink"></p></div>
-{% if user.role == 'organizer' %}
+{% if user.role in ['organizer', 'admin'] %}
 <div class="card" style="padding:1.5rem;margin:1rem 0"><h2>Create an event</h2>
 <form onsubmit="createEvent(event)"><label>Name<input id="eventName" required maxlength="150"></label><label>Deadline (your local time)<input id="deadline" type="datetime-local" required></label><label>Tracks, one per line<textarea id="tracks" required></textarea></label><button class="btn btn-primary">Create event</button></form></div>
 {% endif %}
