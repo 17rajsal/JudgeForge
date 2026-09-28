@@ -155,9 +155,9 @@ docker compose up
 
 ---
 
-## Screenshots Section
+## Walkthrough
 
-*(Place screenshots of Public Gallery, Project Details, Judge Portal, and Organizer Command Center here)*
+See [DEMO-SCRIPT.md](DEMO-SCRIPT.md) for the recording sequence and [RELEASE-CHECKLIST.md](RELEASE-CHECKLIST.md) for verification evidence.
 
 ---
 
@@ -174,12 +174,15 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Release verification and current limits
 
-The latest local verification passed 23 tests using isolated in-memory databases and all seven official acceptance checks against a fresh database at port 8011. `acceptance-report.txt` records that real local Python run; it is not a Docker verification. The default configuration remains port 8000. Docker is unavailable on the development host, so clean container startup and disconnected container runtime remain unverified. Re-run the checker against Docker before submitting.
+Release verification: 23 automated tests passed using isolated databases. Docker Compose built the image and created a new volume and running container, as shown in the operator's terminal output. All seven official acceptance checks passed on port 8000 after startup and again after restart. The operator confirmed Wi-Fi was off during the restart and acceptance run. The latest `acceptance-report.txt` is real checker output from port 8000. Docker's internal `healthy` status has not been independently captured by this agent; the HTTP `/health` endpoint returned `ok`. The initial image build downloaded dependencies. This verifies offline runtime after preparing the image, not an offline build from an empty cache.
 
 Visit `/workspace` after signing in to create teams, create single-use invitation links (48-hour expiry), accept invitations, and choose an event for submission. Organizers can create events with deadlines and tracks there. New participants register at `/login` with passwords of at least 12 characters. Registration never grants elevated roles or automatically claims seeded identities. Judge invitations through the organizer API return a generated initial password once, for the organizer to share privately.
 
-Passwords use salted PBKDF2-SHA256 (600,000 iterations). Local evaluation defaults to `DEMO_MODE=true`, with public fixture sessions and demo passwords. Compose binds to localhost only. For non-demo use, set `DEMO_MODE=false` and supply `ORGANIZER_PASSWORD` (12+ characters) on a fresh database; known demo tokens and demo-account sessions are rejected. Existing demo accounts are not silently converted. This is not a production security certification: email verification, password recovery, rate limiting and session expiry are not implemented. Use an appropriate deployment review before public hosting.
+Passwords use salted PBKDF2-SHA256 (600,000 iterations). Local evaluation defaults to `DEMO_MODE=true`, with public fixture sessions and demo passwords. Compose currently publishes port 8000 on host interfaces. Keep this public-credential evaluation instance on a trusted machine; use `127.0.0.1:8000:8000` when configuring a local-only deployment. For non-demo use, set `DEMO_MODE=false` and supply `ORGANIZER_PASSWORD` (12+ characters) on a fresh database; known demo tokens and demo-account sessions are rejected. Existing demo accounts are not silently converted. This is not a production security certification: email verification, password recovery, rate limiting and session expiry are not implemented. Use an appropriate deployment review before public hosting.
 
 Event creation and event-specific submission are supported. Organizer reporting and rubric controls still aggregate events; evaluate judging with the fixture event alone. The existing add-member API directly adds a member; use invitation links when recipient consent is needed. Full UI coverage beyond the workflows tested is not claimed.
 
 Runtime assets and SQLite are local. Building the Docker image for the first time needs base images and packages available through network access or a prepared cache; a network-free build from an empty cache has not been verified.
+
+
+The seven acceptance checks cover a limited contract. Remaining broader tier gaps include a distinct admin role, event prize configuration, explicit saved drafts, and a results-publication workflow. The portal has no public voting or comments. These gaps must not be presented as completed features in the demo or submission.

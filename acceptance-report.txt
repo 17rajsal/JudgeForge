@@ -1,4 +1,4 @@
-﻿DOGFOOD 2026 acceptance report
+DOGFOOD 2026 acceptance report
 portal: http://127.0.0.1:8000
 claimed: T1 T2
 fixtures: fixtures.json
