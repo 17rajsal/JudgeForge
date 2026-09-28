@@ -19,6 +19,7 @@
 
     <ul class="nav-links">
       <li><a href="/projects" class="{% if request.url.path.startswith('/projects') %}active{% endif %}">Gallery</a></li>
+      <li><a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}">Submit</a></li>
       {% if user and user.role in ['judge', 'organizer'] %}
       <li><a href="/judge" class="{% if request.url.path.startswith('/judge') %}active{% endif %}">Judging</a></li>
       {% endif %}

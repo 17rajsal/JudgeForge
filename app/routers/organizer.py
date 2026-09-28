@@ -146,3 +146,157 @@ def view_organizer_dashboard(
             "audit_logs": audit_logs,
         },
     )
+
+
+class JudgeCreateSchema(BaseModel):
+    name: str
+    email: str
+    track_ids: Optional[List[str]] = None
+
+
+class TrackAssignSchema(BaseModel):
+    track_ids: List[str]
+
+
+class EventUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    submissions_close: Optional[str] = None
+
+
+@router.post("/api/judges", status_code=status.HTTP_201_CREATED)
+def invite_or_create_judge(
+    payload: JudgeCreateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    email = payload.email.strip().lower()
+    existing_judge = db.query(Judge).filter(Judge.email == email).first()
+    if existing_judge:
+        raise HTTPException(status_code=400, detail="Judge with this email already exists")
+
+    user = db.query(User).filter(User.email == email).first()
+    if not user:
+        user_id = f"usr_{email.split('@')[0]}"
+        user = User(
+            id=user_id,
+            email=email,
+            name=payload.name.strip(),
+            role="judge",
+        )
+        db.add(user)
+        db.flush()
+    else:
+        user.role = "judge"
+
+    judge_count = db.query(Judge).count()
+    judge_id = f"jdg_{judge_count + 1:02d}"
+
+    judge = Judge(
+        id=judge_id,
+        user_id=user.id,
+        name=payload.name.strip(),
+        email=email,
+    )
+    db.add(judge)
+    db.flush()
+
+    if payload.track_ids:
+        for tid in payload.track_ids:
+            track = db.query(Track).filter(Track.id == tid).first()
+            if track:
+                judge.tracks.append(track)
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="CREATE_JUDGE",
+            target_type="Judge",
+            target_id=judge.id,
+            details=f"Invited judge {judge.name} ({email})",
+        )
+    )
+
+    db.commit()
+    db.refresh(judge)
+
+    return {
+        "id": judge.id,
+        "name": judge.name,
+        "email": judge.email,
+        "tracks": [t.id for t in judge.tracks],
+    }
+
+
+@router.post("/api/judges/{judge_id}/tracks")
+def assign_judge_tracks(
+    judge_id: str,
+    payload: TrackAssignSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    judge = db.query(Judge).filter(Judge.id == judge_id).first()
+    if not judge:
+        raise HTTPException(status_code=404, detail="Judge not found")
+
+    judge.tracks.clear()
+    for tid in payload.track_ids:
+        track = db.query(Track).filter(Track.id == tid).first()
+        if track:
+            judge.tracks.append(track)
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="ASSIGN_TRACKS",
+            target_type="Judge",
+            target_id=judge.id,
+            details=f"Assigned tracks: {payload.track_ids}",
+        )
+    )
+    db.commit()
+
+    return {"message": "Judge tracks updated successfully", "judge_id": judge_id, "tracks": [t.id for t in judge.tracks]}
+
+
+@router.put("/api/events/{event_id}")
+def update_event(
+    event_id: str,
+    payload: EventUpdateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_organizer),
+):
+    import datetime
+
+    event = db.query(Event).filter(Event.id == event_id).first()
+    if not event:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    if payload.name:
+        event.name = payload.name.strip()
+    if payload.submissions_close:
+        try:
+            close_str = payload.submissions_close
+            if close_str.endswith("Z"):
+                close_str = close_str[:-1] + "+00:00"
+            event.submissions_close = datetime.datetime.fromisoformat(close_str)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Invalid ISO 8601 datetime format for submissions_close")
+
+    db.add(
+        AuditLog(
+            user_id=current_user.id,
+            action="UPDATE_EVENT",
+            target_type="Event",
+            target_id=event.id,
+            details=f"Updated event details: close={event.submissions_close}",
+        )
+    )
+    db.commit()
+    db.refresh(event)
+
+    return {
+        "id": event.id,
+        "name": event.name,
+        "submissions_close": event.submissions_close.isoformat(),
+    }
+

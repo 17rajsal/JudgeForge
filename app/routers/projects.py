@@ -33,6 +33,32 @@ class ProjectUpdateSchema(BaseModel):
     track_id: Optional[str] = None
 
 
+@router.get("/submit", response_class=HTMLResponse)
+def view_submit_form(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user_optional),
+):
+    event = db.query(Event).first()
+    tracks = db.query(Track).all()
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    close_time = event.submissions_close if event else None
+    if close_time and close_time.tzinfo is None:
+        close_time = close_time.replace(tzinfo=datetime.timezone.utc)
+    is_closed = now_utc > close_time if close_time else False
+
+    return templates.TemplateResponse(
+        request=request,
+        name="submit.html",
+        context={
+            "event": event,
+            "tracks": tracks,
+            "user": user,
+            "is_closed": is_closed,
+        },
+    )
+
+
 @router.get("/projects", response_class=HTMLResponse)
 def view_gallery(
     request: Request,
@@ -298,3 +324,89 @@ def update_project(
     db.refresh(project)
 
     return {"message": "Project updated successfully", "id": project.id}
+
+
+class TeamCreateSchema(BaseModel):
+    name: str
+    event_id: Optional[str] = None
+
+
+class TeamMemberAddSchema(BaseModel):
+    email: str
+
+
+@router.get("/api/teams")
+def list_teams(db: Session = Depends(get_db)):
+    teams = db.query(Team).all()
+    return [
+        {
+            "id": t.id,
+            "name": t.name,
+            "event_id": t.event_id,
+            "members": [m.email for m in t.members],
+            "project_count": len(t.projects),
+        }
+        for t in teams
+    ]
+
+
+@router.post("/api/teams", status_code=status.HTTP_201_CREATED)
+def create_team(
+    payload: TeamCreateSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_participant_or_organizer),
+):
+    event = (
+        db.query(Event).filter(Event.id == (payload.event_id or "evt_01")).first()
+        or db.query(Event).first()
+    )
+    team_count = db.query(Team).count()
+    team_id = f"tm_{team_count + 1:02d}"
+    team = Team(
+        id=team_id,
+        event_id=event.id if event else "evt_01",
+        name=payload.name.strip(),
+    )
+    db.add(team)
+    db.flush()
+    db.add(TeamMember(team_id=team.id, email=current_user.email, user_id=current_user.id))
+    db.commit()
+    db.refresh(team)
+    return {"id": team.id, "name": team.name, "members": [current_user.email]}
+
+
+@router.post("/api/teams/{team_id}/members")
+def add_team_member(
+    team_id: str,
+    payload: TeamMemberAddSchema,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    team = db.query(Team).filter(Team.id == team_id).first()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Only existing team members or organizer can add members
+    if current_user.role != "organizer":
+        is_member = (
+            db.query(TeamMember)
+            .filter(TeamMember.team_id == team_id, TeamMember.user_id == current_user.id)
+            .first()
+        )
+        if not is_member:
+            raise HTTPException(status_code=403, detail="Forbidden: Only team members can invite new members")
+
+    email = payload.email.strip().lower()
+    existing = (
+        db.query(TeamMember)
+        .filter(TeamMember.team_id == team_id, TeamMember.email == email)
+        .first()
+    )
+    if existing:
+        return {"message": "User is already a member of this team", "team_id": team_id}
+
+    user = db.query(User).filter(User.email == email).first()
+    db.add(TeamMember(team_id=team_id, email=email, user_id=user.id if user else None))
+    db.commit()
+    return {"message": f"Added {email} to team {team.name}", "team_id": team_id}
+

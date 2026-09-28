@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Submit Project | JudgeForge{% endblock %}
+
+{% block content %}
+<div style="max-width:700px;margin:1rem auto;">
+  <div class="card" style="padding:2.5rem;">
+    <h2 style="margin-bottom:0.5rem;">Submit Project</h2>
+    <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
+      Register your project for {{ event.name if event else 'the hackathon' }}.
+    </p>
+
+    {% if is_closed %}
+    <div style="background:rgba(244,63,94,0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;font-size:0.95rem;">
+      <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event else 'in the past' }}. New project submissions are no longer accepted.
+    </div>
+    {% endif %}
+
+    <form onsubmit="handleSubmitProject(event)">
+      <div class="form-group">
+        <label>Project Title *</label>
+        <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled{% endif %}>
+      </div>
+
+      <div class="form-group">
+        <label>Track *</label>
+        <select id="projTrack" required {% if is_closed %}disabled{% endif %}>
+          {% for t in tracks %}
+          <option value="{{ t.id }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Summary / Pitch</label>
+        <textarea id="projSummary" rows="4" placeholder="Brief summary of what the project accomplishes..." {% if is_closed %}disabled{% endif %}></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Source Code Repository URL</label>
+        <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled{% endif %}>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
+        <a href="/projects" class="btn btn-secondary">Cancel</a>
+        <button type="submit" class="btn btn-primary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+          Submit Project
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+async function handleSubmitProject(e) {
+  e.preventDefault();
+  const res = await fetch('/api/projects', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: document.getElementById('projTitle').value,
+      track_id: document.getElementById('projTrack').value,
+      summary: document.getElementById('projSummary').value,
+      repo_url: document.getElementById('projRepo').value
+    })
+  });
+  if (res.ok) {
+    const data = await res.json();
+    alert('Project submitted successfully!');
+    window.location.href = '/projects/' + data.id;
+  } else {
+    const err = await res.json();
+    alert('Submission failed: ' + (err.detail || 'Unknown error'));
+  }
+}
+</script>
+{% endblock %}

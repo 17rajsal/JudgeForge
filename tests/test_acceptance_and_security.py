@@ -234,3 +234,78 @@ def test_seed_idempotency():
     assert db.query(Judge).count() == initial_judge_count
     assert db.query(Score).count() == initial_score_count
     db.close()
+
+
+def test_team_creation_and_member_addition(client):
+    headers = {"Authorization": "Bearer token_participant"}
+    # Create new team
+    res = client.post("/api/teams", headers=headers, json={"name": "AlphaForge Team"})
+    assert res.status_code == 201
+    team_data = res.json()
+    team_id = team_data["id"]
+
+    # Add member
+    res2 = client.post(
+        f"/api/teams/{team_id}/members",
+        headers=headers,
+        json={"email": "newmember@example.org"},
+    )
+    assert res2.status_code == 200
+
+    # Unauthorized judge cannot add members to participant team
+    judge_headers = {"Authorization": "Bearer token_judge_a"}
+    res3 = client.post(
+        f"/api/teams/{team_id}/members",
+        headers=judge_headers,
+        json={"email": "intruder@example.org"},
+    )
+    assert res3.status_code == 403
+
+    # Clean up test team
+    db = SessionLocal()
+    db.query(Team).filter(Team.id == team_id).delete()
+    db.commit()
+    db.close()
+
+
+def test_organizer_judge_invite_and_track_assignment(client):
+    org_headers = {"Authorization": "Bearer token_organizer"}
+    # Invite new judge
+    res = client.post(
+        "/api/judges",
+        headers=org_headers,
+        json={
+            "name": "Dr. Elena Rostova",
+            "email": "elena.rostova@example.org",
+            "track_ids": ["trk_01", "trk_02"],
+        },
+    )
+    assert res.status_code == 201
+    judge_data = res.json()
+    judge_id = judge_data["id"]
+
+    # Update track assignments
+    res2 = client.post(
+        f"/api/judges/{judge_id}/tracks",
+        headers=org_headers,
+        json={"track_ids": ["trk_03"]},
+    )
+    assert res2.status_code == 200
+    assert res2.json()["tracks"] == ["trk_03"]
+
+    # Participant blocked from inviting judges
+    p_headers = {"Authorization": "Bearer token_participant"}
+    res3 = client.post(
+        "/api/judges",
+        headers=p_headers,
+        json={"name": "Hacker Judge", "email": "hacker@example.org"},
+    )
+    assert res3.status_code == 403
+
+    # Clean up test judge
+    db = SessionLocal()
+    db.query(Judge).filter(Judge.id == judge_id).delete()
+    db.query(User).filter(User.email == "elena.rostova@example.org").delete()
+    db.commit()
+    db.close()
+
