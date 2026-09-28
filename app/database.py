@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 DATA_DIR = Path(os.getenv("DATA_DIR", "./data"))
@@ -10,6 +11,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR}/judgeforge.db")
 
 engine = create_engine(
     DATABASE_URL,
+    **({"poolclass": StaticPool} if DATABASE_URL == "sqlite://" else {}),
     connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {},
 )
 

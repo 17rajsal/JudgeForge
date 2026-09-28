@@ -5,12 +5,20 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/judgeforge.db
-      - FIXTURES_PATH=./fixtures.json
+      - DATABASE_URL=sqlite:////app/data/judgeforge.db
+      - DATA_DIR=/app/data
+      - FIXTURES_PATH=/app/fixtures.json
       - PORT=8000
+      - DEMO_MODE=true
     volumes:
       - judgeforge_data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
 volumes:
   judgeforge_data:

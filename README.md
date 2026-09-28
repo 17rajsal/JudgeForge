@@ -2,7 +2,7 @@
 
 > **Self-hosted hackathon submissions and fair judging, with zero cloud dependencies.**
 
-JudgeForge is a resilient, offline-first hackathon management and fair judging platform built for the **Dogfood 2026** competition. It provides an uncompromised developer and participant experience while enforcing rigorous judging isolation, cryptographic peer privacy, deadline validation, and statistical score normalization.
+JudgeForge is a resilient, offline-first hackathon management and fair judging platform built for the **Dogfood 2026** competition. It provides an uncompromised developer and participant experience while enforcing rigorous judging isolation, server-side peer isolation, deadline validation, and statistical score normalization.
 
 ---
 
@@ -22,7 +22,7 @@ JudgeForge is a resilient, offline-first hackathon management and fair judging p
 - **Strict Role-Based Access Control (RBAC)**: Enforces permissions on the server for `organizer`, `judge`, and `participant`. UI controls reflect permissions, but backend authorization guards prevent bypass.
 - **Strict Judge Peer Isolation**: Judges can only view and update their own scores. Any attempt by a judge to inspect peer reviews (e.g. via direct query parameters or API calls) is rejected with HTTP `403 Forbidden`.
 - **Enforced Deadlines**: Server-side timestamps prevent late submissions and project modifications after `submissions_close`.
-- **Defensible Score Normalization**: Combines weighted category scoring with Z-score standardization across judges to eliminate scoring bias between harsh and generous reviewers, featuring mathematical guarantees for zero-variance reviewers.
+- **Defensible Score Normalization**: Combines weighted category scoring with Z-score standardization across judges to eliminate scoring bias between harsh and generous reviewers, handling zero-variance reviewers without division by zero.
 - **Organizer CSV Export**: RFC-compliant CSV generation with full breakdown of project ranks, raw averages, normalized scores, tracks, and teams.
 - **Idempotent Automated Seeding**: Automatically populates 1 event, 8 tracks, 30 judges, 40 teams, 41 projects, 126 reviews, and demo session tokens from `fixtures.json`.
 
@@ -66,7 +66,7 @@ Open your browser to: **`http://127.0.0.1:8000`** (or `http://localhost:8000`)
 | **Judge B** | Wei Lindqvist (`wei.lindqvist@example.org`, `jdg_02`) | `Authorization: Bearer token_judge_b` | `Cookie: session=jdg_b_44de` |
 | **Participant** | Priya Nair (`priya1@example.org`, `tm_01`) | `Authorization: Bearer token_participant` | `Cookie: session=prt_2e88` |
 
-*(Fast 1-click login buttons for all 4 roles are also available on `/login`)*.
+All four demo accounts sign in at `/login` with password `JudgeForge-Demo-2026!`. Demo credentials are public and suitable only for local evaluation.
 
 ---
 
@@ -170,3 +170,16 @@ docker compose up
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+
+## Release verification and current limits
+
+The latest local verification passed 23 tests using isolated in-memory databases and all seven official acceptance checks against a fresh database at port 8011. `acceptance-report.txt` records that real local Python run; it is not a Docker verification. The default configuration remains port 8000. Docker is unavailable on the development host, so clean container startup and disconnected container runtime remain unverified. Re-run the checker against Docker before submitting.
+
+Visit `/workspace` after signing in to create teams, create single-use invitation links (48-hour expiry), accept invitations, and choose an event for submission. Organizers can create events with deadlines and tracks there. New participants register at `/login` with passwords of at least 12 characters. Registration never grants elevated roles or automatically claims seeded identities. Judge invitations through the organizer API return a generated initial password once, for the organizer to share privately.
+
+Passwords use salted PBKDF2-SHA256 (600,000 iterations). Local evaluation defaults to `DEMO_MODE=true`, with public fixture sessions and demo passwords. Compose binds to localhost only. For non-demo use, set `DEMO_MODE=false` and supply `ORGANIZER_PASSWORD` (12+ characters) on a fresh database; known demo tokens and demo-account sessions are rejected. Existing demo accounts are not silently converted. This is not a production security certification: email verification, password recovery, rate limiting and session expiry are not implemented. Use an appropriate deployment review before public hosting.
+
+Event creation and event-specific submission are supported. Organizer reporting and rubric controls still aggregate events; evaluate judging with the fixture event alone. The existing add-member API directly adds a member; use invitation links when recipient consent is needed. Full UI coverage beyond the workflows tested is not claimed.
+
+Runtime assets and SQLite are local. Building the Docker image for the first time needs base images and packages available through network access or a prepared cache; a network-free build from an empty cache has not been verified.

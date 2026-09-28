@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, Field, ConfigDict
+import secrets
+import re
+from app.models import PasswordCredential, TeamMember
+from app.passwords import hash_password, verify_password, demo_enabled
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, SessionToken, Judge
@@ -11,17 +15,40 @@ router = APIRouter(tags=["Auth"])
 
 class LoginRequest(BaseModel):
     email: str
+    password: str = Field(min_length=1, max_length=256)
+
+
+class RegisterRequest(LoginRequest):
+    model_config = ConfigDict(extra="forbid")
+    name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=12, max_length=256)
+
+
+@router.post("/api/auth/register", status_code=201)
+def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+    email = payload.email.strip().lower()
+    if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", email) or not payload.name.strip():
+        raise HTTPException(400, "Valid email and name required")
+    if db.query(User).filter(User.email == email).first():
+        raise HTTPException(409, "Account already exists")
+    user = User(id="usr_" + secrets.token_hex(12), email=email, name=payload.name.strip(), role="participant")
+    db.add(user)
+    db.flush()
+    db.add(PasswordCredential(user_id=user.id, password_hash=hash_password(payload.password)))
+    # An invitation is not proof of email ownership. Membership is not auto-claimed.
+    db.commit()
+    return {"id": user.id, "role": user.role}
+
 
 
 @router.post("/api/auth/login")
 def api_login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
     email = payload.email.strip().lower()
     user = db.query(User).filter(User.email.ilike(email)).first()
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User with email '{email}' not found",
-        )
+    credential = db.get(PasswordCredential, user.id) if user else None
+    if (not credential or (credential.demo and not demo_enabled())
+            or not verify_password(payload.password, credential.password_hash)):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_session(user.id, db)
     response.set_cookie(key="session", value=token, httponly=True, samesite="lax")

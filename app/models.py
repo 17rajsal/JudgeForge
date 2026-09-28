@@ -168,3 +168,18 @@ class AuditLog(Base):
     target_id = Column(String, nullable=False)
     details = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+
+class PasswordCredential(Base):
+    __tablename__ = "password_credentials"
+    user_id = Column(String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    password_hash = Column(String, nullable=False)
+    demo = Column(Integer, nullable=False, default=0)
+
+
+class TeamInvite(Base):
+    __tablename__ = "team_invites"
+    token = Column(String, primary_key=True)
+    team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
+    expires_at = Column(DateTime, nullable=False)
+    used_by = Column(String, nullable=True)

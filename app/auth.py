@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import Request, HTTPException, status, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, SessionToken, Judge
+from app.models import User, SessionToken, Judge, PasswordCredential
+from app.passwords import demo_enabled
 
 
 def extract_token_from_request(request: Request) -> Optional[str]:
@@ -31,12 +32,17 @@ def get_current_user_optional(
     token_str = extract_token_from_request(request)
     if not token_str:
         return None
+    if not demo_enabled() and token_str in {"token_organizer", "org_7f2a", "token_judge_a", "jdg_a_91bc", "token_judge_b", "jdg_b_44de", "token_participant", "prt_2e88"}:
+        return None
 
     session_record = db.query(SessionToken).filter(SessionToken.token == token_str).first()
     if not session_record:
         return None
 
     user = db.query(User).filter(User.id == session_record.user_id).first()
+    credential = db.get(PasswordCredential, user.id) if user else None
+    if not demo_enabled() and credential and credential.demo:
+        return None
     return user
 
 

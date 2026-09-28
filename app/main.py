@@ -8,8 +8,9 @@ from fastapi.templating import Jinja2Templates
 
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database, print_demo_credentials
-from app.routers import health, auth, projects, judging, organizer
+from app.routers import health, auth, projects, judging, organizer, workflows
 from app.auth import get_current_user_optional
+from app.passwords import demo_enabled
 
 STATIC_DIR = Path("app/static")
 STATIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -23,12 +24,8 @@ async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
 
     # 2. Seed database idempotently
-    try:
-        db = SessionLocal()
+    with SessionLocal() as db:
         seed_database(db)
-        db.close()
-    except Exception as e:
-        print(f"Warning during seed: {e}")
 
     # 3. Print demo credentials banner
     print_demo_credentials()
@@ -52,6 +49,7 @@ app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(judging.router)
 app.include_router(organizer.router)
+app.include_router(workflows.router)
 
 
 @app.get("/")
@@ -64,6 +62,6 @@ def login_page(request: Request):
     db = SessionLocal()
     try:
         user = get_current_user_optional(request, db)
-        return templates.TemplateResponse(request=request, name="login.html", context={"user": user})
+        return templates.TemplateResponse(request=request, name="login.html", context={"user": user, "demo_mode": demo_enabled()})
     finally:
         db.close()

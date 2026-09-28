@@ -1,4 +1,7 @@
 from typing import Optional, List, Dict
+import secrets
+from app.models import PasswordCredential
+from app.passwords import hash_password
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
@@ -176,7 +179,7 @@ def invite_or_create_judge(
 
     user = db.query(User).filter(User.email == email).first()
     if not user:
-        user_id = f"usr_{email.split('@')[0]}"
+        user_id = "usr_" + secrets.token_hex(12)
         user = User(
             id=user_id,
             email=email,
@@ -186,10 +189,12 @@ def invite_or_create_judge(
         db.add(user)
         db.flush()
     else:
-        user.role = "judge"
+        raise HTTPException(409, "Email already belongs to an account; cannot change its role")
 
     judge_count = db.query(Judge).count()
-    judge_id = f"jdg_{judge_count + 1:02d}"
+    judge_id = "jdg_" + secrets.token_hex(12)
+    initial_password = secrets.token_urlsafe(20)
+    db.add(PasswordCredential(user_id=user.id, password_hash=hash_password(initial_password)))
 
     judge = Judge(
         id=judge_id,
@@ -224,6 +229,7 @@ def invite_or_create_judge(
         "name": judge.name,
         "email": judge.email,
         "tracks": [t.id for t in judge.tracks],
+        "initial_password": initial_password,
     }
 
 

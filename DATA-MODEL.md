@@ -164,3 +164,9 @@ Chronological append-only security and activity record.
    - Projects receive varying review counts (from 1 to 5). Normalization handles unequal sample sizes without biasing final project rankings.
 3. **Idempotence**:
    - The seed loader checks for the existence of records by primary key (`id`) and unique fields (`email`) before issuing inserts. Rerunning `seed_database()` does not produce duplicates or foreign key collisions.
+
+
+## Additional authentication and invitation tables
+`password_credentials`: `user_id` primary/foreign key, salted `password_hash`, and `demo` flag. Existing user rows are retained; no users-table migration is needed.
+
+`team_invites`: random `token` primary key, `team_id` foreign key, UTC `expires_at`, and nullable `used_by`. Acceptance atomically claims an unused token and adds the authenticated participant to the team. Invitation URLs expire after 48 hours and cannot be reused.

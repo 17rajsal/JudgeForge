@@ -9,16 +9,10 @@ from app.seed import seed_database
 from app.services.scoring import compute_leaderboard, generate_results_csv
 
 
-@pytest.fixture(scope="session", autouse=True)
-def init_db():
-    db = SessionLocal()
-    seed_database(db)
-    db.close()
-
-
 @pytest.fixture
 def client():
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client
 
 
 # ---------------------------------------------------------------------------

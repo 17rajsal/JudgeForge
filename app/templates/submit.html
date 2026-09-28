@@ -58,6 +58,7 @@ async function handleSubmitProject(e) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      event_id: {{ event.id | tojson }},
       title: document.getElementById('projTitle').value,
       track_id: document.getElementById('projTrack').value,
       summary: document.getElementById('projSummary').value,

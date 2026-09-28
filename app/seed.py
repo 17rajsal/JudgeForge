@@ -270,6 +270,17 @@ def seed_database(db: Session | None = None) -> dict:
             if not db.query(SessionToken).filter(SessionToken.token == tok).first():
                 db.add(SessionToken(token=tok, user_id=uid))
 
+        from app.models import PasswordCredential
+        from app.passwords import hash_password, demo_enabled
+        if demo_enabled():
+            for uid in {uid for _, uid in demo_tokens}:
+                if not db.get(PasswordCredential, uid):
+                    db.add(PasswordCredential(user_id=uid, password_hash=hash_password("JudgeForge-Demo-2026!"), demo=1))
+        elif os.getenv("ORGANIZER_PASSWORD") and not db.get(PasswordCredential, org_user.id):
+            password = os.environ["ORGANIZER_PASSWORD"]
+            if len(password) < 12:
+                raise ValueError("ORGANIZER_PASSWORD must have at least 12 characters")
+            db.add(PasswordCredential(user_id=org_user.id, password_hash=hash_password(password)))
         db.commit()
 
         auth_info = {
@@ -292,6 +303,11 @@ def seed_database(db: Session | None = None) -> dict:
 
 
 def print_demo_credentials():
+    from app.passwords import demo_enabled
+    if not demo_enabled():
+        print("Demo authentication disabled.")
+        return
+    print("Local evaluation only. Demo password: JudgeForge-Demo-2026!")
     print("""
 =================================
 JUDGEFORGE DEMO AUTH

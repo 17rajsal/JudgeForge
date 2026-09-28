@@ -55,7 +55,7 @@ $$z_{j, p} = \begin{cases} \dfrac{s_{j, p} - \mu_j}{\sigma_j} & \text{if } \sigm
 
 ### Step D: Rescaling to Rubric Domain
 
-To maintain intuitive interpretability for organizers and participants, Z-scores are mapped back to the 1.0–5.0 rubric scale:
+To maintain intuitive interpretability for organizers and participants, Z-scores are mapped back to the 1.0â€“5.0 rubric scale:
 
 $$s^{\text{norm}}_{j, p} = \text{clamp}\left( \mu_{\text{global}} + z_{j, p} \cdot \sigma_{\text{global}}, \, 1.0, \, 5.0 \right)$$
 
@@ -72,7 +72,7 @@ $$\text{Final Normalized Score}_p = \frac{1}{K_p} \sum_{j \in \text{Judges}(p)} 
 ### Case 1: Zero-Variance Reviewer ($\sigma_j = 0$)
 - **Symptom**: A judge awards identical ratings to every project they review (e.g. giving 4 to everything).
 - **The Risk**: Division by zero ($\frac{s - \mu}{0}$) produces `NaN` or crashes the calculation pipeline.
-- **JudgeForge Solution**: When $\sigma_j \le 10^{-6}$, the system assigns $z_{j, p} = 0.0$. This treats their assessment as neutral (exactly matching the global mean $\mu_{\text{global}}$) without distorting relative project rankings.
+- **JudgeForge Solution**: When $\sigma_j \le 10^{-6}$, the system assigns $z_{j, p} = 0.0$. This treats their assessment as neutral (exactly matching the global mean $\mu_{\text{global}}$) without division by zero; adding neutral reviews can still affect project averages.
 
 ### Case 2: Unequal & Incomplete Review Batches ($K_p$ varies)
 - **Symptom**: One project has 2 reviews, while another has 5 reviews.
@@ -86,7 +86,7 @@ $$\text{Final Normalized Score}_p = \frac{1}{K_p} \sum_{j \in \text{Judges}(p)} 
 - Ties in normalized score are resolved deterministically:
   1. Higher **Normalized Score** ($s^{\text{norm}}$)
   2. Higher **Raw Score Average** ($\bar{s}^{\text{raw}}$)
-  3. Lower Project ID (chronological submission priority)
+  3. Original database query order for exact ties (no explicit ID tie-break is currently implemented)
 
 ### Case 5: Rounding and Precision
 - Internal calculations preserve full 64-bit IEEE 754 floating-point precision.
@@ -98,4 +98,4 @@ $$\text{Final Normalized Score}_p = \frac{1}{K_p} \sum_{j \in \text{Judges}(p)} 
 
 - **Judge Isolation**: A judge cannot see scores submitted by other judges. Server-side validation in `app/routers/judging.py` verifies that `current_user.judge_id == target_judge_id` on all score query routes.
 - **Participant Redaction**: Participants cannot read judging scores or progress metrics. Calling `/api/judge/scores` or `/api/export.csv` as a participant results in `HTTP 403 Forbidden`.
-- **Audit Logging**: Every score creation or update triggers an immutable record in `audit_logs` storing user ID, project ID, criteria breakdown, and timestamp.
+- **Audit Logging**: Every score creation or update triggers a database record in `audit_logs` storing user ID, project ID, criteria breakdown, and timestamp.

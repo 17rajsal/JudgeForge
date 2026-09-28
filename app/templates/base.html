@@ -8,6 +8,7 @@
   {% block head %}{% endblock %}
 </head>
 <body>
+{% if user %}<div style="padding:0.75rem 2rem"><a href="/workspace">Your workspace · Events & teams</a></div>{% endif %}
   <nav class="navbar">
     <div class="nav-brand">
       <a href="/projects" style="display:flex;align-items:center;gap:0.75rem;text-decoration:none;">

@@ -1,4 +1,5 @@
 import datetime
+import secrets
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -39,8 +40,10 @@ def view_submit_form(
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    event = db.query(Event).first()
-    tracks = db.query(Track).all()
+    event = db.get(Event, request.query_params.get("event_id", "evt_01"))
+    if not event:
+        raise HTTPException(404, "Event not found")
+    tracks = db.query(Track).filter_by(event_id=event.id).all()
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     close_time = event.submissions_close if event else None
     if close_time and close_time.tzinfo is None:
@@ -179,8 +182,6 @@ def submit_project(
     event_id = payload.event_id or "evt_01"
     event = db.query(Event).filter(Event.id == event_id).first()
     if not event:
-        event = db.query(Event).first()
-    if not event:
         raise HTTPException(status_code=400, detail="No active hackathon event found")
 
     now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -198,14 +199,14 @@ def submit_project(
     team_id = payload.team_id
     if not team_id:
         membership = (
-            db.query(TeamMember).filter(TeamMember.user_id == current_user.id).first()
+            db.query(TeamMember).join(Team).filter(TeamMember.user_id == current_user.id, Team.event_id == event.id).first()
         )
         if membership:
             team_id = membership.team_id
         else:
             # Create a default team for this participant
             team_count = db.query(Team).count()
-            team_id = f"tm_{team_count + 1:02d}"
+            team_id = "tm_" + secrets.token_hex(12)
             new_team = Team(
                 id=team_id,
                 event_id=event.id,
@@ -216,6 +217,12 @@ def submit_project(
             db.add(TeamMember(team_id=team_id, email=current_user.email, user_id=current_user.id))
             db.flush()
 
+    team = db.get(Team, team_id)
+    if not team or team.event_id != event.id:
+        raise HTTPException(400, "Team must belong to this event")
+    if current_user.role != "organizer" and not db.query(TeamMember).filter_by(team_id=team_id, user_id=current_user.id).first():
+        raise HTTPException(403, "Only team members can submit for this team")
+
     # 3. Determine Track
     track_id = payload.track_id
     if not track_id:
@@ -224,9 +231,15 @@ def submit_project(
             raise HTTPException(status_code=400, detail="No tracks configured for this event")
         track_id = first_track.id
 
+    track = db.get(Track, track_id)
+    if not track or track.event_id != event.id:
+        raise HTTPException(400, "Track must belong to this event")
+    if not payload.title.strip():
+        raise HTTPException(400, "Project title is required")
+
     # 4. Generate project ID
     prj_count = db.query(Project).count()
-    project_id = f"prj_{prj_count + 1:02d}"
+    project_id = "prj_" + secrets.token_hex(12)
 
     project = Project(
         id=project_id,
@@ -309,6 +322,9 @@ def update_project(
     if payload.repo_url is not None:
         project.repo_url = payload.repo_url.strip()
     if payload.track_id is not None:
+        track = db.get(Track, payload.track_id)
+        if not track or track.event_id != project.event_id:
+            raise HTTPException(400, "Track must belong to this event")
         project.track_id = payload.track_id
 
     db.add(
@@ -358,10 +374,11 @@ def create_team(
 ):
     event = (
         db.query(Event).filter(Event.id == (payload.event_id or "evt_01")).first()
-        or db.query(Event).first()
     )
+    if not event or not payload.name.strip():
+        raise HTTPException(400, "Valid event and team name required")
     team_count = db.query(Team).count()
-    team_id = f"tm_{team_count + 1:02d}"
+    team_id = "tm_" + secrets.token_hex(12)
     team = Team(
         id=team_id,
         event_id=event.id if event else "evt_01",

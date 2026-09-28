@@ -44,7 +44,7 @@ Every incoming request passes through the FastAPI dependency injection pipeline:
 2. **Session Verification**:
    - The token is queried against `session_tokens` table in SQLite.
    - If matched, the associated `User` entity is loaded and attached to request context.
-   - If invalid or expired, `HTTPException(401)` is raised on protected endpoints.
+   - If invalid, `HTTPException(401)` is raised on protected endpoints.
 3. **Role Enforcement (RBAC)**:
    - Dependencies like `require_organizer`, `require_judge_or_organizer`, and `require_participant_or_organizer` inspect `user.role`.
    - Unauthorized attempts return `HTTPException(403)`.
@@ -106,3 +106,7 @@ The platform runs inside a minimal `python:3.12-slim` container:
 - Database files reside in `/app/data`, mounted to a persistent Docker named volume `judgeforge_data`.
 - Seeding runs on startup automatically if the database has not yet been seeded.
 - Port 8000 is exposed and bound to host.
+
+
+## Authentication and workflow update
+Email/password login checks the separate `password_credentials` table before creating a session. Registration creates participants only. `/workspace` connects event creation, teams, single-use invite acceptance and event-specific submissions. Startup creates new tables without resetting existing data, and seed errors now fail startup rather than reporting a misleading healthy app. Tests create and seed isolated in-memory databases for every test, without changing the running portal database.
