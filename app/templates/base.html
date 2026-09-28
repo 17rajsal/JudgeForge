@@ -4,16 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}JudgeForge | Hackathon Platform{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=bright-1">
+  <link rel="stylesheet" href="/static/style.css?v=saas-1">
   {% block head %}{% endblock %}
 </head>
 <body>
-{% if user %}<div style="padding:0.75rem 2rem"><a href="/workspace">Your workspace &middot; Events &amp; teams</a></div>{% endif %}
   <nav class="navbar">
     <div class="nav-brand">
-      <a href="/projects" style="display:flex;align-items:center;gap:0.75rem;text-decoration:none;">
+      <a href="/projects" class="brand-link">
         <div class="brand-logo">JF</div>
-        <div class="brand-text">JudgeForge</div>
+        <span class="brand-text">JudgeForge</span>
       </a>
       <span class="brand-badge">Dogfood 2026</span>
     </div>

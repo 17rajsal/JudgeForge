@@ -4,21 +4,24 @@
 
 {% block content %}
 <div class="hero">
-  <div class="hero-eyebrow">THE PROJECT SHOWCASE</div>
+  <div class="hero-eyebrow">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block;vertical-align:-1px;margin-right:2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    PROJECT SHOWCASE
+  </div>
   <h1>{{ event.name if event else 'Dogfood Hackathon 2026' }}</h1>
-  <p>Explore submitted projects from teams across all tracks. Review submissions, source repositories, and project summaries.</p>
-  
+  <p>Explore submitted projects from teams across all tracks. Review submissions, architecture summaries, and open source repositories.</p>
+
   <div class="event-banner">
     <div class="event-stat">
-      <span>Submissions Status:</span>
-      <span class="stat-closed">Closed ({{ event.submissions_close.strftime('%b %d, %Y %H:%M UTC') if event else 'Ended' }})</span>
+      <span>Submissions:</span>
+      <span class="stat-closed">Closed ({{ event.submissions_close.strftime('%b %d, %Y %H:%M UTC') if event and event.submissions_close else 'Ended' }})</span>
     </div>
     <div class="event-stat">
-      <span>Total Projects:</span>
+      <span>Submitted Projects:</span>
       <span class="stat-val">{{ projects | length }}</span>
     </div>
     <div class="event-stat">
-      <span>Tracks:</span>
+      <span>Active Tracks:</span>
       <span class="stat-val">{{ tracks | length }}</span>
     </div>
     <div style="margin-left:auto;">
@@ -41,12 +44,12 @@
     {% endfor %}
   </div>
 
-  <form method="GET" action="/projects" style="display:flex;gap:0.5rem;">
+  <form method="GET" action="/projects" style="display:flex;gap:0.5rem;align-items:center;">
     {% if current_track %}
     <input type="hidden" name="track" value="{{ current_track }}">
     {% endif %}
     <input type="text" name="q" value="{{ search_query }}" placeholder="Search projects..." class="search-input">
-    <button type="submit" class="btn btn-secondary">Search</button>
+    <button type="submit" class="btn btn-secondary" style="padding:0.55rem 0.9rem;">Search</button>
   </form>
 </div>
 
@@ -63,15 +66,20 @@
     </div>
     <div class="card-footer">
       <span>Team: <strong>{{ p.team.name if p.team else 'Independent' }}</strong></span>
-      <a href="/projects/{{ p.id }}" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">View Details &rarr;</a>
+      <a href="/projects/{{ p.id }}" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">
+        View Details &rarr;
+      </a>
     </div>
   </div>
   {% endfor %}
 </div>
 {% else %}
-<div style="text-align:center;padding:4rem 2rem;background:var(--card-bg);border:1px solid var(--card-border);border-radius:var(--radius-md);">
-  <h3 style="margin-bottom:0.5rem;">No projects found</h3>
-  <p style="color:var(--text-secondary);margin-bottom:1.5rem;">No submissions matched the selected filter or search term.</p>
+<div class="card" style="text-align:center;padding:4rem 2rem;margin:2rem 0;">
+  <div style="font-size:2.5rem;margin-bottom:0.75rem;color:var(--text-muted);">&#128269;</div>
+  <h3 style="font-size:1.4rem;margin-bottom:0.5rem;">No Projects Found</h3>
+  <p style="color:var(--text-secondary);margin-bottom:1.5rem;max-width:480px;margin-left:auto;margin-right:auto;">
+    No submitted projects match the current track filter or search query. Try broadening your criteria or reset the search.
+  </p>
   <a href="/projects" class="btn btn-primary">Clear Filters</a>
 </div>
 {% endif %}

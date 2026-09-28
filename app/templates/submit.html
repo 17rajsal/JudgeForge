@@ -3,50 +3,91 @@
 {% block title %}Submit Project | JudgeForge{% endblock %}
 
 {% block content %}
-<div style="max-width:700px;margin:1rem auto;">
+<div style="max-width:760px;margin:1rem auto;">
+  <!-- Workflow Step Indicator -->
+  <div class="steps-nav">
+    <div class="step-item completed">
+      <div class="step-number">&check;</div>
+      <span>1. Event &amp; Team</span>
+    </div>
+    <div class="step-item active">
+      <div class="step-number">2</div>
+      <span>2. Submission Details</span>
+    </div>
+    <div class="step-item">
+      <div class="step-number">3</div>
+      <span>3. Judging Review</span>
+    </div>
+  </div>
+
   <div class="card" style="padding:2.5rem;">
-    <h2 style="margin-bottom:0.5rem;">Submit Project</h2>
-    <p style="color:var(--text-secondary);font-size:0.95rem;margin-bottom:1.5rem;">
-      Register your project for {{ event.name if event else 'the hackathon' }}.
-    </p>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+      <div>
+        <h1 style="font-size:1.85rem;margin-bottom:0.35rem;">Submit Project</h1>
+        <p style="color:var(--text-secondary);font-size:0.95rem;">
+          Register your hackathon project for <strong>{{ event.name if event else 'the competition' }}</strong>.
+        </p>
+      </div>
+      <div>
+        {% if is_closed %}
+        <span class="stat-closed" style="font-size:0.85rem;padding:0.3rem 0.75rem;">Submissions Closed</span>
+        {% else %}
+        <span class="stat-open" style="font-size:0.85rem;padding:0.3rem 0.75rem;">Submissions Open</span>
+        {% endif %}
+      </div>
+    </div>
 
     {% if is_closed %}
-    <div style="background:rgba(244,63,94,0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:1rem;border-radius:var(--radius-sm);margin-bottom:1.5rem;font-size:0.95rem;">
-      <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event else 'in the past' }}. New project submissions are no longer accepted.
+    <div class="callout callout-danger" style="margin-bottom:1.75rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event and event.submissions_close else 'in the past' }}. New project submissions and edits are no longer accepted.
+      </div>
+    </div>
+    {% else %}
+    <div class="callout callout-info" style="margin-bottom:1.75rem;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      <div>
+        <strong>Draft Workflow:</strong> You can save a working draft at any time and continue refining your summary before the final deadline. Only <em>Submitted</em> projects are visible to judges and in the public showcase.
+      </div>
     </div>
     {% endif %}
 
     <form onsubmit="handleSubmitProject(event)">
       <div class="form-group">
-        <label>Project Title *</label>
+        <label for="projTitle">Project Title *</label>
         <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled{% endif %}>
+        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Give your project a distinctive, memorable name.</small>
       </div>
 
       <div class="form-group">
-        <label>Track *</label>
+        <label for="projTrack">Competition Track *</label>
         <select id="projTrack" required {% if is_closed %}disabled{% endif %}>
           {% for t in tracks %}
           <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}
         </select>
+        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Select the category your project aligns with best.</small>
       </div>
 
       <div class="form-group">
-        <label>Summary / Pitch</label>
-        <textarea id="projSummary" rows="4" placeholder="Brief summary of what the project accomplishes..." {% if is_closed %}disabled{% endif %}></textarea>
+        <label for="projSummary">Project Pitch &amp; Architecture Summary</label>
+        <textarea id="projSummary" rows="4" placeholder="Describe the problem, your technical solution, offline architecture, and how it was tested..." {% if is_closed %}disabled{% endif %}></textarea>
+        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Judges will review this description during evaluation.</small>
       </div>
 
       <div class="form-group">
-        <label>Source Code Repository URL</label>
+        <label for="projRepo">Source Code Repository URL</label>
         <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled{% endif %}>
+        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Link to git repository, README, and verification instructions.</small>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;gap:1rem;margin-top:1.5rem;">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:1rem;margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
         <a href="/projects" class="btn btn-secondary">Cancel</a>
-        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary" {% if is_closed %}disabled{% endif %}>
           Save as Draft
         </button>
-        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary" {% if is_closed %}disabled style="opacity:0.5;cursor:not-allowed;"{% endif %}>
+        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary" {% if is_closed %}disabled{% endif %}>
           Submit Project
         </button>
       </div>

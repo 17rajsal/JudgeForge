@@ -1,36 +1,160 @@
 {% extends "base.html" %}
 {% block title %}Sign in | JudgeForge{% endblock %}
 {% block content %}
-<div class="card" style="max-width:550px;margin:2rem auto;padding:2rem">
-<h1>Sign in</h1>
-{% if demo_mode %}
-<p>Local demo accounts use password <code>JudgeForge-Demo-2026!</code>. These public credentials are for evaluation only.</p>
-<select id="demoAccount" onchange="document.getElementById('email').value=this.value">
-<option value="">Choose a demo account</option>
-<option>organizer@judgeforge.local</option><option>tomas.varga@example.org</option>
-<option>wei.lindqvist@example.org</option><option>priya1@example.org</option></select>
-{% endif %}
-<form id="authForm">
-<label for="email">Email</label><input id="email" type="email" required autocomplete="username">
-<label for="password">Password</label><input id="password" type="password" required autocomplete="current-password">
-<label for="name">Name (for a new participant account)</label><input id="name" maxlength="100" autocomplete="name">
-<p id="message" role="status"></p>
-<button class="btn btn-primary" type="submit">Sign in</button>
-<button class="btn btn-secondary" type="button" onclick="authenticate(true)">Create participant account</button>
-</form></div>
+<div class="auth-wrapper">
+  <!-- Left Column: Value Proposition & Highlights -->
+  <div class="auth-features">
+    <div>
+      <div class="hero-eyebrow" style="background:rgba(255,255,255,0.12);color:#ffffff;border-color:rgba(255,255,255,0.2);">
+        Self-Hosted Hackathon Engine
+      </div>
+      <h2>Fair, Deterministic Hackathon Judging</h2>
+      <p>
+        JudgeForge runs entirely offline with zero cloud dependencies. It powers high-stakes hackathons with isolated judging panels and Z-score normalization.
+      </p>
+
+      <ul class="auth-feature-list">
+        <li class="auth-feature-item">
+          <div class="auth-feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <div class="auth-feature-title">100% Local &amp; Air-Gapped</div>
+            <div class="auth-feature-desc">Zero CDNs, zero telemetry, zero external fonts or third-party tracking scripts.</div>
+          </div>
+        </li>
+        <li class="auth-feature-item">
+          <div class="auth-feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div>
+            <div class="auth-feature-title">Isolated Peer Judging</div>
+            <div class="auth-feature-desc">Judges evaluate independently without seeing peer scores or preliminary rankings.</div>
+          </div>
+        </li>
+        <li class="auth-feature-item">
+          <div class="auth-feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <div class="auth-feature-title">Z-Score Normalization</div>
+            <div class="auth-feature-desc">Eliminates grading variance between strict and lenient judges, with zero-variance edge case protection.</div>
+          </div>
+        </li>
+        <li class="auth-feature-item">
+          <div class="auth-feature-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>
+          </div>
+          <div>
+            <div class="auth-feature-title">One-Command Docker Deployment</div>
+            <div class="auth-feature-desc">Instant production boot via <code>docker compose up</code> with pre-seeded fixtures and SQLite backend.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <div style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.15);font-size:0.8rem;color:#a5b4fc;">
+      Dogfood Hackathon 2026 &bull; Production Ready
+    </div>
+  </div>
+
+  <!-- Right Column: Sign In Card -->
+  <div class="auth-card">
+    <div style="margin-bottom:1.5rem;">
+      <h1 style="font-size:1.75rem;margin-bottom:0.35rem;">Sign In</h1>
+      <p style="font-size:0.925rem;color:var(--text-secondary);">Access your hackathon submissions, judging console, or command center.</p>
+    </div>
+
+    {% if demo_mode %}
+    <div class="callout callout-info" style="margin-bottom:1.25rem;padding:0.75rem 1rem;font-size:0.85rem;">
+      <div>
+        <strong>Evaluation Mode:</strong> Demo password is <code>JudgeForge-Demo-2026!</code>. Select an account to auto-fill:
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:1.25rem;">
+      <label for="demoAccount">Quick Demo Account</label>
+      <select id="demoAccount" onchange="applyDemoAccount(this.value)">
+        <option value="">Choose a demo account...</option>
+        <option value="admin@judgeforge.local">admin@judgeforge.local (Administrator)</option>
+        <option value="organizer@judgeforge.local">organizer@judgeforge.local (Organizer)</option>
+        <option value="tomas.varga@example.org">tomas.varga@example.org (Judge - AI Track)</option>
+        <option value="wei.lindqvist@example.org">wei.lindqvist@example.org (Judge - Systems Track)</option>
+        <option value="priya1@example.org">priya1@example.org (Participant)</option>
+      </select>
+    </div>
+    {% endif %}
+
+    <form id="authForm">
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input id="email" type="email" required autocomplete="username" placeholder="name@example.com">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" required autocomplete="current-password" placeholder="Enter your password">
+      </div>
+
+      <div class="form-group">
+        <label for="name">Full Name <span style="font-weight:normal;color:var(--text-muted);">(for registering new participant)</span></label>
+        <input id="name" maxlength="100" autocomplete="name" placeholder="Alex Morgan">
+      </div>
+
+      <p id="message" role="status" style="margin-bottom:1rem;font-size:0.85rem;font-weight:600;min-height:1.2rem;color:var(--accent-rose);"></p>
+
+      <div style="display:flex;flex-direction:column;gap:0.75rem;">
+        <button class="btn btn-primary" type="submit" style="width:100%;padding:0.65rem;">Sign In</button>
+        <button class="btn btn-secondary" type="button" onclick="authenticate(true)" style="width:100%;padding:0.65rem;">
+          Create Participant Account
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
-document.getElementById('authForm').onsubmit=e=>{e.preventDefault();authenticate(false)};
+function applyDemoAccount(val) {
+  document.getElementById('email').value = val;
+  if (val) {
+    document.getElementById('password').value = 'JudgeForge-Demo-2026!';
+  }
+}
+
+document.getElementById('authForm').onsubmit = e => {
+  e.preventDefault();
+  authenticate(false);
+};
+
 async function authenticate(register) {
-const body={email:document.getElementById('email').value,password:document.getElementById('password').value};
-const message=document.getElementById('message');
-if(register) body.name=document.getElementById('name').value;
-try {
-const res=await fetch(register?'/api/auth/register':'/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-const data=await res.json();
-if(!res.ok){message.textContent=typeof data.detail==='string'?data.detail:'Check the fields. New passwords need at least 12 characters.';return;}
-if(register){message.textContent='Account created. Sign in to continue.';return;}
-location.href=data.user.role==='organizer'?'/organizer':data.user.role==='judge'?'/judge':'/workspace';
-}catch(error){message.textContent='Connection failed. Please try again.';}
+  const body = {
+    email: document.getElementById('email').value,
+    password: document.getElementById('password').value
+  };
+  const message = document.getElementById('message');
+  message.style.color = 'var(--accent-rose)';
+
+  if (register) body.name = document.getElementById('name').value;
+  try {
+    const res = await fetch(register ? '/api/auth/register' : '/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      message.textContent = typeof data.detail === 'string' ? data.detail : 'Check the fields. New passwords need at least 12 characters.';
+      return;
+    }
+    if (register) {
+      message.style.color = 'var(--accent-emerald)';
+      message.textContent = 'Account created. Sign in to continue.';
+      return;
+    }
+    location.href = data.user.role === 'organizer' || data.user.role === 'admin' ? '/organizer' : data.user.role === 'judge' ? '/judge' : '/workspace';
+  } catch (error) {
+    message.textContent = 'Connection failed. Please try again.';
+  }
 }
 </script>
 {% endblock %}

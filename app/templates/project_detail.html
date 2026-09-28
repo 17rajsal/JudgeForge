@@ -4,65 +4,71 @@
 
 {% block content %}
 <div style="margin-bottom:1.5rem;">
-  <a href="/projects" style="color:var(--text-secondary);font-size:0.9rem;">&larr; Back to Gallery</a>
+  <a href="/projects" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.4rem;">
+    &larr; Back to Gallery
+  </a>
 </div>
 
-<div class="card" style="padding:2.5rem;margin-bottom:2rem;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+<div class="card" style="padding:2.25rem;margin-bottom:2rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1.25rem;margin-bottom:1.5rem;">
     <div>
-      <span class="card-tag" style="margin-bottom:0.5rem;display:inline-block;">{{ project.track.name if project.track else 'General' }}</span>
-      <h1 style="font-size:2.2rem;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;">{{ project.title }}</h1>
-      <p style="color:var(--text-secondary);font-size:1.1rem;margin-top:0.25rem;">
-        Team: <strong style="color:var(--text-primary);">{{ project.team.name if project.team else 'Independent' }}</strong>
+      <span class="card-tag" style="margin-bottom:0.6rem;display:inline-block;">{{ project.track.name if project.track else 'General' }}</span>
+      <h1 style="font-size:2.25rem;font-weight:800;color:var(--slate-900);letter-spacing:-0.03em;margin-bottom:0.35rem;">{{ project.title }}</h1>
+      <p style="color:var(--text-secondary);font-size:1.05rem;">
+        Team: <strong style="color:var(--slate-900);">{{ project.team.name if project.team else 'Independent' }}</strong>
       </p>
     </div>
     
-    <div style="display:flex;gap:0.5rem;align-items:center;">
+    <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;">
       {% if project.status == 'draft' %}
-      <div style="background:#fef3c7;border:1px solid #fde68a;color:#92400e;padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:700;">
-        &bull; DRAFT (Not Submitted)
+      <div style="background:var(--amber-50);border:1px solid var(--amber-200);color:var(--amber-700);padding:0.4rem 0.85rem;border-radius:var(--radius-full);font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:0.4rem;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--amber-500);"></span>
+        DRAFT (Not Submitted)
       </div>
       {% else %}
-      <div style="background:#d1fae5;border:1px solid #a7f3d0;color:#065f46;padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:700;">
-        &bull; SUBMITTED
+      <div style="background:var(--emerald-50);border:1px solid var(--emerald-200);color:var(--emerald-700);padding:0.4rem 0.85rem;border-radius:var(--radius-full);font-size:0.82rem;font-weight:700;display:inline-flex;align-items:center;gap:0.4rem;">
+        <span style="width:7px;height:7px;border-radius:50%;background:var(--emerald-500);"></span>
+        SUBMITTED
       </div>
       {% endif %}
 
       {% if is_closed %}
-      <div style="background:rgba(244, 63, 94, 0.15);border:1px solid var(--accent-rose);color:var(--accent-rose);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;">
-        &bull; Submissions Closed (Locked)
+      <div style="background:var(--rose-50);border:1px solid var(--rose-200);color:var(--rose-700);padding:0.4rem 0.85rem;border-radius:var(--radius-full);font-size:0.82rem;font-weight:600;">
+        Submissions Closed (Locked)
       </div>
       {% else %}
-      <div style="background:rgba(16, 185, 129, 0.15);border:1px solid var(--accent-emerald);color:var(--accent-emerald);padding:0.5rem 1rem;border-radius:var(--radius-sm);font-size:0.85rem;font-weight:600;">
-        &bull; Open for Editing
+      <div style="background:var(--primary-50);border:1px solid var(--primary-200);color:var(--primary-700);padding:0.4rem 0.85rem;border-radius:var(--radius-full);font-size:0.82rem;font-weight:600;">
+        Open for Editing
       </div>
       {% endif %}
     </div>
   </div>
 
-  <div style="border-top:1px solid var(--card-border);padding-top:1.5rem;margin-bottom:1.5rem;">
-    <h3 style="font-size:1.1rem;margin-bottom:0.75rem;color:var(--text-primary);">About the Project</h3>
-    <p style="color:var(--text-secondary);font-size:1.05rem;line-height:1.7;">
-      {{ project.summary or 'No detailed description provided.' }}
-    </p>
+  <div style="border-top:1px solid var(--slate-200);padding-top:1.5rem;margin-bottom:1.75rem;">
+    <h3 style="font-size:1.15rem;margin-bottom:0.75rem;color:var(--slate-900);">About the Project</h3>
+    <p style="color:var(--slate-700);font-size:1.025rem;line-height:1.7;white-space:pre-wrap;">{{ project.summary or 'No detailed description provided.' }}</p>
   </div>
 
-  <div style="display:flex;flex-wrap:wrap;gap:2rem;background:var(--bg-secondary);padding:1.25rem;border-radius:var(--radius-sm);border:1px solid var(--card-border);">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1.25rem;background:var(--slate-50);padding:1.25rem;border-radius:var(--radius-md);border:1px solid var(--slate-200);">
     <div>
-      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Submitted At</div>
-      <div style="font-size:0.95rem;color:var(--text-primary);margin-top:0.2rem;">
-        {{ project.submitted_at.strftime('%Y-%m-%d %H:%M:%S UTC') if project.submitted_at else 'Unknown' }}
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">Submitted At</div>
+      <div style="font-size:0.925rem;color:var(--slate-800);margin-top:0.25rem;font-weight:600;">
+        {{ project.submitted_at.strftime('%Y-%m-%d %H:%M:%S UTC') if project.submitted_at else 'Draft' }}
       </div>
     </div>
     <div>
-      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Project ID</div>
-      <div style="font-size:0.95rem;color:var(--font-mono);margin-top:0.2rem;">{{ project.id }}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">Project ID</div>
+      <div style="font-size:0.925rem;color:var(--slate-800);margin-top:0.25rem;font-family:var(--font-mono);">
+        {{ project.id }}
+      </div>
     </div>
     <div>
-      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;">Source Code</div>
-      <div style="font-size:0.95rem;margin-top:0.2rem;">
+      <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:700;letter-spacing:0.04em;">Source Repository</div>
+      <div style="font-size:0.925rem;margin-top:0.25rem;">
         {% if project.repo_url %}
-        <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer">{{ project.repo_url }}</a>
+        <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer" style="font-weight:600;word-break:break-all;">
+          {{ project.repo_url }}
+        </a>
         {% else %}
         <span style="color:var(--text-muted);">None provided</span>
         {% endif %}
@@ -73,21 +79,28 @@
 
 {% if is_team_member and not is_closed %}
 <div class="card" style="padding:2rem;">
-  <h3 style="margin-bottom:1rem;">Edit Submission</h3>
+  <div class="card-header">
+    <h3 style="font-size:1.3rem;">Edit Submission</h3>
+    <span class="card-tag">Team Author</span>
+  </div>
+  <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1.5rem;">
+    Update your submission content before the deadline.
+  </p>
+
   <form id="editForm" onsubmit="handleEditProject(event)">
     <div class="form-group">
-      <label>Project Title</label>
+      <label for="editTitle">Project Title</label>
       <input type="text" id="editTitle" value="{{ project.title }}" required>
     </div>
     <div class="form-group">
-      <label>Summary / Pitch</label>
+      <label for="editSummary">Project Pitch &amp; Summary</label>
       <textarea id="editSummary" rows="4">{{ project.summary or '' }}</textarea>
     </div>
     <div class="form-group">
-      <label>Repository URL</label>
+      <label for="editRepo">Repository URL</label>
       <input type="url" id="editRepo" value="{{ project.repo_url or '' }}">
     </div>
-    <div style="display:flex;gap:1rem;margin-top:1.5rem;align-items:center;">
+    <div style="display:flex;gap:1rem;margin-top:1.5rem;align-items:center;flex-wrap:wrap;border-top:1px solid var(--slate-200);padding-top:1.25rem;">
       <button type="submit" class="btn btn-secondary">Save Changes</button>
       {% if project.status == 'draft' %}
       <button type="button" onclick="handleFinalizeSubmit()" class="btn btn-primary">
