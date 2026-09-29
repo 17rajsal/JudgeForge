@@ -125,6 +125,7 @@ async function handleSubmitProject(e, targetStatus) {
   }
 
   const payload = {
+    event_id: "{{ event.id }}",
     title: title,
     track_id: trackId,
     summary: summary || null,

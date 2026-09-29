@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.auth import get_current_user, require_organizer, require_participant_or_organizer
+from app.auth import get_current_user, get_current_user_optional, require_organizer, require_participant_or_organizer
 from app.models import Event, Track, Team, TeamMember, TeamInvite, AuditLog, RubricCriterion, Project
 from app.templating import templates
 
@@ -35,7 +35,13 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db), user=Depen
     return {"id": event.id, "name": event.name}
 
 @router.get("/workspace")
-def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user_optional)):
+    if not user:
+        from fastapi.responses import RedirectResponse
+        invite_token = request.query_params.get("invite")
+        redirect_url = f"/login?invite={invite_token}" if invite_token else "/login"
+        return RedirectResponse(redirect_url, status_code=303)
+
     events = db.query(Event).order_by(Event.created_at.desc()).all()
     teams = db.query(Team).join(TeamMember).filter(TeamMember.user_id == user.id).all()
     team_ids = [t.id for t in teams]
@@ -46,7 +52,8 @@ def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_
     )
     has_draft = any(p.status == "draft" for p in user_projects)
     has_submitted = any(p.status == "submitted" for p in user_projects)
-    active_event = events[0] if events else None
+    open_event = next((e for e in events if not e.is_closed), None)
+    active_event = open_event if open_event else (events[0] if events else None)
     active_event_closed = active_event.is_closed if active_event else False
     all_closed = all(e.is_closed for e in events) if events else True
     results_published = any(e.results_published for e in events)
@@ -57,6 +64,7 @@ def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_
         context={
             "user": user,
             "events": events,
+            "open_event": open_event,
             "teams": teams,
             "user_projects": user_projects,
             "has_draft": has_draft,
@@ -85,7 +93,8 @@ def accept(token: str, db: Session = Depends(get_db), user=Depends(require_parti
     now=dt.datetime.now(dt.timezone.utc)
     if not invitation or invitation.used_by or invitation.expires_at.replace(tzinfo=dt.timezone.utc) <= now:
         raise HTTPException(400, "Invitation invalid, expired or already used")
-    if not db.get(Team, invitation.team_id):
+    team = db.get(Team, invitation.team_id)
+    if not team:
         raise HTTPException(404, "Team no longer exists")
     changed=db.query(TeamInvite).filter_by(token=token,used_by=None).update({"used_by":user.id})
     if not changed:
@@ -93,4 +102,4 @@ def accept(token: str, db: Session = Depends(get_db), user=Depends(require_parti
     if not db.query(TeamMember).filter_by(team_id=invitation.team_id,user_id=user.id).first():
         db.add(TeamMember(team_id=invitation.team_id,user_id=user.id,email=user.email))
     db.commit()
-    return {"team_id":invitation.team_id}
+    return {"team_id": invitation.team_id, "team_name": team.name}

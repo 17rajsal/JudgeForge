@@ -8,13 +8,25 @@
     <div class="hero-eyebrow">HACKATHON OPERATIONS</div>
     <h1>Organizer Command Center</h1>
     <div class="page-subtitle">Overall hackathon governance, judge deliberation tracking, rubric calibration, and results management.</div>
+    {% if events and (events | length > 1) %}
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.85rem;">
+      <label for="eventSelector" style="font-size:0.85rem;font-weight:600;color:var(--slate-600);">Active Event Scope:</label>
+      <select id="eventSelector" class="form-input" style="width:auto;padding:0.35rem 0.75rem;font-size:0.875rem;" onchange="window.location.href='/organizer?event_id=' + this.value;">
+        {% for ev in events %}
+        <option value="{{ ev.id }}" {% if event and ev.id == event.id %}selected{% endif %}>
+          {{ ev.name }} ({{ ev.status_label }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
   </div>
   <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
-    <a href="/results" class="btn btn-secondary">
+    <a href="/results{% if event %}?event_id={{ event.id }}{% endif %}" class="btn btn-secondary">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
       View Public Results
     </a>
-    <a href="/api/export.csv" class="btn btn-primary" download>
+    <a href="/api/export.csv{% if event %}?event_id={{ event.id }}{% endif %}" class="btn btn-primary" download>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       Export Official CSV
     </a>
@@ -28,7 +40,7 @@
     <div style="font-weight:800;font-size:1.35rem;color:var(--slate-900);line-height:1.2;margin-top:0.2rem;">
       {{ event.name if event else 'Hackathon 2026' }}
     </div>
-    <div class="stat-card-hint">Single-event local instance</div>
+    <div class="stat-card-hint">{{ event.status_label if event else 'Active Scope' }}</div>
   </div>
   <div class="stat-card">
     <div class="stat-card-label">Submissions</div>

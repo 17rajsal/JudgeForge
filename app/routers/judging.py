@@ -245,7 +245,11 @@ def view_judge_dashboard(
     judge_id = judge.id if judge else "jdg_01"
     my_scores = {s.project_id: s for s in db.query(Score).filter(Score.judge_id == judge_id).all()}
 
-    criteria = db.query(RubricCriterion).all()
+    event_ids = {t.event_id for t in assigned_tracks if t.event_id}
+    if event_ids:
+        criteria = db.query(RubricCriterion).filter(RubricCriterion.event_id.in_(event_ids)).all()
+    else:
+        criteria = db.query(RubricCriterion).all()
 
     return templates.TemplateResponse(
         request=request,

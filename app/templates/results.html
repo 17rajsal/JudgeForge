@@ -14,6 +14,18 @@
         Hackathon judging and evaluation center.
       {% endif %}
     </div>
+    {% if events and (events | length > 1) %}
+    <div style="display:flex;align-items:center;gap:0.75rem;margin-top:0.75rem;">
+      <label for="resultsEventSelector" style="font-size:0.85rem;font-weight:600;color:var(--slate-600);">Event:</label>
+      <select id="resultsEventSelector" class="form-input" style="width:auto;padding:0.35rem 0.75rem;font-size:0.875rem;" onchange="window.location.href='/results?event_id=' + this.value;">
+        {% for ev in events %}
+        <option value="{{ ev.id }}" {% if event and ev.id == event.id %}selected{% endif %}>
+          {{ ev.name }} ({{ ev.status_label }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
   </div>
   {% if is_organizer_or_admin %}
   <div style="display:flex;gap:0.75rem;align-items:center;">
@@ -43,7 +55,7 @@
   </div>
   <div class="stat-card">
     <div class="stat-card-label">Scored Submissions</div>
-    <div class="stat-card-value">{{ leaderboard | length if (is_published or is_organizer_or_admin) else '41' }}</div>
+    <div class="stat-card-value">{{ leaderboard | length if (is_published or is_organizer_or_admin) else '—' }}</div>
     <div class="stat-card-hint">Evaluated by judging panel</div>
   </div>
   <div class="stat-card">

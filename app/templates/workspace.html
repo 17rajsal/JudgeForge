@@ -80,12 +80,12 @@
   <div class="stat-card">
     <div class="stat-card-label">Submission Action</div>
     <div style="margin-top:0.4rem;">
-      {% if active_event_closed %}
+      {% if active_event_closed or not active_event %}
       <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;" title="Submissions closed for competition" aria-disabled="true">
         Submissions closed
       </span>
       {% else %}
-      <a href="/submit" class="btn btn-primary">+ New Project</a>
+      <a href="/submit?event_id={{ active_event.id }}" class="btn btn-primary">+ New Project</a>
       {% endif %}
     </div>
     <div class="stat-card-hint">
@@ -127,7 +127,7 @@
             Submissions closed
           </span>
           {% else %}
-          <a href="/submit?event_id={{ e.id }}" class="btn btn-secondary" style="font-size:0.82rem;">
+          <a href="/submit?event_id={{ e.id }}" class="btn btn-primary" style="font-size:0.82rem;">
             Submit &rarr;
           </a>
           {% endif %}
@@ -311,7 +311,10 @@ async function post(url, body) {
 }
 
 function fail(error) {
-  document.getElementById('status').textContent = error.message;
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = error.message;
+  statusEl.style.display = 'block';
+  statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 async function createTeam(e) {
@@ -355,8 +358,19 @@ async function invite(id) {
 
 async function acceptInvite() {
   try {
-    await post('/api/team-invites/' + encodeURIComponent(token) + '/accept', {});
-    location.href = '/workspace';
+    const data = await post('/api/team-invites/' + encodeURIComponent(token) + '/accept', {});
+    const teamName = data.team_name || 'the team';
+    const alertBox = document.getElementById('invitation');
+    if (alertBox) {
+      alertBox.className = 'callout callout-success';
+      alertBox.style.background = 'var(--emerald-50)';
+      alertBox.style.borderColor = 'var(--emerald-200)';
+      alertBox.style.color = 'var(--emerald-800)';
+      alertBox.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;"><span style="color:var(--emerald-600);font-weight:700;font-size:1.2rem;">&check;</span><div><strong>Invitation Accepted!</strong> You have joined <strong>' + teamName + '</strong>. Refreshing workspace...</div></div>';
+    }
+    setTimeout(() => {
+      location.href = '/workspace';
+    }, 800);
   } catch (error) {
     fail(error);
   }

@@ -26,7 +26,7 @@
     </div>
     <div style="margin-left:auto;">
       {% if event and not event.is_closed %}
-      <a href="/submit" class="btn btn-primary">+ Submit Project</a>
+      <a href="/submit?event_id={{ event.id }}" class="btn btn-primary">+ Submit Project</a>
       {% else %}
       <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;" title="Submissions closed for this competition" aria-disabled="true">
         Submissions closed

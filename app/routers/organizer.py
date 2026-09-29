@@ -2,7 +2,7 @@ from typing import Optional, List, Dict
 import secrets
 from app.models import PasswordCredential
 from app.passwords import hash_password
-from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Query
 from fastapi.responses import HTMLResponse
 from app.templating import templates
 from pydantic import BaseModel
@@ -21,10 +21,11 @@ class RubricUpdateSchema(BaseModel):
 
 @router.get("/api/export.csv")
 def export_csv(
+    event_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_organizer),
 ):
-    csv_content = generate_results_csv(db)
+    csv_content = generate_results_csv(db, event_id=event_id)
     return Response(
         content=csv_content,
         media_type="text/csv",
@@ -118,6 +119,7 @@ def update_rubric_weights(
 @router.get("/organizer", response_class=HTMLResponse)
 def view_organizer_dashboard(
     request: Request,
+    event_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -128,12 +130,19 @@ def view_organizer_dashboard(
             context={"user": user, "error": "Organizer or Admin access required."},
         )
 
-    leaderboard = compute_leaderboard(db)
-    tracks = db.query(Track).all()
+    events = db.query(Event).order_by(Event.created_at.desc()).all()
+    target_event_id = event_id or request.query_params.get("event_id")
+    event = None
+    if target_event_id:
+        event = db.get(Event, target_event_id)
+    if not event:
+        event = db.get(Event, "evt_01") or (events[0] if events else None)
+
+    leaderboard = compute_leaderboard(db, event_id=event.id if event else None)
+    tracks = db.query(Track).filter(Track.event_id == event.id).all() if event else db.query(Track).all()
     judges = db.query(Judge).all()
-    criteria = db.query(RubricCriterion).all()
+    criteria = db.query(RubricCriterion).filter(RubricCriterion.event_id == event.id).all() if event else db.query(RubricCriterion).all()
     audit_logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(20).all()
-    event = db.query(Event).first()
     prizes = db.query(Prize).filter(Prize.event_id == event.id).all() if event else []
     all_users = db.query(User).order_by(User.role.asc(), User.email.asc()).all() if user.role == "admin" else []
 
@@ -143,6 +152,7 @@ def view_organizer_dashboard(
         context={
             "user": user,
             "event": event,
+            "events": events,
             "leaderboard": leaderboard,
             "tracks": tracks,
             "judges": judges,
@@ -608,12 +618,18 @@ def get_public_results(
 @router.get("/results", response_class=HTMLResponse)
 def view_public_results(
     request: Request,
-    event_id: Optional[str] = None,
+    event_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    target_event_id = event_id or "evt_01"
-    event = db.query(Event).filter(Event.id == target_event_id).first()
+    events = db.query(Event).order_by(Event.created_at.desc()).all()
+    target_event_id = event_id or request.query_params.get("event_id")
+    event = None
+    if target_event_id:
+        event = db.query(Event).filter(Event.id == target_event_id).first()
+    if not event:
+        event = db.get(Event, "evt_01") or (events[0] if events else None)
+
     if not event:
         raise HTTPException(status_code=404, detail="Event not found")
 
@@ -630,6 +646,7 @@ def view_public_results(
         context={
             "user": user,
             "event": event,
+            "events": events,
             "prizes": prizes,
             "leaderboard": leaderboard,
             "is_published": bool(event.results_published),
