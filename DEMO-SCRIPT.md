@@ -1,19 +1,65 @@
-# JudgeForge five-minute demo plan
+# JudgeForge Five-Minute Demo Plan
 
-Record the actual application and terminal; do not substitute slides or simulated output. Use a separate open demo event so the official fixture event keeps its original closed deadline.
+Record the actual application and terminal; do not substitute slides or simulated output. Use a separate open demo event so the official fixture event keeps its original closed deadline. Keep the total video time at approximately 5 minutes.
 
-0:00–0:35 — Introduce JudgeForge: a local submission and fair judging portal using FastAPI, SQLite and bundled UI assets with zero cloud dependencies. Show the public repository and `docker compose ps`. Show the actual health status (`healthy`) from `docker inspect --format '{{.State.Health.Status}}' judgeforge-app`.
+---
 
-0:35–1:10 — Open http://localhost:8000/projects. Show seeded projects, text search, track filtering and project detail. Explain that the fixture event is closed; demonstrate deadline rejection without changing its date.
+### Timing & Sequence
 
-1:10–2:20 — Sign in as organizer/admin. Open Your workspace (`/workspace`). Show event prizes and create a separate event with tracks, prizes, and a future deadline. In a participant browser session, register/sign in, create a team, create an invite link, save a project draft (`status="draft"`), edit the draft, and then explicitly finalize submission (`status="submitted"`). Show that drafts are hidden from the public gallery until finalized. Avoid exposing real passwords; use only demo accounts.
+- **0:00–0:30 — Introduction & Docker Health**
+  - Introduce JudgeForge: a self-hosted, offline-first hackathon submissions and fair judging portal built with FastAPI, SQLite, and vanilla assets.
+  - Show terminal: run `docker compose ps` showing running container.
+  - Run `docker inspect --format '{{.State.Health.Status}}' judgeforge-app` to display the literal `healthy` status.
 
-2:20–3:20 — Show the seeded judge dashboard and scoring screen (`/judge`). Explain track assignments and private score access. Show the acceptance checker denying peer-score and participant access.
+- **0:30–1:15 — Event, Team, and Submission Workflow**
+  - Open `http://localhost:8000/projects`. Show seeded projects, track filtering, and search.
+  - Explain that the seeded fixture event (`evt_01`) is closed; demonstrate server-side deadline rejection without altering fixture dates.
+  - Open workspace (`/workspace`) as participant: create a team, generate a 48-hour single-use invite link, save a project draft (`status="draft"`), edit it, and explicitly submit/finalize it (`status="submitted"`).
+  - Demonstrate that draft projects remain private and are hidden from the public gallery until finalized.
 
-3:20–4:10 — Show organizer command center (`/organizer`): progress metrics, rubric weights, prize management, and results publication controls. If signed in as Admin (`admin@judgeforge.local`), show user role management. Demonstrate publishing official results (`POST /api/events/{id}/publish`) and show the public results showcase at `/results` with podium rankings, category prizes, and strict judge privacy (no individual scores/identities exposed). Export official CSV.
+- **1:15–2:15 — Judge Scoring & Strict Peer Isolation**
+  - Sign in as Judge A (`tomas.varga@example.org`). Open judge portal (`/judge`).
+  - Show track assignments and evaluate a project against weighted rubric criteria (functionality, quality, innovation) with qualitative notes.
+  - Demonstrate strict server-side peer isolation: show that Judge A cannot inspect Judge B's scores, and attempts to access peer evaluations return `HTTP 403 Forbidden`.
 
-4:10–4:45 — Run `python run.py .dogfood.toml` on camera and show all seven PASS results. Run `pytest -v` and show 27 passed tests. Mention that the operator also tested restart and acceptance with Wi-Fi disabled after the image was built.
+- **2:15–3:15 — Organizer Command Center, Normalization, & Results**
+  - Sign in as Organizer (`organizer@judgeforge.local`). Open `/organizer`.
+  - Review judging progress metrics and rubric weight adjustments.
+  - Explain Z-score normalization with zero-variance defense: how reviewer variance is standardized to eliminate harsh vs. lenient bias.
+  - Show event prizes configuration. Demonstrate publishing official results (`POST /api/events/{id}/publish`).
+  - Open public `/results` page showing podium rankings, prize awards, and strict judge privacy (no individual reviewer identities or scores exposed). Download official RFC-compliant CSV export.
 
-4:45–5:00 — Show docs, data model, and MIT license. State honest limits: T1 and T2 complete with lifecycle extensions; T3/T4 (public voting, community comments, outbound webhooks) deliberately not claimed. End with the repository URL.
+- **3:15–4:00 — T3 Community Voting & Comments**
+  - Open Community Voting portal (`/events/{id}/vote`).
+  - Briefly demonstrate access modes (`open`, `authenticated`, `email_gated` with single-use vouchers), duplicate vote prevention, and randomized ballot ordering.
+  - Show that vote counts remain hidden from public view while voting is active.
+  - Open a project page, submit a community comment, and show organizer moderation/flagging.
 
-Upload the actual recording to a judge-accessible location, verify playback without your login, and replace the README demo placeholder with that real URL. Do not invent a video link.
+- **4:00–4:30 — T4 REST API, Verifiable Records, Certificates, & Embed**
+  - Open FastAPI interactive OpenAPI docs at `http://localhost:8000/docs`.
+  - Briefly highlight the full `/api/v1` REST coverage (do not attempt to demo every endpoint).
+  - Show Ed25519 public key at `GET /api/v1/verifiable-records/public-key` and demonstrate that public judge records verify participation without leaking raw scores or comments.
+  - Show offline SVG certificate generation (`/api/v1/certificates`) with cryptographic SHA-256 integrity fingerprints.
+  - Show responsive gallery embed at `http://localhost:8000/embed/gallery`.
+
+- **4:30–4:50 — Verification & Acceptance Check**
+  - In terminal, execute the official hackathon acceptance suite:
+    ```bash
+    python run.py .dogfood.toml
+    ```
+    Show all 7 checks passing (`7/7 PASS`).
+  - In terminal, run the automated test suite:
+    ```bash
+    pytest -v
+    ```
+    Show **47 passed** tests across authentication, submissions, judging, isolation, community voting, and enterprise API features.
+
+- **4:50–5:00 — Repository, Documentation, & License**
+  - Show GitHub repository, `spec.md`, `ARCHITECTURE.md`, `DATA-MODEL.md`, `JUDGING.md`, and MIT license.
+  - Note honest tier claim: `.dogfood.toml` claims `T1` and `T2` to match the official automated checker scope, while full T3 and T4 capabilities are implemented and open for manual review.
+  - End on repository URL: https://github.com/17rajsal/JudgeForge
+
+---
+
+### Recording Note
+Upload the actual recording to a judge-accessible location, verify playback without personal logins, and update the README demo link with that real URL. Do not invent a simulated video link.

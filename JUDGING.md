@@ -55,7 +55,7 @@ $$z_{j, p} = \begin{cases} \dfrac{s_{j, p} - \mu_j}{\sigma_j} & \text{if } \sigm
 
 ### Step D: Rescaling to Rubric Domain
 
-To maintain intuitive interpretability for organizers and participants, Z-scores are mapped back to the 1.0â€“5.0 rubric scale:
+To maintain intuitive interpretability for organizers and participants, Z-scores are mapped back to the 1.0–5.0 rubric scale:
 
 $$s^{\text{norm}}_{j, p} = \text{clamp}\left( \mu_{\text{global}} + z_{j, p} \cdot \sigma_{\text{global}}, \, 1.0, \, 5.0 \right)$$
 
@@ -96,6 +96,56 @@ $$\text{Final Normalized Score}_p = \frac{1}{K_p} \sum_{j \in \text{Judges}(p)} 
 
 ## 4. Privacy & Authorization Architecture
 
-- **Judge Isolation**: A judge cannot see scores submitted by other judges. Server-side validation in `app/routers/judging.py` verifies that `current_user.judge_id == target_judge_id` on all score query routes.
+- **Judge Peer Isolation**: A judge cannot see scores submitted by other judges. Server-side validation in `app/routers/judging.py` verifies that `current_user.judge_id == target_judge_id` on all score query routes. Any query attempting to view peer evaluations returns `HTTP 403 Forbidden`.
 - **Participant Redaction**: Participants cannot read judging scores or progress metrics. Calling `/api/judge/scores` or `/api/export.csv` as a participant results in `HTTP 403 Forbidden`.
 - **Audit Logging**: Every score creation or update triggers a database record in `audit_logs` storing user ID, project ID, criteria breakdown, and timestamp.
+
+---
+
+## 5. Signed Judge Participation Records & Ed25519 Public Verification
+
+To ensure hackathon accountability without compromising reviewer privacy, JudgeForge generates cryptographically verifiable participation records for every submitted evaluation:
+
+### Asymmetric Cryptographic Signing (Ed25519)
+- **Algorithm**: Standard Ed25519 digital signatures (Edwards Curve 25519 via Python's standard `cryptography` library).
+- **Persistent Private Key**: Stored securely on the server in PKCS8 PEM format at `DATA_DIR/ed25519_private_key.pem`. The private key is never exposed via any API endpoint.
+- **Public Verification Key**: Exposed as 32 raw bytes in 64-character hexadecimal format at:
+  ```http
+  GET /api/v1/verifiable-records/public-key
+  ```
+- **Independent Offline Verification**: External observers, participants, and auditors can independently verify any judge record signature offline using the published public key or via the verification endpoint:
+  ```http
+  POST /api/v1/verifiable-records/verify-record
+  ```
+
+### Tamper-Evident Hash Chain
+Each submitted evaluation extends an append-only cryptographic ledger in `verifiable_judge_records`:
+1. The canonical record string is formed: `event_id:judge_id:project_id:timestamp`.
+2. The new block links to the previous block's hash:
+   $$\text{record\_hash} = \text{SHA256}(\text{canonical\_payload} + \text{prev\_hash})$$
+3. The server signs `record_hash` using its Ed25519 private key:
+   $$\text{signature} = \text{Ed25519\_Sign}(\text{private\_key}, \text{record\_hash})$$
+4. Any post-hoc modification to past reviews invalidates both the hash-chain link and the cryptographic digital signature.
+
+### Strict Privacy Guarantee
+Judge participation records prove that a legitimate, assigned judge evaluated a project without leaking:
+- Numeric criteria scores (`functionality`, `quality`, `innovation`)
+- Private qualitative comments
+- User account credentials or session tokens
+
+Public records expose strictly: `id`, `event_id`, `judge_id`, `project_id`, `record_hash`, `prev_hash`, `signature`, and `created_at`.
+
+---
+
+## 6. Official Judging vs. Community Voting
+
+JudgeForge clearly delineates the roles and mathematical pipelines of official judging versus community voting:
+
+| Dimension | Official Judging (T2) | Community Voting (T3) |
+|---|---|---|
+| **Audience** | Vetted, assigned domain judges | Event participants, attendees, and public |
+| **Input Criteria** | Multi-criterion weighted rubric ratings (1–5) | Binary ballot vote per project |
+| **Normalization** | Z-score standardization across reviewer distributions | Fraud prevention, duplicate detection, IP/voter rate limiting |
+| **Visibility** | Peer-isolated; aggregate rankings published post-event | Hidden during active voting window; public post-close |
+| **Outcome Impact** | Determines official hackathon tracks, podiums, and prizes | Determines Community Choice / People's Choice awards |
+| **Verifiability** | Cryptographic Ed25519 digital signatures & hash chain | Voter identifiers and voucher audit logs |
