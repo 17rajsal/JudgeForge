@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Submit Project | JudgeForge{% endblock %}
+{% block title %}Project Submission | JudgeForge{% endblock %}
 
 {% block content %}
-<div style="max-width:760px;margin:1rem auto;">
+<div style="max-width:820px;margin:1rem auto;">
   <!-- Workflow Step Indicator -->
   <div class="steps-nav">
     <div class="step-item completed">
@@ -20,12 +20,14 @@
     </div>
   </div>
 
-  <div class="card" style="padding:2rem;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+  <div class="card" style="padding:2.25rem;">
+    <!-- Page Header within Card -->
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem;padding-bottom:1.25rem;border-bottom:1px solid var(--slate-100);">
       <div>
-        <h1 style="font-size:1.5rem;margin-bottom:0.25rem;">Project Submission</h1>
+        <div class="hero-eyebrow">SUBMISSION PIPELINE</div>
+        <h1 style="font-size:1.6rem;margin-bottom:0.25rem;">Project Submission</h1>
         <p style="color:var(--text-secondary);font-size:0.9rem;">
-          Register or update your project entry for <strong>{{ event.name if event else 'the competition' }}</strong>.
+          Register or revise your entry for <strong>{{ event.name if event else 'the competition' }}</strong>.
         </p>
       </div>
       <div>
@@ -36,121 +38,162 @@
     </div>
 
     {% if is_closed %}
-    <div class="callout callout-danger" style="margin-bottom:1.5rem;">
+    <div class="callout callout-danger" style="margin-bottom:1.75rem;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div>
         <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event and event.submissions_close else 'in the past' }}. New project entries and modifications are no longer accepted.
       </div>
     </div>
     {% else %}
-    <div class="callout callout-info" style="margin-bottom:1.5rem;">
+    <div class="callout callout-info" style="margin-bottom:1.75rem;">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       <div>
-        <strong>Draft Workflow:</strong> Save working drafts anytime before the deadline. Only finalized <em>Submitted</em> projects are visible to judges and listed in the public directory.
+        <strong>Draft Workflow:</strong> Save working drafts anytime before the cutoff deadline. Only finalized <em>Submitted</em> entries flow into the evaluation queue and public directory.
       </div>
     </div>
     {% endif %}
 
-    <!-- Team Context Indicator -->
-    <div style="padding:1rem 1.25rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
-      <div>
-        <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Submitting Team</span>
-        {% if user_team %}
-        <div style="font-weight:700;color:var(--slate-900);font-size:1.05rem;margin-top:0.15rem;">
-          {{ user_team.name }}
-        </div>
-        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;">
-          {% for m in user_team.members %}
-          <span class="role-pill role-participant" style="font-size:0.75rem;padding:0.15rem 0.55rem;">
-            {{ m.email }}
-          </span>
-          {% endfor %}
-        </div>
-        {% else %}
-        <div style="font-weight:600;color:var(--slate-700);font-size:0.95rem;margin-top:0.15rem;">
-          Individual / Automatic Team
-        </div>
-        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
-          A team will be automatically created with you (<strong>{{ user.email if user else 'your account' }}</strong>) upon submission.
-        </div>
-        {% endif %}
-      </div>
-      {% if user_team %}
-      <a href="/workspace" class="btn btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.75rem;">Manage Team</a>
-      {% endif %}
-    </div>
-
     <form onsubmit="handleSubmitProject(event)">
-      <div class="form-group">
-        <label for="projTitle">Project Title *</label>
-        <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <small>Provide a clear, memorable title for your entry.</small>
-      </div>
 
-      <div class="form-group">
-        <label for="projTagline">Tagline / Short Pitch</label>
-        <input type="text" id="projTagline" placeholder="e.g. Edge computing mesh with deterministic zero-cloud consensus" maxlength="160" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <small>A concise 1-line elevator pitch shown in the gallery and podium.</small>
-      </div>
+      <!-- SECTION 1: BASIC INFORMATION -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">1. Basic Information</div>
+          <div class="form-section-hint">Primary project identity and track categorization</div>
+        </div>
 
-      <div class="form-group">
-        <label for="projTrack">Competition Track *</label>
-        <select id="projTrack" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-          {% for t in tracks %}
-          <option value="{{ t.id }}">{{ t.name }}</option>
-          {% endfor %}
-        </select>
-        <small>Select the thematic track that best categorizes your technical work.</small>
-      </div>
-
-      <div class="form-group">
-        <label for="projSummary">Architecture Summary &amp; Overview *</label>
-        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." required {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
-        <small>Evaluators review this summary during judging rounds.</small>
-      </div>
-
-      <div class="form-group">
-        <label for="projDescription">Long Description &amp; Implementation Details</label>
-        <textarea id="projDescription" rows="5" placeholder="Deep dive into system architecture, trade-offs, reproducible benchmarking, and offline behavior..." {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
-        <small>Optional detailed breakdown of technical design and verification.</small>
-      </div>
-
-      <div class="form-group">
-        <label for="projTechStack">Tech Stack &amp; Tags</label>
-        <input type="text" id="projTechStack" placeholder="e.g. Python, FastAPI, SQLite, Docker, Cryptography" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <small>Comma-separated technologies and frameworks used.</small>
-      </div>
-
-      <div class="form-group">
-        <label for="projRepo">GitHub / Source Repository URL</label>
-        <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <small>Link to source repository, README documentation, and verification scripts.</small>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1rem;">
         <div class="form-group">
-          <label for="projDemo">Live Demo URL</label>
-          <input type="url" id="projDemo" placeholder="https://demo.example.com" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-          <small>Interactive preview or deployed application.</small>
+          <label for="projTitle">Project Name *</label>
+          <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>Provide a clear, memorable name for your entry.</small>
         </div>
+
         <div class="form-group">
-          <label for="projVideo">Demo Video Walkthrough</label>
-          <input type="url" id="projVideo" placeholder="https://youtube.com/... or loom.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-          <small>Recorded walkthrough (Loom, YouTube, Vimeo, etc.).</small>
+          <label for="projTagline">Tagline / Short Pitch</label>
+          <input type="text" id="projTagline" placeholder="e.g. Edge computing mesh with deterministic zero-cloud consensus" maxlength="160" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>A concise one-line elevator pitch displayed in the directory and results podium.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="projTrack">Competition Track *</label>
+          <select id="projTrack" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+            {% for t in tracks %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+          <small>Select the primary track matching your solution focus.</small>
         </div>
       </div>
 
-      <div class="form-group">
-        <label for="projDeck">Pitch Deck (URL or Safe Local Upload)</label>
-        <input type="text" id="projDeck" placeholder="https://speakerdeck.com/... or /uploads/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <div style="margin-top:0.4rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
-          <input type="file" id="deckFileInput" accept=".pdf,.ppt,.pptx" style="font-size:0.82rem;" onchange="handleFileUpload(this, 'projDeck', 'deckUploadStatus')" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-          <span id="deckUploadStatus" style="font-size:0.78rem;color:var(--text-muted);">PDF, PPT, PPTX (max 25MB stored locally)</span>
+      <!-- SECTION 2: PROJECT OVERVIEW -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">2. Project Overview</div>
+          <div class="form-section-hint">Technical architecture, description, and frameworks used</div>
+        </div>
+
+        <div class="form-group">
+          <label for="projSummary">Architecture Summary &amp; Overview *</label>
+          <textarea id="projSummary" rows="3" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." required {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
+          <small>Evaluators review this summary during judging rounds.</small>
+        </div>
+
+        <div class="form-group">
+          <label for="projDescription">Long Description &amp; Implementation Details</label>
+          <textarea id="projDescription" rows="5" placeholder="Deep dive into system architecture, trade-offs, reproducible benchmarking, and offline behavior..." {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
+          <small>Optional in-depth breakdown of technical design and verification steps.</small>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="projTechStack">Tech Stack &amp; Tags</label>
+          <input type="text" id="projTechStack" placeholder="e.g. Python, FastAPI, SQLite, Docker, Cryptography" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>Comma-separated list of technologies and libraries utilized.</small>
         </div>
       </div>
 
+      <!-- SECTION 3: PROJECT LINKS -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">3. Project Links</div>
+          <div class="form-section-hint">Code repository, live interactive demo, and video walkthrough</div>
+        </div>
+
+        <div class="form-group">
+          <label for="projRepo">GitHub / Source Repository URL</label>
+          <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>Direct URL to public or self-hosted repository with documentation and verification scripts.</small>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1rem;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="projDemo">Live Demo URL</label>
+            <input type="url" id="projDemo" placeholder="https://demo.example.com" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+            <small>Interactive deployed web application or API endpoint.</small>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label for="projVideo">Demo Video Walkthrough</label>
+            <input type="url" id="projVideo" placeholder="https://youtube.com/... or loom.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+            <small>Recorded video demonstration (Loom, YouTube, Vimeo, etc.).</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: PRESENTATION -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">4. Presentation</div>
+          <div class="form-section-hint">Slide deck or safe local presentation upload</div>
+        </div>
+
+        <div class="form-group">
+          <label for="projDeck">Pitch Deck (URL or Safe Local Upload)</label>
+          <input type="text" id="projDeck" placeholder="https://speakerdeck.com/... or /uploads/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <div style="margin-top:0.5rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+            <input type="file" id="deckFileInput" accept=".pdf,.ppt,.pptx" style="font-size:0.82rem;" onchange="handleFileUpload(this, 'projDeck', 'deckUploadStatus')" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+            <span id="deckUploadStatus" style="font-size:0.78rem;color:var(--text-muted);">PDF, PPT, PPTX (max 25MB stored locally)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: TEAM (READ-ONLY DERIVED) -->
+      <div class="form-section">
+        <div class="form-section-header">
+          <div class="form-section-title">5. Team</div>
+          <div class="form-section-hint">Derived team membership associated with this entry</div>
+        </div>
+
+        <div style="padding:1rem 1.25rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Submitting Team</div>
+            {% if user_team %}
+            <div style="font-weight:700;color:var(--slate-900);font-size:1.05rem;margin-top:0.15rem;">
+              {{ user_team.name }}
+            </div>
+            <div style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;">
+              {% for m in user_team.members %}
+              <span class="role-pill role-participant" style="font-size:0.75rem;padding:0.15rem 0.55rem;">
+                {{ m.email }}
+              </span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div style="font-weight:600;color:var(--slate-800);font-size:0.95rem;margin-top:0.15rem;">
+              Individual Entry
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
+              An automatic squad will be registered with your account (<strong>{{ user.email if user else 'your account' }}</strong>).
+            </div>
+            {% endif %}
+          </div>
+          {% if user_team %}
+          <a href="/workspace" class="btn btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.75rem;">Manage Team</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Actions Toolbar -->
       {% if is_closed %}
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
         <span style="font-size:0.85rem;color:var(--text-muted);">
           Submissions closed for this event. Project creation and finalization are disabled.
         </span>
@@ -162,10 +205,11 @@
         </div>
       </div>
       {% else %}
-      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
         <div>
-          <button type="button" onclick="fillDemoProjectDetails()" class="btn btn-secondary" style="font-size:0.85rem;background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">
-            &plusmn; Fill Demo Details
+          <!-- Subtle secondary utility for evaluation rehearsal -->
+          <button type="button" onclick="fillDemoProjectDetails()" class="btn btn-secondary" style="font-size:0.8rem;color:var(--text-muted);border-style:dashed;">
+            Use Example Project (Fill Demo Details)
           </button>
         </div>
         <div style="display:flex;gap:0.75rem;align-items:center;">
@@ -204,14 +248,14 @@ async function handleFileUpload(inputEl, targetFieldId, statusId) {
     if (res.ok) {
       document.getElementById(targetFieldId).value = data.url;
       statusEl.textContent = 'Uploaded: ' + data.filename;
-      statusEl.style.color = 'var(--emerald-600)';
+      statusEl.style.color = 'var(--success)';
     } else {
       statusEl.textContent = 'Upload failed: ' + (data.detail || 'Error');
-      statusEl.style.color = 'var(--rose-600)';
+      statusEl.style.color = 'var(--danger)';
     }
   } catch (err) {
     statusEl.textContent = 'Upload error: ' + err.message;
-    statusEl.style.color = 'var(--rose-600)';
+    statusEl.style.color = 'var(--danger)';
   }
 }
 
@@ -255,7 +299,7 @@ async function handleSubmitProject(e, targetStatus) {
   const deckUrl = document.getElementById('projDeck') ? document.getElementById('projDeck').value.trim() : '';
 
   if (!title) {
-    alert('Project title is required.');
+    alert('Project name is required.');
     return;
   }
   if (!summary) {
@@ -297,12 +341,14 @@ async function handleSubmitProject(e, targetStatus) {
     const data = await res.json();
     if (!res.ok) {
       alert(data.detail || 'Submission failed. Please verify form details.');
+      submitButtons.forEach(btn => btn.disabled = false);
       return;
     }
 
     window.location.href = '/projects/' + data.id;
   } catch (err) {
     alert('Error submitting project. Check connection.');
+    submitButtons.forEach(btn => btn.disabled = false);
   }
 }
 </script>

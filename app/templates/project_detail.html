@@ -9,66 +9,44 @@
   </a>
 </div>
 
+<!-- Hero Card -->
 <div class="card" style="padding:2rem;margin-bottom:1.5rem;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1.25rem;margin-bottom:1.25rem;">
     <div>
       <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;margin-bottom:0.5rem;">
         <span class="card-tag">{{ project.track.name if project.track else 'General' }}</span>
-        {% if project.tech_tags %}
-          {% for tag in project.tech_tags %}
-          <span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);border-color:var(--slate-300);">{{ tag }}</span>
-          {% endfor %}
+        {% if project.status == 'draft' %}
+        <span class="status-chip status-closed">Draft (Not Submitted)</span>
+        {% else %}
+        <span class="status-chip status-open">Submitted Entry</span>
+        {% endif %}
+        {% if is_closed %}
+        <span class="status-chip status-closed">Closed (Locked)</span>
         {% endif %}
       </div>
-      <h1 style="font-size:1.85rem;margin-bottom:0.25rem;">{{ project.title }}</h1>
+      <h1 style="font-size:1.85rem;margin-bottom:0.35rem;">{{ project.title }}</h1>
       {% if project.tagline %}
-      <p style="font-size:1.05rem;color:var(--slate-700);margin-bottom:0.6rem;font-weight:500;">
+      <p style="font-size:1.05rem;color:var(--text-secondary);margin-bottom:0.6rem;font-weight:500;">
         {{ project.tagline }}
       </p>
       {% endif %}
-      <p style="color:var(--text-secondary);font-size:0.92rem;margin-bottom:0.35rem;">
+      <div style="font-size:0.9rem;color:var(--text-secondary);">
         Team: <strong style="color:var(--text-primary);">{{ project.team.name if project.team else 'Independent' }}</strong>
-      </p>
-      {% if project.team and project.team.members %}
-      <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.4rem;">
-        <span style="font-size:0.75rem;color:var(--text-muted);font-weight:600;text-transform:uppercase;">Members:</span>
-        {% for m in project.team.members %}
-        <span class="role-pill role-participant" style="font-size:0.75rem;padding:0.15rem 0.55rem;">
-          {{ m.email }}
-        </span>
-        {% endfor %}
       </div>
-      {% endif %}
     </div>
-    
+
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-      {% if project.status == 'draft' %}
-      <span class="role-pill role-organizer">
-        Draft (Not Submitted)
-      </span>
-      {% else %}
-      <span class="role-pill" style="background:var(--success-bg);color:var(--success);border-color:var(--success-border);">
-        Submitted Entry
-      </span>
-      {% endif %}
-
-      {% if is_closed %}
-      <span class="stat-closed">Closed (Locked)</span>
-      {% else %}
-      <span class="stat-open">Open for Editing</span>
-      {% endif %}
-
       {% if user and user.role in ['judge', 'organizer', 'admin'] and project.status == 'submitted' %}
-      <a href="/judge" class="btn btn-primary" style="background:var(--emerald-600);border-color:var(--emerald-700);font-size:0.85rem;padding:0.4rem 0.85rem;display:inline-flex;align-items:center;gap:0.35rem;">
+      <a href="/judge" class="btn btn-primary" style="font-size:0.85rem;padding:0.4rem 0.85rem;display:inline-flex;align-items:center;gap:0.35rem;">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        Score Project
+        Review Submission &rarr;
       </a>
       {% endif %}
     </div>
   </div>
 
   <!-- Asset Quick Actions Toolbar -->
-  <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;margin-bottom:1.5rem;padding-bottom:1.25rem;border-bottom:1px solid var(--card-border);">
+  <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap;padding-top:1rem;border-top:1px solid var(--slate-100);">
     {% if project.repo_url %}
     <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.85rem;display:inline-flex;align-items:center;gap:0.35rem;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
@@ -99,111 +77,159 @@
 
     <a href="/certificates/project/{{ project.id }}" class="btn btn-secondary" style="font-size:0.85rem;display:inline-flex;align-items:center;gap:0.35rem;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
-      Verification Certificate
+      Certificate
     </a>
   </div>
-
-  <div style="margin-bottom:1.5rem;">
-    <h3 style="font-size:1.05rem;margin-bottom:0.6rem;">Technical Architecture &amp; Overview</h3>
-    <p style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;white-space:pre-wrap;">{{ project.summary or 'No technical description provided.' }}</p>
-  </div>
-
-  {% if project.description and project.description != project.summary %}
-  <div style="border-top:1px solid var(--card-border);padding-top:1.25rem;margin-bottom:1.5rem;">
-    <h3 style="font-size:1.05rem;margin-bottom:0.6rem;">Implementation &amp; Verification Details</h3>
-    <p style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;white-space:pre-wrap;">{{ project.description }}</p>
-  </div>
-  {% endif %}
-
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;background:var(--slate-50);padding:1.15rem;border-radius:var(--radius-md);border:1px solid var(--card-border);">
-    <div>
-      <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.04em;">Submitted At</div>
-      <div style="font-size:0.88rem;color:var(--text-primary);margin-top:0.25rem;font-weight:500;">
-        {{ project.submitted_at.strftime('%Y-%m-%d %H:%M:%S UTC') if project.submitted_at else 'Draft' }}
-      </div>
-    </div>
-    <div>
-      <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.04em;">Project Identifier</div>
-      <div style="font-size:0.88rem;color:var(--text-primary);margin-top:0.25rem;font-family:var(--font-mono);">
-        {{ project.id }}
-      </div>
-    </div>
-    <div>
-      <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.04em;">Track</div>
-      <div style="font-size:0.88rem;color:var(--text-primary);margin-top:0.25rem;font-weight:600;">
-        {{ project.track.name if project.track else 'General' }}
-      </div>
-    </div>
-    <div>
-      <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:0.04em;">Event Scope</div>
-      <div style="font-size:0.88rem;color:var(--text-primary);margin-top:0.25rem;">
-        {{ event.name if event else 'Hackathon' }}
-      </div>
-    </div>
-  </div>
 </div>
 
-<!-- Community Voting Card -->
-{% if project.status == 'submitted' %}
-<div class="card" style="padding:1.75rem;margin-bottom:1.5rem;">
-  <div class="card-header">
-    <div>
-      <h3 style="font-size:1.15rem;">Community Choice Ballot</h3>
-      <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.25rem;">
-        Vote for this project in the community choice category. Current access mode: <strong style="text-transform:capitalize;">{{ event.voting_mode if event else 'authenticated' }}</strong>.
-      </p>
+<!-- Two-Column Layout: Main Content vs Sidebar -->
+<div class="two-col-layout" style="margin-bottom:2rem;">
+
+  <!-- Left Column: Main Description & Discussion -->
+  <div>
+    <!-- Architecture Summary -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h2 style="font-size:1.15rem;margin-bottom:0.75rem;">Technical Architecture &amp; Overview</h2>
+      <p style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;white-space:pre-wrap;margin:0;">{{ project.summary or 'No technical description provided.' }}</p>
     </div>
-    <span class="card-tag">Community Vote</span>
-  </div>
 
-  <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:0.85rem;">
-    {% if event and event.voting_mode == 'email_gated' %}
-    <input type="text" id="voteVoucher" placeholder="Enter voucher token or authorized email" style="max-width:300px;">
-    {% endif %}
-    <button onclick="handleCastVote()" id="voteBtn" class="btn btn-primary">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-      Cast Vote
-    </button>
-    <span id="voteMsg" style="font-size:0.85rem;font-weight:500;"></span>
-  </div>
-</div>
-
-<!-- Project Comments & Discussion Section -->
-<div class="card" style="padding:1.75rem;margin-bottom:1.5rem;">
-  <div class="card-header">
-    <div>
-      <h3 style="font-size:1.15rem;">Project Discussion</h3>
-      <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.25rem;">
-        Technical feedback and peer questions. User identifiers are redacted for privacy.
-      </p>
-    </div>
-    <span class="card-tag" id="commentCountTag">Comments</span>
-  </div>
-
-  <!-- Comments List -->
-  <div id="commentsList" style="display:flex;flex-direction:column;gap:0.75rem;margin:1rem 0;">
-    <p style="color:var(--text-muted);font-size:0.85rem;">Loading discussion...</p>
-  </div>
-
-  <!-- Add Comment Form -->
-  <form id="commentForm" onsubmit="handlePostComment(event)" style="border-top:1px solid var(--card-border);padding-top:1rem;margin-top:1rem;">
-    {% if not user %}
-    <div class="form-group" style="margin-bottom:0.75rem;">
-      <label for="commentAuthor">Display Name</label>
-      <input type="text" id="commentAuthor" placeholder="Community Participant" maxlength="100" style="max-width:280px;">
+    <!-- Long Description if provided -->
+    {% if project.description and project.description != project.summary %}
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h2 style="font-size:1.15rem;margin-bottom:0.75rem;">Implementation &amp; Verification Details</h2>
+      <p style="color:var(--text-secondary);font-size:0.95rem;line-height:1.6;white-space:pre-wrap;margin:0;">{{ project.description }}</p>
     </div>
     {% endif %}
-    <div class="form-group" style="margin-bottom:0.75rem;">
-      <label for="commentContent">Feedback or Question</label>
-      <textarea id="commentContent" rows="3" placeholder="Share constructive technical feedback or observations..." required maxlength="2000"></textarea>
+
+    <!-- Project Discussion Section -->
+    {% if project.status == 'submitted' %}
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size:1.15rem;">Project Discussion</h2>
+          <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.2rem;">
+            Constructive technical feedback and questions.
+          </p>
+        </div>
+        <span class="card-tag" id="commentCountTag">Comments</span>
+      </div>
+
+      <!-- Comments List -->
+      <div id="commentsList" style="display:flex;flex-direction:column;gap:0.75rem;margin:1rem 0;">
+        <p style="color:var(--text-muted);font-size:0.85rem;">Loading discussion...</p>
+      </div>
+
+      <!-- Add Comment Form -->
+      <form id="commentForm" onsubmit="handlePostComment(event)" style="border-top:1px solid var(--card-border);padding-top:1rem;margin-top:1rem;">
+        {% if not user %}
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label for="commentAuthor">Display Name</label>
+          <input type="text" id="commentAuthor" placeholder="Community Participant" maxlength="100" style="max-width:280px;">
+        </div>
+        {% endif %}
+        <div class="form-group" style="margin-bottom:0.75rem;">
+          <label for="commentContent">Feedback or Question</label>
+          <textarea id="commentContent" rows="3" placeholder="Share constructive technical feedback or observations..." required maxlength="2000"></textarea>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span id="commentMsg" style="font-size:0.82rem;color:var(--danger);font-weight:500;"></span>
+          <button type="submit" class="btn btn-secondary">Submit Comment</button>
+        </div>
+      </form>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;">
-      <span id="commentMsg" style="font-size:0.82rem;color:var(--danger);font-weight:500;"></span>
-      <button type="submit" class="btn btn-secondary">Submit Comment</button>
+    {% endif %}
+  </div>
+
+  <!-- Right Column: Sidebar Metadata -->
+  <div>
+    <!-- Team Members Card -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h3 style="font-size:1rem;margin-bottom:0.75rem;">Team &amp; Contributors</h3>
+      <div style="font-size:0.92rem;color:var(--text-primary);font-weight:600;margin-bottom:0.5rem;">
+        {{ project.team.name if project.team else 'Independent' }}
+      </div>
+      {% if project.team and project.team.members %}
+      <div style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;">
+        {% for m in project.team.members %}
+        <span class="role-pill role-participant" style="font-size:0.75rem;padding:0.15rem 0.55rem;">
+          {{ m.email }}
+        </span>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color:var(--text-muted);font-size:0.82rem;margin:0;">No additional team members listed.</p>
+      {% endif %}
     </div>
-  </form>
+
+    <!-- Tech Stack & Specifications Card -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <h3 style="font-size:1rem;margin-bottom:0.75rem;">Specifications</h3>
+
+      <div style="display:flex;flex-direction:column;gap:0.85rem;font-size:0.88rem;">
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Track</div>
+          <div style="font-weight:600;color:var(--text-primary);margin-top:0.15rem;">
+            {{ project.track.name if project.track else 'General' }}
+          </div>
+        </div>
+
+        {% if project.tech_tags %}
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;margin-bottom:0.35rem;">Tech Stack</div>
+          <div style="display:flex;gap:0.3rem;flex-wrap:wrap;">
+            {% for tag in project.tech_tags %}
+            <span class="card-tag" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">{{ tag }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Event Scope</div>
+          <div style="color:var(--text-primary);margin-top:0.15rem;">
+            {{ event.name if event else 'Hackathon 2026' }}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Submission Timestamp</div>
+          <div style="color:var(--text-secondary);font-size:0.82rem;margin-top:0.15rem;">
+            {{ project.submitted_at.strftime('%Y-%m-%d %H:%M:%S UTC') if project.submitted_at else 'Draft' }}
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;font-weight:600;">Identifier</div>
+          <div style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);margin-top:0.15rem;">
+            {{ project.id }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Community Choice Ballot -->
+    {% if project.status == 'submitted' %}
+    <div class="card">
+      <h3 style="font-size:1rem;margin-bottom:0.5rem;">Community Choice Ballot</h3>
+      <p style="color:var(--text-secondary);font-size:0.82rem;margin-bottom:0.85rem;line-height:1.45;">
+        Cast an independent attendee vote for this entry.
+      </p>
+
+      {% if event and event.voting_mode == 'email_gated' %}
+      <div class="form-group" style="margin-bottom:0.75rem;">
+        <input type="text" id="voteVoucher" placeholder="Voucher token or verified email" style="font-size:0.85rem;">
+      </div>
+      {% endif %}
+
+      <button onclick="handleCastVote()" id="voteBtn" class="btn btn-primary" style="width:100%;font-size:0.85rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        Cast Ballot
+      </button>
+      <div id="voteMsg" style="font-size:0.8rem;font-weight:500;margin-top:0.5rem;text-align:center;"></div>
+    </div>
+    {% endif %}
+  </div>
 </div>
-{% endif %}
 
 <script>
 // Community Voting
@@ -308,118 +334,46 @@ async function handlePostComment(e) {
   const authorEl = document.getElementById('commentAuthor');
   const contentEl = document.getElementById('commentContent');
   const msgEl = document.getElementById('commentMsg');
+  const authorName = authorEl ? authorEl.value.trim() : '{{ user.name if user else "Participant" }}';
+  const content = contentEl.value.trim();
 
+  if (!content) return;
   msgEl.textContent = '';
-  const payload = {
-    content: contentEl.value.trim(),
-    author_name: authorEl ? authorEl.value.trim() : undefined,
-  };
 
   try {
     const res = await fetch('/api/projects/{{ project.id }}/comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ author_name: authorName, content: content })
     });
-    const data = await res.json();
     if (res.ok) {
       contentEl.value = '';
-      await loadComments();
+      loadComments();
     } else {
-      msgEl.textContent = data.detail || 'Failed to post comment';
+      const d = await res.json();
+      msgEl.textContent = d.detail || 'Could not post comment.';
     }
   } catch (err) {
-    msgEl.textContent = 'Error: ' + err.message;
+    msgEl.textContent = 'Error posting comment.';
   }
 }
 
 async function handleDeleteComment(cid) {
-  if (!confirm('Are you sure you want to remove this comment?')) return;
+  if (!confirm('Delete this comment?')) return;
   try {
     const res = await fetch('/api/comments/' + cid, { method: 'DELETE' });
     if (res.ok) {
-      await loadComments();
+      loadComments();
     } else {
-      const err = await res.json();
-      alert('Delete failed: ' + (err.detail || 'Unauthorized'));
+      alert('Could not delete comment.');
     }
-  } catch (e) {
-    alert('Error deleting comment');
+  } catch (err) {
+    alert('Network error.');
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadComments);
+document.addEventListener('DOMContentLoaded', () => {
+  loadComments();
+});
 </script>
-
-{% if is_team_member and not is_closed %}
-<div class="card" style="padding:1.75rem;">
-  <div class="card-header">
-    <h3 style="font-size:1.15rem;">Edit Submission</h3>
-    <span class="card-tag">Team Author</span>
-  </div>
-  <p style="color:var(--text-secondary);font-size:0.88rem;margin-bottom:1.25rem;">
-    Modify project details prior to the submission deadline.
-  </p>
-
-  <form id="editForm" onsubmit="handleEditProject(event)">
-    <div class="form-group">
-      <label for="editTitle">Project Title</label>
-      <input type="text" id="editTitle" value="{{ project.title }}" required>
-    </div>
-    <div class="form-group">
-      <label for="editSummary">Technical Architecture &amp; Summary</label>
-      <textarea id="editSummary" rows="4">{{ project.summary or '' }}</textarea>
-    </div>
-    <div class="form-group">
-      <label for="editRepo">Repository URL</label>
-      <input type="url" id="editRepo" value="{{ project.repo_url or '' }}">
-    </div>
-    <div style="display:flex;gap:0.75rem;margin-top:1.25rem;align-items:center;flex-wrap:wrap;border-top:1px solid var(--card-border);padding-top:1rem;">
-      <button type="submit" class="btn btn-secondary">Save Changes</button>
-      {% if project.status == 'draft' %}
-      <button type="button" onclick="handleFinalizeSubmit()" class="btn btn-primary">
-        Finalize &amp; Submit Project
-      </button>
-      {% endif %}
-    </div>
-  </form>
-</div>
-
-<script>
-async function handleEditProject(e) {
-  e.preventDefault();
-  const res = await fetch('/api/projects/{{ project.id }}', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      title: document.getElementById('editTitle').value,
-      summary: document.getElementById('editSummary').value,
-      repo_url: document.getElementById('editRepo').value
-    })
-  });
-  if (res.ok) {
-    alert('Project updated successfully.');
-    window.location.reload();
-  } else {
-    const err = await res.json();
-    alert('Failed to update: ' + (err.detail || 'Unknown error'));
-  }
-}
-
-async function handleFinalizeSubmit() {
-  if (!confirm("Are you sure you want to finalize and submit this project? It will become visible in the public directory.")) return;
-  const res = await fetch('/api/projects/{{ project.id }}/submit', {
-    method: 'POST'
-  });
-  if (res.ok) {
-    alert('Project submitted successfully.');
-    window.location.reload();
-  } else {
-    const err = await res.json();
-    alert('Submission failed: ' + (err.detail || 'Unknown error'));
-  }
-}
-</script>
-{% endif %}
-
 {% endblock %}

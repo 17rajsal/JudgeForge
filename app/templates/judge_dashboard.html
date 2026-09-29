@@ -3,33 +3,62 @@
 {% block title %}Judge Console | JudgeForge{% endblock %}
 
 {% block content %}
-<div class="page-header" style="margin-bottom:1.5rem;">
-  <div>
-    <div class="hero-eyebrow">EVALUATION CONSOLE</div>
-    <h1>Judge Portal</h1>
-    <div class="page-subtitle">Welcome back, <strong>{{ judge.name if judge else user.name }}</strong>. Review assigned submissions, assign rubric scores, and record feedback.</div>
+<!-- Role Context Banner -->
+<div class="role-context-card">
+  <div class="role-context-header">
+    <div>
+      <div class="hero-eyebrow">EVALUATION CONSOLE</div>
+      <h1 class="role-context-title">Judge Console</h1>
+      <p class="role-context-desc">
+        Review assigned submissions independently using the event rubric. Your scores and feedback are private. Other judges cannot view your ballot.
+      </p>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+      <span class="role-pill role-judge">Judge Panel</span>
+      <span class="user-badge" style="font-size:0.85rem;color:var(--text-secondary);">
+        {{ judge.name if judge else user.name }}
+      </span>
+    </div>
   </div>
-  <div>
-    <span class="role-pill role-judge" style="font-size:0.8rem;padding:0.35rem 0.85rem;">
-      Judge Panel Member
-    </span>
+
+  <!-- Judge Lifecycle Stepper -->
+  {% set total_projects = projects | length %}
+  {% set scored_count = my_scores | length %}
+  {% set remaining_count = total_projects - scored_count %}
+  {% set completion_pct = (scored_count / total_projects * 100) | round | int if total_projects > 0 else 0 %}
+
+  <div class="role-stepper">
+    <div class="role-step {% if total_projects > 0 %}completed{% else %}active{% endif %}">
+      &check; Assigned ({{ total_projects }})
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if scored_count > 0 %}completed{% else %}active{% endif %}">
+      {% if scored_count > 0 %}&check;{% else %}2{% endif %} Inspect Materials
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if scored_count > 0 %}completed{% elif total_projects > 0 %}active{% endif %}">
+      {% if scored_count > 0 %}&check;{% else %}3{% endif %} Score Rubric
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if remaining_count == 0 and total_projects > 0 %}completed{% elif scored_count > 0 %}active{% endif %}">
+      {% if remaining_count == 0 and total_projects > 0 %}&check;{% else %}4{% endif %} Submit Ballots
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if remaining_count == 0 and total_projects > 0 %}completed{% endif %}">
+      {% if remaining_count == 0 and total_projects > 0 %}&check;{% else %}5{% endif %} Deliberation Complete
+    </div>
   </div>
 </div>
 
-<!-- Score Isolation Notice -->
+<!-- Score Isolation Confidentiality Notice -->
 <div class="callout callout-info" style="margin-bottom:1.75rem;">
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   <div>
-    <strong>Score Isolation Active:</strong> Peer judge scores are isolated by the backend. Your evaluations and comments remain strictly confidential until final normalization.
+    <strong>Score Isolation Active:</strong> Your scores and feedback are private. Other judges cannot view your ballot. Peer judge evaluations remain strictly isolated until final organizer normalization.
   </div>
 </div>
 
-<!-- KPI Stats Row -->
-{% set total_projects = projects | length %}
-{% set scored_count = my_scores | length %}
-{% set remaining_count = total_projects - scored_count %}
-{% set completion_pct = (scored_count / total_projects * 100) | round | int if total_projects > 0 else 0 %}
-
+<!-- KPI Stats Grid -->
 <div class="stat-grid">
   <div class="stat-card">
     <div class="stat-card-label">Assigned Submissions</div>
@@ -46,18 +75,18 @@
     <div class="stat-card-value" style="color:{% if remaining_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};">
       {{ remaining_count }}
     </div>
-    <div class="stat-card-hint">{% if remaining_count == 0 %}All caught up!{% else %}Pending evaluation{% endif %}</div>
+    <div class="stat-card-hint">{% if remaining_count == 0 %}All evaluations submitted &check;{% else %}Pending your evaluation{% endif %}</div>
   </div>
   <div class="stat-card">
     <div class="stat-card-label">Assigned Track Scope</div>
-    <div style="font-weight:700;font-size:1.1rem;color:var(--slate-800);margin-top:0.25rem;">
+    <div style="font-weight:700;font-size:1.05rem;color:var(--slate-800);margin:0.35rem 0 0.2rem;">
       {% if assigned_tracks %}
         {% for t in assigned_tracks %}{{ t.name }}{% if not loop.last %}, {% endif %}{% endfor %}
       {% else %}
         All Tracks
       {% endif %}
     </div>
-    <div class="stat-card-hint" style="font-family:var(--font-mono);">ID: {{ judge.id if judge else 'N/A' }}</div>
+    <div class="stat-card-hint" style="font-family:var(--font-mono);">Judge ID: {{ judge.id if judge else 'N/A' }}</div>
   </div>
 </div>
 
@@ -67,48 +96,55 @@
     <span>Evaluation Progress</span>
     <span>{{ scored_count }} of {{ total_projects }} projects evaluated ({{ completion_pct }}%)</span>
   </div>
-  <div class="progress-track">
+  <div class="progress-track" style="height:8px;">
     <div class="progress-fill" style="width: {{ completion_pct }}%;"></div>
   </div>
 </div>
 
-<!-- Table Header -->
+<!-- Submission Queue Table -->
 <div class="page-header" style="margin-bottom:1rem;">
-  <h2>Assigned Submissions</h2>
-  <span style="color:var(--text-muted);font-size:0.85rem;">Click Score Now to submit or revise rubric grades</span>
+  <div>
+    <h2>Submission Queue</h2>
+    <div class="page-subtitle">Review project architecture, inspect code repositories, and record rubric scores.</div>
+  </div>
+  <div style="display:flex;gap:0.5rem;align-items:center;">
+    <span class="card-tag" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">
+      {{ remaining_count }} Pending &middot; {{ scored_count }} Completed
+    </span>
+  </div>
 </div>
 
 <div class="table-container" style="margin-bottom:2.5rem;">
   <table>
     <thead>
       <tr>
-        <th style="width:110px;">Project ID</th>
-        <th>Title</th>
+        <th style="width:110px;">ID</th>
+        <th>Project &amp; Overview</th>
         <th>Track</th>
         <th>Team</th>
-        <th>Review Status</th>
-        <th>Score Breakdown</th>
-        <th style="text-align:right;">Action</th>
+        <th>Status</th>
+        <th>Ballot</th>
+        <th style="text-align:right;">Evaluation</th>
       </tr>
     </thead>
     <tbody>
       {% for p in projects %}
       {% set sc = my_scores.get(p.id) %}
-      <tr>
-        <td style="font-family:var(--font-mono);font-size:0.85rem;color:var(--text-muted);">{{ p.id }}</td>
+      <tr style="{% if not sc %}background:#ffffff;{% else %}background:var(--slate-50);{% endif %}">
+        <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);">{{ p.id }}</td>
         <td>
-          <a href="/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);">{{ p.title }}</a>
+          <a href="/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);font-size:0.95rem;">{{ p.title }}</a>
           {% if p.tagline %}
-          <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;max-width:320px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.15rem;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             {{ p.tagline }}
           </div>
           {% endif %}
-          <div style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;">
+          <div style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;">
             {% if p.repo_url %}
             <a href="{{ p.repo_url }}" target="_blank" rel="noopener noreferrer" class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.4rem;text-decoration:none;">GitHub</a>
             {% endif %}
             {% if p.demo_url %}
-            <a href="{{ p.demo_url }}" target="_blank" rel="noopener noreferrer" class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.4rem;text-decoration:none;color:var(--primary-700);border-color:var(--primary-300);">Live Demo</a>
+            <a href="{{ p.demo_url }}" target="_blank" rel="noopener noreferrer" class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.4rem;text-decoration:none;color:var(--primary);border-color:var(--primary-border);">Live Demo</a>
             {% endif %}
             {% if p.video_url %}
             <a href="{{ p.video_url }}" target="_blank" rel="noopener noreferrer" class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.4rem;text-decoration:none;">Video</a>
@@ -118,7 +154,7 @@
             {% endif %}
           </div>
           {% if p.tech_stack %}
-          <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.3rem;">
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">
             <strong style="color:var(--slate-700);">Stack:</strong> {{ p.tech_stack }}
           </div>
           {% endif %}
@@ -127,18 +163,18 @@
         <td>{{ p.team.name if p.team else 'Independent' }}</td>
         <td>
           {% if sc %}
-          <span style="background:var(--emerald-50);color:var(--emerald-700);border:1px solid var(--emerald-200);padding:0.25rem 0.6rem;border-radius:var(--radius-full);font-size:0.78rem;font-weight:700;display:inline-flex;align-items:center;gap:0.3rem;">
-            &check; Scored
+          <span class="status-chip status-open" style="font-size:0.75rem;">
+            Scored
           </span>
           {% else %}
-          <span style="background:var(--amber-50);color:var(--amber-700);border:1px solid var(--amber-200);padding:0.25rem 0.6rem;border-radius:var(--radius-full);font-size:0.78rem;font-weight:700;display:inline-flex;align-items:center;gap:0.3rem;">
-            &bull; Pending Review
+          <span class="status-chip status-judging" style="font-size:0.75rem;">
+            Pending Review
           </span>
           {% endif %}
         </td>
         <td>
           {% if sc %}
-          <div style="font-family:var(--font-mono);font-size:0.85rem;display:flex;gap:0.5rem;">
+          <div style="font-family:var(--font-mono);font-size:0.82rem;display:flex;gap:0.45rem;">
             <span title="Functionality">F:<strong>{{ sc.functionality or '-' }}</strong></span>
             <span title="Quality">Q:<strong>{{ sc.quality or '-' }}</strong></span>
             <span title="Innovation">I:<strong>{{ sc.innovation or '-' }}</strong></span>
@@ -156,7 +192,7 @@
       </tr>
       {% else %}
       <tr>
-        <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-muted);">
+        <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-muted);">
           No projects currently assigned for evaluation.
         </td>
       </tr>
@@ -166,7 +202,7 @@
 </div>
 
 <!-- Scoring Modal Dialog -->
-<dialog id="scoringModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:2rem;max-width:760px;width:95%;margin:auto;box-shadow:var(--shadow-xl);">
+<dialog id="scoringModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:2rem;max-width:760px;width:95%;margin:auto;box-shadow:var(--shadow-xl);max-height:90vh;overflow-y:auto;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
     <div style="flex:1;padding-right:1rem;">
       <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.35rem;">
@@ -187,7 +223,7 @@
 
   <!-- Project Summary & Architecture in Modal -->
   <div id="modalSummaryBox" style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1.15rem;margin-bottom:1.25rem;font-size:0.875rem;line-height:1.5;">
-    <div style="font-weight:700;font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:0.35rem;">
+    <div style="font-weight:700;font-size:0.78rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:0.35rem;">
       Architecture &amp; Summary
     </div>
     <div id="modalSummaryText" style="color:var(--slate-800);white-space:pre-line;"></div>
@@ -198,17 +234,17 @@
   <div class="callout callout-info" style="margin-bottom:1.25rem;padding:0.65rem 0.85rem;font-size:0.82rem;">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
     <div>
-      <strong>Confidential Evaluation:</strong> Your evaluation is private. Peer judge scores and comments are isolated by the backend.
+      <strong>Confidential Evaluation:</strong> Your evaluation is private. Other judges cannot view your ballot. Peer judge scores and comments remain strictly isolated by the backend.
     </div>
   </div>
-  
+
   <form id="scoreForm" onsubmit="handleScoreSubmit(event)">
     <input type="hidden" id="modalProjectId">
 
     <!-- Functionality Criterion -->
     <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalFunc" style="font-weight:700;font-size:0.95rem;">
+        <label for="modalFunc" style="font-weight:700;font-size:0.92rem;">
           1. Functionality (1 - 5) *
         </label>
         <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -217,19 +253,19 @@
         </div>
       </div>
       <input type="number" id="modalFunc" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>broken / critical flows fail</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>partially working / major gaps</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>working MVP</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>works reliably with minor issues</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>complete, reliable and polished</div>
+
+      <!-- Compact Anchors -->
+      <div class="rubric-anchor-row">
+        <div class="rubric-anchor-box"><strong>1 Broken</strong> Critical flows fail</div>
+        <div class="rubric-anchor-box"><strong>3 Working MVP</strong> Core functions operational</div>
+        <div class="rubric-anchor-box"><strong>5 Excellent</strong> Complete, reliable, polished</div>
       </div>
     </div>
 
     <!-- Code & Design Quality Criterion -->
     <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalQual" style="font-weight:700;font-size:0.95rem;">
+        <label for="modalQual" style="font-weight:700;font-size:0.92rem;">
           2. Code &amp; Design Quality (1 - 5) *
         </label>
         <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -238,19 +274,19 @@
         </div>
       </div>
       <input type="number" id="modalQual" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>fragile / poorly structured</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>architecture/UX problems</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>reasonably clean implementation</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>strong architecture and UX</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>production-quality engineering</div>
+
+      <!-- Compact Anchors -->
+      <div class="rubric-anchor-row">
+        <div class="rubric-anchor-box"><strong>1 Fragile</strong> Architecture issues</div>
+        <div class="rubric-anchor-box"><strong>3 Clean</strong> Reasonably clean implementation</div>
+        <div class="rubric-anchor-box"><strong>5 Production Ready</strong> Robust, documented, tested</div>
       </div>
     </div>
 
     <!-- Innovation & Creativity Criterion -->
     <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalInnov" style="font-weight:700;font-size:0.95rem;">
+        <label for="modalInnov" style="font-weight:700;font-size:0.92rem;">
           3. Innovation &amp; Creativity (1 - 5) *
         </label>
         <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -259,12 +295,12 @@
         </div>
       </div>
       <input type="number" id="modalInnov" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>standard/common clone</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>limited originality</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>meaningful creative decisions</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>distinctive approach</div>
-        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>breakthrough insight</div>
+
+      <!-- Compact Anchors -->
+      <div class="rubric-anchor-row">
+        <div class="rubric-anchor-box"><strong>1 Standard</strong> Common approach</div>
+        <div class="rubric-anchor-box"><strong>3 Creative</strong> Meaningful creative decisions</div>
+        <div class="rubric-anchor-box"><strong>5 Exceptional</strong> Breakthrough novelty</div>
       </div>
     </div>
 
@@ -274,7 +310,7 @@
         <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Calculated Raw Score Preview</span>
         <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">Formula: &sum;(score &times; weight) / &sum;(weights)</div>
       </div>
-      <div id="modalWeightedPreview" style="font-family:var(--font-mono);font-size:1.35rem;font-weight:800;color:var(--primary-700);">
+      <div id="modalWeightedPreview" style="font-family:var(--font-mono);font-size:1.35rem;font-weight:800;color:var(--primary);">
         3.00 / 5.00
       </div>
     </div>

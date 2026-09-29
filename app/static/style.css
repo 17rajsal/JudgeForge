@@ -55,16 +55,16 @@
   --info-bg: #f0f9ff;
   --info-border: #bae6fd;
 
-  /* Spacing Scale */
-  --space-1: 0.25rem;
-  --space-2: 0.5rem;
-  --space-3: 0.75rem;
-  --space-4: 1rem;
-  --space-5: 1.25rem;
-  --space-6: 1.5rem;
-  --space-8: 2rem;
-  --space-10: 2.5rem;
-  --space-12: 3rem;
+  /* Spacing Scale (8px rhythm) */
+  --space-1: 0.25rem; /* 4px */
+  --space-2: 0.5rem;  /* 8px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem;    /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem;  /* 24px */
+  --space-8: 2rem;    /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem;   /* 48px */
 
   /* Border Radii */
   --radius-xs: 4px;
@@ -75,11 +75,11 @@
   --radius-full: 9999px;
 
   /* Crisp Border-Defined Shadows */
-  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
-  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.06), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
-  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.03);
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.06), 0 4px 6px -4px rgba(15, 23, 42, 0.02);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.07), 0 8px 10px -6px rgba(15, 23, 42, 0.02);
 
   /* Typography */
   --font-sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -138,10 +138,10 @@ h1, h2, h3, h4, h5, h6 {
   line-height: 1.3;
 }
 
-h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; }
-h2 { font-size: 1.35rem; }
-h3 { font-size: 1.1rem; }
-h4 { font-size: 0.95rem; font-weight: 600; }
+h1 { font-size: 1.85rem; font-weight: 700; letter-spacing: -0.025em; line-height: 1.25; }
+h2 { font-size: 1.3rem; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
+h3 { font-size: 1.05rem; font-weight: 600; letter-spacing: -0.015em; line-height: 1.35; }
+h4 { font-size: 0.92rem; font-weight: 600; }
 
 p {
   color: var(--text-secondary);
@@ -156,7 +156,7 @@ code, pre {
    Navigation Bar
    ========================================================================== */
 .navbar {
-  height: 56px;
+  min-height: 56px;
   background-color: var(--bg-secondary);
   border-bottom: 1px solid var(--card-border);
   display: flex;
@@ -166,6 +166,7 @@ code, pre {
   position: sticky;
   top: 0;
   z-index: 50;
+  transition: padding var(--transition);
 }
 
 .nav-brand {
@@ -356,6 +357,239 @@ footer {
 }
 
 /* ==========================================================================
+   Role-Aware Context Banner
+   ========================================================================== */
+.role-context-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+  box-shadow: var(--shadow-xs);
+}
+
+.role-context-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.role-context-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.role-context-desc {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 720px;
+  line-height: 1.5;
+}
+
+.role-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid var(--slate-100);
+}
+
+.role-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  white-space: nowrap;
+}
+
+.role-step.active {
+  background: var(--primary-subtle);
+  border-color: var(--primary-border);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.role-step.completed {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+  font-weight: 600;
+}
+
+.role-step-arrow {
+  color: var(--slate-400);
+  font-size: 0.75rem;
+}
+
+/* ==========================================================================
+   Reusable Explainer: How JudgeForge Works
+   ========================================================================== */
+.how-it-works-section {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--divider);
+}
+
+.how-it-works-header {
+  margin-bottom: 1.25rem;
+}
+
+.how-it-works-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.how-it-works-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.how-it-works-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.how-step {
+  background: var(--bg-secondary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  transition: border-color var(--transition);
+}
+
+.how-step:hover {
+  border-color: var(--card-border-hover);
+}
+
+.how-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-subtle);
+  color: var(--primary);
+  border: 1px solid var(--primary-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  margin-bottom: 0.6rem;
+}
+
+.how-step-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.how-step-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Status Chips (Standardized Component)
+   ========================================================================== */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--radius-xs);
+  line-height: 1.35;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.status-chip::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.status-open {
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+.status-open::before { background-color: var(--success); }
+
+.status-closed {
+  background-color: var(--slate-100);
+  border-color: var(--slate-300);
+  color: var(--slate-700);
+}
+.status-closed::before { background-color: var(--slate-400); }
+
+.status-judging {
+  background-color: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning);
+}
+.status-judging::before { background-color: var(--warning); }
+
+.status-published {
+  background-color: var(--primary-subtle);
+  border-color: var(--primary-border);
+  color: var(--primary);
+}
+.status-published::before { background-color: var(--primary); }
+
+.status-fixture {
+  background-color: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #5b21b6;
+}
+.status-fixture::before { background-color: #7c3aed; }
+
+/* Legacy compatibility mappings */
+.stat-closed {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--slate-700);
+  background-color: var(--slate-100);
+  border: 1px solid var(--slate-300);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-xs);
+}
+
+.stat-open {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--success);
+  background-color: var(--success-bg);
+  border: 1px solid var(--success-border);
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-xs);
+}
+
+/* ==========================================================================
    Cards & Surfaces
    ========================================================================== */
 .card {
@@ -364,6 +598,7 @@ footer {
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   transition: border-color var(--transition);
+  box-shadow: var(--shadow-xs);
 }
 
 .card:hover {
@@ -427,6 +662,14 @@ footer {
   gap: 1.25rem;
 }
 
+/* Two Column Layout */
+.two-col-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
 /* ==========================================================================
    Stat & KPI Metric Cards
    ========================================================================== */
@@ -434,7 +677,7 @@ footer {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
 }
 
 .stat-card {
@@ -444,14 +687,15 @@ footer {
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-xs);
 }
 
 .stat-card-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .stat-card-value {
@@ -477,6 +721,7 @@ footer {
   border-radius: var(--radius-lg);
   padding: 2rem;
   margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-xs);
 }
 
 .hero h1 {
@@ -511,26 +756,6 @@ footer {
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
-}
-
-.stat-closed {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--danger);
-  background-color: var(--danger-bg);
-  border: 1px solid var(--danger-border);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-xs);
-}
-
-.stat-open {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--success);
-  background-color: var(--success-bg);
-  border: 1px solid var(--success-border);
-  padding: 0.15rem 0.5rem;
-  border-radius: var(--radius-xs);
 }
 
 /* ==========================================================================
@@ -711,6 +936,37 @@ textarea:disabled {
   margin-top: 0.25rem;
 }
 
+/* Form Sections */
+.form-section {
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--slate-100);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+  margin-bottom: 1rem;
+  padding-bottom: 0;
+}
+
+.form-section-header {
+  margin-bottom: 1rem;
+}
+
+.form-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--slate-800);
+  margin-bottom: 0.2rem;
+}
+
+.form-section-hint {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* ==========================================================================
    Tables
    ========================================================================== */
@@ -719,6 +975,8 @@ textarea:disabled {
   border: 1px solid var(--card-border);
   border-radius: var(--radius-lg);
   overflow-x: auto;
+  box-shadow: var(--shadow-xs);
+  -webkit-overflow-scrolling: touch;
 }
 
 table {
@@ -737,6 +995,7 @@ th {
   letter-spacing: 0.04em;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--card-border);
+  white-space: nowrap;
 }
 
 td {
@@ -760,6 +1019,14 @@ td strong, td a {
 
 .tabular-nums {
   font-variant-numeric: tabular-nums;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-center {
+  text-align: center;
 }
 
 /* ==========================================================================
@@ -850,6 +1117,7 @@ td strong, td a {
   grid-template-columns: repeat(3, 1fr);
   gap: 1.25rem;
   margin-bottom: 2rem;
+  align-items: stretch;
 }
 
 .podium-card {
@@ -859,12 +1127,19 @@ td strong, td a {
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition);
+}
+
+.podium-card:hover {
+  border-color: var(--card-border-hover);
 }
 
 .podium-1 {
-  border-color: var(--primary-border);
-  background: linear-gradient(180deg, #ffffff 0%, var(--primary-subtle) 100%);
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #ffffff 0%, #fffdf5 100%);
   order: 2;
+  box-shadow: var(--shadow-sm);
 }
 
 .podium-2 {
@@ -882,6 +1157,32 @@ td strong, td a {
   letter-spacing: 0.04em;
   color: var(--primary);
   margin-bottom: 0.5rem;
+}
+
+/* ==========================================================================
+   Rubric Anchors (Judge Guidance)
+   ========================================================================== */
+.rubric-anchor-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.rubric-anchor-box {
+  padding: 0.35rem 0.5rem;
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-xs);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.rubric-anchor-box strong {
+  color: var(--slate-800);
+  display: block;
+  margin-bottom: 0.1rem;
 }
 
 /* ==========================================================================
@@ -965,6 +1266,7 @@ td strong, td a {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  box-shadow: var(--shadow-sm);
 }
 
 /* ==========================================================================
@@ -973,8 +1275,9 @@ td strong, td a {
 .steps-nav {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.25rem;
   margin-bottom: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .step-item {
@@ -1020,8 +1323,76 @@ td strong, td a {
 }
 
 /* ==========================================================================
+   Podium & Award Presentation
+   ========================================================================== */
+.podium-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.12fr 1fr;
+  gap: var(--space-5);
+  align-items: end;
+  margin-bottom: var(--space-8);
+}
+
+.podium-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+
+.podium-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.podium-1 {
+  order: 2;
+  border: 2px solid #fde68a;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+  box-shadow: 0 4px 16px -2px rgba(245, 158, 11, 0.12);
+  padding: var(--space-6);
+  min-height: 380px;
+}
+
+.podium-2 {
+  order: 1;
+  border: 1px solid #cbd5e1;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  min-height: 340px;
+}
+
+.podium-3 {
+  order: 3;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(180deg, #fdfbf9 0%, #ffffff 100%);
+  min-height: 320px;
+}
+
+.podium-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-xs);
+  border: 1px solid transparent;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
+@media (max-width: 900px) {
+  .two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 860px) {
   .auth-wrapper {
     grid-template-columns: 1fr;
@@ -1033,10 +1404,51 @@ td strong, td a {
     order: unset;
   }
   .navbar {
-    padding: 0 1rem;
+    padding: 0.6rem 1rem;
+    height: auto;
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
   }
   .nav-links {
-    display: none; /* Mobile menu can be expanded if needed */
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    white-space: nowrap;
+    padding-bottom: 0.35rem;
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--slate-100);
+    gap: 0.25rem;
+  }
+  .nav-links::-webkit-scrollbar {
+    display: none;
+  }
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+  .main-content {
+    padding: 1.25rem 1rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .card {
+    padding: 1.15rem;
+  }
+  .rubric-anchor-row {
+    grid-template-columns: 1fr;
   }
 }
 

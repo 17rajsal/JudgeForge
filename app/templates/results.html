@@ -9,9 +9,9 @@
     <h1>{{ event.name if event else 'Dogfood Hackathon 2026' }} Results</h1>
     <div class="page-subtitle">
       {% if is_published %}
-        Official rankings published on {{ event.results_published_at.strftime('%B %d, %Y at %H:%M UTC') if event and event.results_published_at else 'recently' }}.
+        Official rankings published on {{ event.results_published_at.strftime('%B %d, %Y at %H:%M UTC') if event and event.results_published_at else 'recently' }}. Final standings after independent judging and score normalization.
       {% else %}
-        Hackathon judging and evaluation center.
+        Final standings after independent judging and score normalization. Deliberation and evaluation active.
       {% endif %}
     </div>
     {% if events and (events | length > 1) %}
@@ -30,13 +30,13 @@
   {% if is_organizer_or_admin %}
   <div style="display:flex;gap:0.75rem;align-items:center;">
     {% if is_published %}
-      <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-700);border-color:var(--emerald-200);padding:0.45rem 0.85rem;font-weight:700;">
-        &bull; Publicly Published
+      <span class="status-chip status-published" style="padding:0.35rem 0.75rem;font-weight:700;">
+        Publicly Published
       </span>
       <button onclick="handleUnpublish()" class="btn btn-secondary" style="font-size:0.85rem;">Unpublish</button>
     {% else %}
-      <span class="card-tag" style="background:var(--amber-50);color:var(--amber-700);border-color:var(--amber-200);padding:0.45rem 0.85rem;font-weight:700;">
-        &bull; Private Preview (Unpublished)
+      <span class="status-chip status-judging" style="padding:0.35rem 0.75rem;font-weight:700;">
+        Private Preview (Unpublished)
       </span>
       <button onclick="handlePublish()" class="btn btn-primary" style="font-size:0.85rem;">Publish Official Results</button>
     {% endif %}
@@ -239,9 +239,9 @@
           <th>Project Title</th>
           <th>Track</th>
           <th>Team</th>
-          <th>Reviews</th>
-          <th>Raw Average</th>
-          <th>Normalized Score</th>
+          <th style="text-align:right;">Reviews</th>
+          <th style="text-align:right;">Raw Average</th>
+          <th style="text-align:right;">Normalized Score</th>
           <th>Prize / Award</th>
         </tr>
       </thead>
@@ -275,9 +275,9 @@
           </td>
           <td><span class="card-tag">{{ row.track_name }}</span></td>
           <td>{{ row.team_name }}</td>
-          <td>{{ row.review_count }}</td>
-          <td style="font-family:var(--font-mono);font-size:0.88rem;">{{ '%.2f' | format(row.raw_score) }}</td>
-          <td>
+          <td class="text-right tabular-nums">{{ row.review_count }}</td>
+          <td class="text-right tabular-nums" style="font-family:var(--font-mono);font-size:0.88rem;">{{ '%.2f' | format(row.raw_score) }}</td>
+          <td class="text-right tabular-nums">
             <span style="font-family:var(--font-mono);font-weight:800;color:var(--emerald-600);font-size:1.05rem;" title="Adjusted for differences in judge scoring tendency.">
               {{ '%.2f' | format(row.normalized_score) }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
             </span>
@@ -307,28 +307,28 @@
   <div class="card" style="margin-top:2rem;padding:1.5rem;background:var(--slate-50);border:1px solid var(--slate-200);">
     <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--primary-700);flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-      <h3 style="font-size:1.1rem;color:var(--slate-900);margin:0;">Fair Scoring &amp; Normalization Methodology</h3>
+      <h3 style="font-size:1.1rem;color:var(--slate-900);margin:0;">How Winners Are Determined &mdash; Fair Scoring &amp; Normalization Methodology</h3>
     </div>
     <div style="font-size:0.875rem;color:var(--slate-700);line-height:1.6;">
       <p style="margin-bottom:0.85rem;">
-        JudgeForge utilizes a deterministic four-phase pipeline to eliminate individual judging subjectivity:
+        JudgeForge utilizes a deterministic four-phase pipeline to ensure all submissions are evaluated fairly across diverse judging panels:
       </p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.75rem;margin-bottom:0.85rem;">
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
           <strong style="color:var(--slate-900);">1. Calibrated Rubric (1–5)</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Functionality, quality, and innovation rated 1–5. Organizer weights are applied to produce a raw weighted average.</span>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Independent reviewers rate submissions on a 1–5 scale across Functionality, Code &amp; Design Quality, and Innovation.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">2. Z-Score Standardization</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Per-judge formula <code>z = (x - &mu;) / &sigma;</code> neutralizes hawk (strict) vs dove (lenient) scoring biases.</span>
+          <strong style="color:var(--slate-900);">2. Criterion Weights &amp; Z-Score Standardization</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Organizer weights are applied, and per-judge Z-score standardization eliminates hawk (harsh) vs dove (lenient) grading biases.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
           <strong style="color:var(--slate-900);">3. Zero-Variance Proofing</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">If a judge assigns identical grades (&sigma; = 0), standard deviation defaults to neutral (0.0), avoiding divide-by-zero errors.</span>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">If a judge assigns identical grades, scores default to neutral (0.0) deviation, preventing division-by-zero errors.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">4. Rescaled to 1–5 Scale</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Z-scores are mapped back into the familiar 1.00–5.00 rubric scale using the global competition mean and standard deviation.</span>
+          <strong style="color:var(--slate-900);">4. Rescaled to 1–5 Scale &amp; Final Ranking</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Normalized scores are averaged across all assigned reviewers and mapped back to the 1.00–5.00 rubric scale to determine podium winners.</span>
         </div>
       </div>
       <div style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">

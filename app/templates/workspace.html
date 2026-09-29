@@ -1,15 +1,57 @@
 {% extends "base.html" %}
-{% block title %}Workspace | JudgeForge{% endblock %}
+{% block title %}Participant Workspace | JudgeForge{% endblock %}
 {% block content %}
-<div class="page-header">
-  <div>
-    <h1>Workspace</h1>
-    <div class="page-subtitle">Manage competition teams, project drafts, and submission deadlines.</div>
+
+<!-- Role Context Banner -->
+<div class="role-context-card">
+  <div class="role-context-header">
+    <div>
+      <div class="hero-eyebrow">PARTICIPANT WORKSPACE</div>
+      <h1 class="role-context-title">
+        Participant Workspace
+      </h1>
+      <p class="role-context-desc">
+        Create or join a team, prepare your project, and submit it before the event deadline.
+      </p>
+    </div>
+    <div style="display:flex;align-items:center;gap:0.75rem;">
+      <span class="role-pill role-{{ user.role }}">
+        {{ user.role }} account
+      </span>
+      <span class="user-badge" style="font-size:0.85rem;color:var(--text-secondary);">
+        {{ user.email }}
+      </span>
+    </div>
   </div>
-  <div>
-    <span class="role-pill role-{{ user.role }}">
-      {{ user.role }} account
-    </span>
+
+  <!-- Real DB State Lifecycle Stepper -->
+  {% set step1_done = teams | length > 0 %}
+  {% set step2_done = has_draft or has_submitted %}
+  {% set step3_done = has_submitted %}
+  {% set step4_done = results_published %}
+  {% set step4_active = has_submitted and not results_published %}
+  {% set step5_done = results_published %}
+
+  <div class="role-stepper">
+    <div class="role-step {% if step1_done %}completed{% else %}active{% endif %}">
+      {% if step1_done %}&check;{% else %}1{% endif %} Join/Create Team
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if step2_done %}completed{% elif step1_done and not active_event_closed %}active{% endif %}">
+      {% if step2_done %}&check;{% else %}2{% endif %} Prepare Draft
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if step3_done %}completed{% elif has_draft and not active_event_closed %}active{% endif %}">
+      {% if step3_done %}&check;{% else %}3{% endif %} Finalize Submission
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if step4_done %}completed{% elif step4_active %}active{% endif %}">
+      {% if step4_done %}&check;{% else %}4{% endif %} Await Judging
+    </div>
+    <span class="role-step-arrow">&rarr;</span>
+    <div class="role-step {% if step5_done %}completed{% endif %}">
+      {% if step5_done %}&check;{% else %}5{% endif %} View Published Results
+    </div>
   </div>
 </div>
 
@@ -27,59 +69,51 @@
   <button class="btn btn-primary" onclick="acceptInvite()">Accept Invitation</button>
 </div>
 
-<!-- Workflow Steps -->
-{% set step2_done = has_draft or has_submitted %}
-{% set step2_active = (not step2_done) and (teams | length > 0 or not active_event_closed) %}
-{% set step3_done = has_submitted %}
-{% set step3_active = (not step3_done) and has_draft and (not active_event_closed) %}
-{% set step4_done = results_published %}
-{% set step4_active = (not step4_done) and (has_submitted or active_event_closed) %}
-
-<div class="steps-nav">
-  <div class="step-item completed">
-    <div class="step-number">&check;</div>
-    <span>1. Account Setup</span>
-  </div>
-  <div class="step-item {% if step2_done %}completed{% elif step2_active %}active{% endif %}">
-    <div class="step-number">{% if step2_done %}&check;{% else %}2{% endif %}</div>
-    <span>2. Team &amp; Draft</span>
-  </div>
-  <div class="step-item {% if step3_done %}completed{% elif step3_active %}active{% endif %}">
-    <div class="step-number">{% if step3_done %}&check;{% else %}3{% endif %}</div>
-    <span>3. Finalize Submission</span>
-  </div>
-  <div class="step-item {% if step4_done %}completed{% elif step4_active %}active{% endif %}">
-    <div class="step-number">{% if step4_done %}&check;{% else %}4{% endif %}</div>
-    <span>4. Review &amp; Results</span>
-  </div>
-</div>
-
-<!-- Top KPI Cards -->
+<!-- Overview KPI Stat Cards -->
 <div class="stat-grid">
   <div class="stat-card">
-    <div class="stat-card-label">Competitions</div>
-    <div class="stat-card-value">{{ events | length }}</div>
+    <div class="stat-card-label">Current Event</div>
+    <div style="font-size:1.15rem;font-weight:700;color:var(--text-primary);margin:0.35rem 0 0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+      {{ active_event.name if active_event else 'Hackathon 2026' }}
+    </div>
     <div class="stat-card-hint">
-      {% if all_closed %}
-        Submissions closed
+      {% if active_event_closed %}
+        <span class="status-chip status-closed">Submissions closed</span>
       {% else %}
-        Submissions open
+        <span class="status-chip status-open">Submissions open</span>
       {% endif %}
     </div>
   </div>
+
   <div class="stat-card">
     <div class="stat-card-label">Your Teams</div>
     <div class="stat-card-value">{{ teams | length }}</div>
     <div class="stat-card-hint">Collaborative squads</div>
   </div>
+
   <div class="stat-card">
-    <div class="stat-card-label">Account Role</div>
-    <div class="stat-card-value" style="font-size:1.35rem;text-transform:capitalize;color:var(--primary);">{{ user.role }}</div>
-    <div class="stat-card-hint">{{ user.email }}</div>
+    <div class="stat-card-label">Submission Status</div>
+    <div class="stat-card-value" style="font-size:1.25rem;color:{% if has_submitted %}var(--emerald-600){% elif has_draft %}var(--amber-600){% else %}var(--text-muted){% endif %};">
+      {% if has_submitted %}
+        Submitted &check;
+      {% elif has_draft %}
+        Draft in Progress
+      {% else %}
+        No Submission
+      {% endif %}
+    </div>
+    <div class="stat-card-hint">
+      {% if active_event_closed %}
+        Deadline passed
+      {% else %}
+        Open for participation
+      {% endif %}
+    </div>
   </div>
+
   <div class="stat-card">
-    <div class="stat-card-label">Submission Action</div>
-    <div style="margin-top:0.4rem;">
+    <div class="stat-card-label">Action</div>
+    <div style="margin-top:0.35rem;">
       {% if active_event_closed or not active_event %}
       <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;" title="Submissions closed for competition" aria-disabled="true">
         Submissions closed
@@ -88,7 +122,7 @@
       <a href="/submit?event_id={{ active_event.id }}" class="btn btn-primary">+ New Project</a>
       {% endif %}
     </div>
-    <div class="stat-card-hint">
+    <div class="stat-card-hint" style="margin-top:0.35rem;">
       {% if active_event_closed %}
         Deadline passed
       {% else %}
@@ -98,200 +132,194 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.5rem;margin-bottom:2rem;">
-  <!-- Events & Prizes Card -->
-  <div class="card" style="display:flex;flex-direction:column;">
-    <div class="card-header">
-      <h2 style="font-size:1.15rem;">Events &amp; Prize Tracks</h2>
-      <span class="card-tag">{{ events | length }} Available</span>
-    </div>
-    <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.25rem;">
-      Hackathon competitions and configured prize pools.
-    </p>
+<!-- Two-Column Participant Workspace: Teams & Submissions -->
+<div class="two-col-layout" style="margin-bottom:2rem;">
 
-    <div style="display:flex;flex-direction:column;gap:1rem;flex:1;">
-      {% for e in events %}
-      <div style="background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:1rem;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;flex-wrap:wrap;">
-          <div>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <h3 style="font-size:1rem;font-weight:600;margin:0;">{{ e.name }}</h3>
-              <span class="{{ e.status_class }}" style="font-size:0.75rem;">{{ e.status_label }}</span>
-            </div>
-            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;">
-              Deadline: <strong>{{ e.submissions_close.strftime('%b %d, %Y %H:%M UTC') if e.submissions_close else 'Ended' }}</strong>
-            </div>
+  <!-- Left / Main Column: Your Submissions & Drafts -->
+  <div>
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header">
+        <div>
+          <h2 style="font-size:1.15rem;">Your Project</h2>
+          <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.15rem;">
+            Project entries and working drafts associated with your account.
           </div>
-          {% if e.is_closed %}
-          <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.82rem;" title="Submissions closed" aria-disabled="true">
-            Submissions closed
-          </span>
-          {% else %}
-          <a href="/submit?event_id={{ e.id }}" class="btn btn-primary" style="font-size:0.82rem;">
-            Submit &rarr;
-          </a>
-          {% endif %}
         </div>
+        <span class="card-tag">{{ user_projects | length }} Entries</span>
+      </div>
 
-        {% if e.prizes %}
-        <div style="margin-top:0.75rem;padding-top:0.65rem;border-top:1px solid var(--card-border);">
-          <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--text-muted);margin-bottom:0.35rem;">
-            Configured Prizes
+      {% if user_projects %}
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem;">
+        {% for prj in user_projects %}
+        <div style="display:flex;justify-content:space-between;align-items:center;background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.85rem 1rem;flex-wrap:wrap;gap:0.75rem;">
+          <div>
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+              <strong style="color:var(--text-primary);font-size:0.95rem;">{{ prj.title }}</strong>
+              {% if prj.status == 'submitted' %}
+              <span class="card-tag" style="background:var(--success-bg);color:var(--success);border-color:var(--success-border);font-weight:700;">
+                Submitted &check;
+              </span>
+              {% else %}
+              <span class="card-tag" style="background:var(--warning-bg);color:var(--warning);border-color:var(--warning-border);font-weight:700;">
+                Draft
+              </span>
+              {% endif %}
+              <span class="card-tag">{{ prj.track.name if prj.track else 'General' }}</span>
+            </div>
+            {% if prj.tagline %}
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;">
+              {{ prj.tagline }}
+            </div>
+            {% endif %}
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:0.2rem;">
+              Team: <strong>{{ prj.team.name if prj.team else 'Independent' }}</strong>
+            </div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:0.35rem;">
-            {% for prz in e.prizes %}
-            <span class="card-tag" style="background:var(--success-bg);color:var(--success);border-color:var(--success-border);">
-              {{ prz.placement }}: {{ prz.title }} ({{ prz.amount }})
+          <div style="display:flex;gap:0.5rem;align-items:center;">
+            {% if prj.status == 'submitted' %}
+            <a href="/projects/{{ prj.id }}" class="btn btn-secondary" style="font-size:0.82rem;">
+              View Submission &rarr;
+            </a>
+            {% else %}
+              {% if prj.event and prj.event.is_closed %}
+              <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.82rem;" title="Submissions closed. Draft is read-only." aria-disabled="true">
+                Draft (Closed)
+              </span>
+              {% else %}
+              <a href="/submit?event_id={{ prj.event_id }}&project_id={{ prj.id }}" class="btn btn-primary" style="font-size:0.82rem;">
+                Continue Editing &rarr;
+              </a>
+              {% endif %}
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="padding:2.5rem 1.5rem;text-align:center;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-300);margin-top:0.5rem;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--slate-400);margin-bottom:0.75rem;"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        <h3 style="font-size:1.05rem;margin-bottom:0.25rem;">No project submitted</h3>
+        <p style="font-size:0.85rem;color:var(--text-secondary);max-width:380px;margin:0 auto 1.25rem;">
+          Create a draft to begin your entry. You can update your submission anytime before the event cutoff.
+        </p>
+        {% if not active_event_closed and active_event %}
+        <a href="/submit?event_id={{ active_event.id }}" class="btn btn-primary">Create Submission</a>
+        {% else %}
+        <span class="status-chip status-closed">Submissions closed for current event</span>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Competitions & Events List -->
+    <div class="card">
+      <div class="card-header">
+        <h2 style="font-size:1.15rem;">Competition Events</h2>
+        <span class="card-tag">{{ events | length }} Configured</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.5rem;">
+        {% for e in events %}
+        <div style="background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;flex-wrap:wrap;">
+            <div>
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <strong style="font-size:0.95rem;color:var(--text-primary);">{{ e.name }}</strong>
+                <span class="{{ e.status_class }}" style="font-size:0.72rem;">{{ e.status_label }}</span>
+              </div>
+              <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">
+                Deadline: <strong>{{ e.submissions_close.strftime('%b %d, %Y %H:%M UTC') if e.submissions_close else 'Ended' }}</strong>
+              </div>
+            </div>
+            {% if e.is_closed %}
+            <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.78rem;" title="Submissions closed" aria-disabled="true">
+              Submissions closed
+            </span>
+            {% else %}
+            <a href="/submit?event_id={{ e.id }}" class="btn btn-primary" style="font-size:0.78rem;">
+              Submit &rarr;
+            </a>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right / Side Column: Your Team -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h2 style="font-size:1.15rem;">Your Team</h2>
+        <span class="card-tag">{{ teams | length }} Joined</span>
+      </div>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;">
+        Collaborate with teammates and coordinate your submission entry.
+      </p>
+
+      <!-- Team List -->
+      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.25rem;">
+        {% for t in teams %}
+        <div style="background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.85rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+            <strong style="font-size:0.92rem;color:var(--text-primary);">{{ t.name }}</strong>
+            <button class="btn btn-secondary" onclick="invite('{{ t.id }}')" style="font-size:0.78rem;padding:0.25rem 0.6rem;">
+              Invite Member
+            </button>
+          </div>
+          {% if t.members %}
+          <div style="display:flex;gap:0.3rem;align-items:center;flex-wrap:wrap;">
+            {% for m in t.members %}
+            <span class="role-pill role-participant" style="font-size:0.72rem;padding:0.1rem 0.45rem;">
+              {{ m.email }}
             </span>
             {% endfor %}
           </div>
-        </div>
-        {% endif %}
-      </div>
-      {% else %}
-      <p style="color:var(--text-muted);font-size:0.88rem;">No active events found.</p>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- Teams Management Card -->
-  <div class="card" style="display:flex;flex-direction:column;">
-    <div class="card-header">
-      <h2 style="font-size:1.15rem;">Your Teams</h2>
-      <span class="card-tag">{{ teams | length }} Joined</span>
-    </div>
-    <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.25rem;">
-      Collaborate with teammates, generate secure invite links, and coordinate entries.
-    </p>
-
-    <!-- Teams List -->
-    <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.5rem;">
-      {% for t in teams %}
-      <div style="display:flex;justify-content:space-between;align-items:center;background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.75rem 1rem;">
-        <div>
-          <strong style="font-size:0.92rem;color:var(--text-primary);">{{ t.name }}</strong>
-        </div>
-        <button class="btn btn-secondary" onclick="invite('{{ t.id }}')">
-          Invite Link
-        </button>
-      </div>
-      {% else %}
-      <div style="padding:1.5rem;text-align:center;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-300);">
-        <p style="font-size:0.85rem;color:var(--text-muted);">You have not created or joined any teams yet.</p>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- Invite link output box -->
-    <div id="inviteBox" style="display:none;margin-bottom:1.25rem;background:var(--info-bg);border:1px solid var(--info-border);padding:0.75rem 1rem;border-radius:var(--radius-md);">
-      <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--info);margin-bottom:0.25rem;">Shareable Invitation Link (48h Expiry)</div>
-      <code id="inviteLink" style="display:block;word-break:break-all;font-size:0.82rem;background:#ffffff;padding:0.4rem 0.6rem;border-radius:var(--radius-xs);border:1px solid var(--info-border);"></code>
-    </div>
-
-    <!-- Create Team Form -->
-    <div style="margin-top:auto;border-top:1px solid var(--card-border);padding-top:1.25rem;">
-      <h3 style="font-size:0.95rem;margin-bottom:0.75rem;">Create a New Team</h3>
-      <form onsubmit="createTeam(event)">
-        <div class="form-group">
-          <label for="teamName">Team Name</label>
-          <input id="teamName" required maxlength="100" placeholder="e.g. Distributed Systems Group">
-        </div>
-        <div class="form-group">
-          <label for="teamEvent">Event</label>
-          <select id="teamEvent">
-            {% for e in events %}
-            <option value="{{ e.id }}">{{ e.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Create Team</button>
-      </form>
-    </div>
-  </div>
-</div>
-
-{% if user_projects %}
-<!-- User Projects & Drafts -->
-<div class="card" style="margin-bottom:2rem;">
-  <div class="card-header">
-    <div>
-      <h2 style="font-size:1.15rem;">Your Team Submissions &amp; Drafts</h2>
-      <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.2rem;">
-        Entries and working drafts associated with your competition teams.
-      </p>
-    </div>
-    <span class="card-tag">{{ user_projects | length }} Entries</span>
-  </div>
-
-  <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem;">
-    {% for prj in user_projects %}
-    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.85rem 1rem;flex-wrap:wrap;gap:0.75rem;">
-      <div>
-        <div style="display:flex;align-items:center;gap:0.5rem;">
-          <strong style="color:var(--text-primary);">{{ prj.title }}</strong>
-          <span class="card-tag" style="font-size:0.72rem;{% if prj.status == 'submitted' %}background:var(--success-bg);color:var(--success);border-color:var(--success-border);{% else %}background:var(--warning-bg);color:var(--warning);border-color:var(--warning-border);{% endif %}">
-            {{ prj.status | upper }}
-          </span>
-        </div>
-        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
-          Track: <strong>{{ prj.track.name if prj.track else 'General' }}</strong> &middot; Team: <strong>{{ prj.team.name if prj.team else 'Independent' }}</strong>
-        </div>
-      </div>
-      <div style="display:flex;gap:0.5rem;align-items:center;">
-        {% if prj.status == 'submitted' %}
-        <a href="/projects/{{ prj.id }}" class="btn btn-secondary" style="font-size:0.82rem;">
-          View Entry &rarr;
-        </a>
-        {% else %}
-          {% if prj.event and prj.event.is_closed %}
-          <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.82rem;" title="Submissions closed. Draft is read-only." aria-disabled="true">
-            Draft (Closed)
-          </span>
-          {% else %}
-          <a href="/submit?event_id={{ prj.event_id }}&project_id={{ prj.id }}" class="btn btn-primary" style="font-size:0.82rem;">
-            Edit / Finalize Draft &rarr;
-          </a>
           {% endif %}
-        {% endif %}
+        </div>
+        {% else %}
+        <div style="padding:1.5rem;text-align:center;background:var(--slate-50);border-radius:var(--radius-md);border:1px dashed var(--slate-300);">
+          <p style="font-size:0.82rem;color:var(--text-muted);margin:0;">You have not created or joined any teams yet.</p>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Invite Link Output Box -->
+      <div id="inviteBox" style="display:none;margin-bottom:1.25rem;background:var(--info-bg);border:1px solid var(--info-border);padding:0.75rem;border-radius:var(--radius-md);">
+        <div style="font-size:0.72rem;font-weight:600;text-transform:uppercase;color:var(--info);margin-bottom:0.25rem;">Shareable Invitation Link (48h Expiry)</div>
+        <code id="inviteLink" style="display:block;word-break:break-all;font-size:0.8rem;background:#ffffff;padding:0.35rem 0.5rem;border-radius:var(--radius-xs);border:1px solid var(--info-border);"></code>
+      </div>
+
+      <!-- Create Team Form -->
+      <div style="border-top:1px solid var(--card-border);padding-top:1rem;">
+        <h3 style="font-size:0.9rem;margin-bottom:0.6rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-muted);">Create New Team</h3>
+        <form onsubmit="createTeam(event)">
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label for="teamName" style="font-size:0.8rem;">Team Name</label>
+            <input id="teamName" required maxlength="100" placeholder="e.g. Distributed Systems Group" style="font-size:0.85rem;padding:0.4rem 0.65rem;">
+          </div>
+          <div class="form-group" style="margin-bottom:0.75rem;">
+            <label for="teamEvent" style="font-size:0.8rem;">Event</label>
+            <select id="teamEvent" style="font-size:0.85rem;padding:0.4rem 0.65rem;">
+              {% for e in events %}
+              <option value="{{ e.id }}">{{ e.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-secondary" style="width:100%;font-size:0.85rem;padding:0.45rem;">Create Team</button>
+        </form>
       </div>
     </div>
-    {% endfor %}
   </div>
 </div>
-{% endif %}
 
 {% if user.role in ['organizer', 'admin'] %}
-<!-- Organizer/Admin Event Creator -->
-<div class="card" style="margin-bottom:2rem;">
-  <div class="card-header">
-    <div style="display:flex;align-items:center;gap:0.5rem;">
-      <span class="role-pill role-admin">Management</span>
-      <h2 style="font-size:1.15rem;">Create a New Competition Event</h2>
-    </div>
+<!-- Organizer Quick Link -->
+<div class="callout callout-info" style="margin-bottom:1.5rem;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+  <div>
+    <strong>Organizer Controls:</strong> You have {{ user.role }} privileges. Access the command center to manage events, tracks, rubric weights, and results publication.
   </div>
-  <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.25rem;">
-    Define event title, submission cutoff timestamp, and competition tracks.
-  </p>
-
-  <form onsubmit="createEvent(event)">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:1rem;margin-bottom:1rem;">
-      <div class="form-group" style="margin-bottom:0;">
-        <label for="eventName">Event Name *</label>
-        <input id="eventName" required maxlength="150" placeholder="e.g. Systems &amp; Security Hackathon 2026">
-      </div>
-      <div class="form-group" style="margin-bottom:0;">
-        <label for="deadline">Submissions Deadline (Local Time) *</label>
-        <input id="deadline" type="datetime-local" required>
-      </div>
-    </div>
-
-    <div class="form-group">
-      <label for="tracks">Tracks (One per line) *</label>
-      <textarea id="tracks" rows="3" required placeholder="Developer Tooling&#10;Systems &amp; Storage&#10;Security &amp; Cryptography"></textarea>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Create Event</button>
-  </form>
+  <a href="/organizer" class="btn btn-primary" style="font-size:0.82rem;">Go to Command Center &rarr;</a>
 </div>
 {% endif %}
 
@@ -299,80 +327,71 @@
 const token = new URLSearchParams(location.search).get('invite');
 document.getElementById('invitation').hidden = !token;
 
-async function post(url, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-  const data = await res.json();
-  if (!res.ok) throw Error(typeof data.detail === 'string' ? data.detail : 'Please verify input fields');
-  return data;
+async function acceptInvite() {
+  const statusEl = document.getElementById('status');
+  statusEl.textContent = 'Accepting team invitation...';
+  statusEl.style.color = 'var(--text-muted)';
+  try {
+    const res = await fetch(`/api/team-invites/${token}/accept`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = 'Successfully joined ' + data.team_name + '! Reloading...';
+      statusEl.style.color = 'var(--success)';
+      setTimeout(() => location.href = '/workspace', 800);
+    } else {
+      statusEl.textContent = data.detail || 'Failed to accept invitation.';
+      statusEl.style.color = 'var(--danger)';
+    }
+  } catch (err) {
+    statusEl.textContent = 'Connection error accepting invitation.';
+    statusEl.style.color = 'var(--danger)';
+  }
 }
 
-function fail(error) {
+async function invite(teamId) {
   const statusEl = document.getElementById('status');
-  statusEl.textContent = error.message;
-  statusEl.style.display = 'block';
-  statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  try {
+    const res = await fetch(`/api/teams/${teamId}/invites`, { method: 'POST' });
+    const data = await res.json();
+    if (res.ok) {
+      const fullUrl = window.location.origin + data.invite_url;
+      document.getElementById('inviteLink').textContent = fullUrl;
+      document.getElementById('inviteBox').style.display = 'block';
+      statusEl.textContent = 'Invite link generated. Share with prospective teammates.';
+      statusEl.style.color = 'var(--success)';
+    } else {
+      statusEl.textContent = data.detail || 'Could not generate invite.';
+      statusEl.style.color = 'var(--danger)';
+    }
+  } catch (err) {
+    statusEl.textContent = 'Network error generating invite link.';
+    statusEl.style.color = 'var(--danger)';
+  }
 }
 
 async function createTeam(e) {
   e.preventDefault();
+  const name = document.getElementById('teamName').value.trim();
+  const event_id = document.getElementById('teamEvent').value;
+  const statusEl = document.getElementById('status');
   try {
-    await post('/api/teams', {
-      name: document.getElementById('teamName').value,
-      event_id: document.getElementById('teamEvent').value
+    const res = await fetch('/api/teams', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, event_id })
     });
-    location.reload();
-  } catch (error) {
-    fail(error);
-  }
-}
-
-async function createEvent(e) {
-  e.preventDefault();
-  try {
-    await post('/api/events', {
-      name: document.getElementById('eventName').value,
-      submissions_close: new Date(document.getElementById('deadline').value).toISOString(),
-      tracks: document.getElementById('tracks').value.split('\n').filter(x => x.trim())
-    });
-    location.reload();
-  } catch (error) {
-    fail(error);
-  }
-}
-
-async function invite(id) {
-  try {
-    const data = await post('/api/teams/' + id + '/invites', {});
-    const box = document.getElementById('inviteBox');
-    const linkEl = document.getElementById('inviteLink');
-    linkEl.textContent = location.origin + data.invite_url;
-    box.style.display = 'block';
-  } catch (error) {
-    fail(error);
-  }
-}
-
-async function acceptInvite() {
-  try {
-    const data = await post('/api/team-invites/' + encodeURIComponent(token) + '/accept', {});
-    const teamName = data.team_name || 'the team';
-    const alertBox = document.getElementById('invitation');
-    if (alertBox) {
-      alertBox.className = 'callout callout-success';
-      alertBox.style.background = 'var(--emerald-50)';
-      alertBox.style.borderColor = 'var(--emerald-200)';
-      alertBox.style.color = 'var(--emerald-800)';
-      alertBox.innerHTML = '<div style="display:flex;align-items:center;gap:0.75rem;"><span style="color:var(--emerald-600);font-weight:700;font-size:1.2rem;">&check;</span><div><strong>Invitation Accepted!</strong> You have joined <strong>' + teamName + '</strong>. Refreshing workspace...</div></div>';
+    const data = await res.json();
+    if (res.ok) {
+      statusEl.textContent = 'Team created successfully!';
+      statusEl.style.color = 'var(--success)';
+      location.reload();
+    } else {
+      statusEl.textContent = data.detail || 'Team creation failed.';
+      statusEl.style.color = 'var(--danger)';
     }
-    setTimeout(() => {
-      location.href = '/workspace';
-    }, 800);
-  } catch (error) {
-    fail(error);
+  } catch (err) {
+    statusEl.textContent = 'Network error creating team.';
+    statusEl.style.color = 'var(--danger)';
   }
 }
 </script>
