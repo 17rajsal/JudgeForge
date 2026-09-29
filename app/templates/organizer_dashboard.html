@@ -159,6 +159,78 @@
         <button type="submit" class="btn btn-primary" style="width:100%;min-height:42px;">Add Prize</button>
       </div>
     </form>
+</div>
+
+<!-- Section: Community Choice Voting Configuration & Live Results -->
+<div class="card" style="margin-bottom:2rem;">
+  <div class="card-header">
+    <div>
+      <h3 style="font-size:1.25rem;">Community Choice Voting &amp; Anti-Abuse</h3>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem;">
+        Configure community voting access modes (Open, Authenticated, Email-Gated), time window, and duplicate prevention.
+      </p>
+    </div>
+    <span class="card-tag">Tier 3 Community Engine</span>
+  </div>
+
+  <form id="votingConfigForm" onsubmit="handleUpdateVotingConfig(event)" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;align-items:flex-end;margin-top:0.75rem;">
+    <div>
+      <label for="votingModeSelect">Access Mode</label>
+      <select id="votingModeSelect">
+        <option value="authenticated" {% if event and event.voting_mode == 'authenticated' %}selected{% endif %}>Authenticated (1 vote per user)</option>
+        <option value="email_gated" {% if event and event.voting_mode == 'email_gated' %}selected{% endif %}>Email-Gated (Local Voucher / Allowlist)</option>
+        <option value="open" {% if event and event.voting_mode == 'open' %}selected{% endif %}>Open (IP + Device Token Rate Limited)</option>
+      </select>
+    </div>
+    <div>
+      <label for="votingOpensInput">Voting Opens</label>
+      <input type="datetime-local" id="votingOpensInput" value="{{ event.voting_opens.strftime('%Y-%m-%dT%H:%M') if event and event.voting_opens else '' }}">
+    </div>
+    <div>
+      <label for="votingClosesInput">Voting Closes</label>
+      <input type="datetime-local" id="votingClosesInput" value="{{ event.voting_closes.strftime('%Y-%m-%dT%H:%M') if event and event.voting_closes else '' }}">
+    </div>
+    <div>
+      <label for="votingPublicSelect">Public Results Visibility</label>
+      <select id="votingPublicSelect">
+        <option value="0" {% if event and not event.voting_results_public %}selected{% endif %}>Hidden during voting window</option>
+        <option value="1" {% if event and event.voting_results_public %}selected{% endif %}>Publicly Revealed</option>
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn btn-secondary" style="width:100%;min-height:42px;">Save Voting Settings</button>
+    </div>
+  </form>
+
+  {% if event and event.voting_mode == 'email_gated' %}
+  <!-- Local Voucher Generator for Email-Gated Mode -->
+  <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
+    <h4 style="font-size:1rem;margin-bottom:0.5rem;">Issue Email-Gated Voucher</h4>
+    <p style="color:var(--text-secondary);font-size:0.85rem;margin-bottom:0.75rem;">
+      Issue a one-time voting token for local email allowlists without requiring external email providers.
+    </p>
+    <form onsubmit="handleIssueVoucher(event)" style="display:flex;gap:0.75rem;align-items:flex-end;max-width:500px;">
+      <div style="flex:1;">
+        <label for="voucherEmail">Voter Email</label>
+        <input type="email" id="voucherEmail" placeholder="voter@community.org" required>
+      </div>
+      <button type="submit" class="btn btn-primary" style="min-height:42px;">Issue Voucher</button>
+    </form>
+    <div id="voucherOutput" style="margin-top:0.75rem;font-size:0.85rem;font-weight:600;color:var(--primary-700);"></div>
+  </div>
+  {% endif %}
+
+  <!-- Live Community Standings Preview (Organizer View) -->
+  <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+      <h4 style="font-size:1rem;">Live Community Standings Preview (Organizer View)</h4>
+      <span class="card-tag" style="background:var(--primary-50);color:var(--primary-700);border-color:var(--primary-200);">
+        Anti-Leak Protected
+      </span>
+    </div>
+    <div id="communityResultsBox" style="font-size:0.9rem;color:var(--text-secondary);">
+      Loading live community tallies...
+    </div>
   </div>
 </div>
 
@@ -424,5 +496,90 @@ async function handleUpdateRole(userId) {
     alert('Failed to update role: ' + (err.detail || 'Unknown error'));
   }
 }
+
+async function handleUpdateVotingConfig(e) {
+  e.preventDefault();
+  const mode = document.getElementById('votingModeSelect').value;
+  const opens = document.getElementById('votingOpensInput').value;
+  const closes = document.getElementById('votingClosesInput').value;
+  const pub = document.getElementById('votingPublicSelect').value === '1';
+
+  const payload = {
+    voting_mode: mode,
+    voting_opens: opens ? new Date(opens).toISOString() : null,
+    voting_closes: closes ? new Date(closes).toISOString() : null,
+    voting_results_public: pub
+  };
+
+  const res = await fetch('/api/events/{{ event.id }}/voting-config', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (res.ok) {
+    alert('Voting configuration saved!');
+    location.reload();
+  } else {
+    const err = await res.json();
+    alert('Failed: ' + (err.detail || 'Error saving settings'));
+  }
+}
+
+async function handleIssueVoucher(e) {
+  e.preventDefault();
+  const email = document.getElementById('voucherEmail').value.trim();
+  const out = document.getElementById('voucherOutput');
+  const res = await fetch('/api/events/{{ event.id }}/vouchers', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email })
+  });
+  const data = await res.json();
+  if (res.ok) {
+    out.textContent = `Voucher issued! Token: ${data.voucher_token} for ${data.email}`;
+    document.getElementById('voucherEmail').value = '';
+  } else {
+    out.textContent = 'Error: ' + (data.detail || 'Failed');
+    out.style.color = 'var(--accent-rose)';
+  }
+}
+
+async function loadCommunityResults() {
+  const box = document.getElementById('communityResultsBox');
+  if (!box) return;
+  try {
+    const res = await fetch('/api/events/{{ event.id }}/community-results');
+    if (!res.ok) {
+      box.textContent = 'Results currently inaccessible.';
+      return;
+    }
+    const data = await res.json();
+    if (!data.standings || data.standings.length === 0) {
+      box.textContent = 'No community votes recorded yet.';
+      return;
+    }
+    box.innerHTML = `
+      <div style="margin-bottom:0.5rem;font-weight:700;">
+        Total Community Votes: ${data.total_votes} | People's Choice Leader: <span style="color:var(--amber-600);">${data.peoples_choice ? data.peoples_choice.title + ' (' + data.peoples_choice.votes + ' votes)' : 'None'}</span>
+      </div>
+      <table style="width:100%;font-size:0.85rem;">
+        <thead><tr style="background:var(--slate-100);"><th>Rank</th><th>Project</th><th>Votes</th></tr></thead>
+        <tbody>
+          ${data.standings.map(s => `
+            <tr>
+              <td>#${s.rank}</td>
+              <td><strong>${s.title}</strong></td>
+              <td>${s.votes} votes</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    box.textContent = 'Error loading results: ' + err.message;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadCommunityResults);
 </script>
 {% endblock %}

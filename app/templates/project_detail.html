@@ -77,6 +77,214 @@
   </div>
 </div>
 
+<!-- Community Voting Card -->
+{% if project.status == 'submitted' %}
+<div class="card" style="padding:2rem;margin-bottom:2rem;">
+  <div class="card-header">
+    <div>
+      <h3 style="font-size:1.25rem;">Community Choice Voting</h3>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem;">
+        Support this project in the community choice awards. Mode: <strong style="text-transform:capitalize;">{{ event.voting_mode if event else 'authenticated' }}</strong>
+      </p>
+    </div>
+    <span class="card-tag">People's Choice</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:1rem;">
+    {% if event and event.voting_mode == 'email_gated' %}
+    <input type="text" id="voteVoucher" placeholder="Enter voucher token or allowlisted email" style="max-width:320px;">
+    {% endif %}
+    <button onclick="handleCastVote()" id="voteBtn" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:0.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Vote for this Project
+    </button>
+    <span id="voteMsg" style="font-size:0.88rem;font-weight:600;"></span>
+  </div>
+</div>
+
+<!-- Project Comments & Discussion Section -->
+<div class="card" style="padding:2rem;margin-bottom:2rem;">
+  <div class="card-header">
+    <div>
+      <h3 style="font-size:1.25rem;">Community Discussion</h3>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem;">
+        Ask questions, leave feedback, and connect with the project team.
+      </p>
+    </div>
+    <span class="card-tag" id="commentCountTag">Comments</span>
+  </div>
+
+  <!-- Comments List -->
+  <div id="commentsList" style="display:flex;flex-direction:column;gap:1rem;margin:1.25rem 0;">
+    <p style="color:var(--text-muted);font-size:0.9rem;">Loading comments...</p>
+  </div>
+
+  <!-- Add Comment Form -->
+  <form id="commentForm" onsubmit="handlePostComment(event)" style="border-top:1px solid var(--slate-200);padding-top:1.25rem;margin-top:1rem;">
+    {% if not user %}
+    <div class="form-group" style="margin-bottom:0.75rem;">
+      <label for="commentAuthor">Your Name</label>
+      <input type="text" id="commentAuthor" placeholder="Anonymous Hacker" maxlength="100" style="max-width:300px;">
+    </div>
+    {% endif %}
+    <div class="form-group" style="margin-bottom:0.75rem;">
+      <label for="commentContent">Add a Comment</label>
+      <textarea id="commentContent" rows="3" placeholder="Share constructive thoughts or feedback..." required maxlength="2000"></textarea>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <span id="commentMsg" style="font-size:0.85rem;color:var(--accent-rose);font-weight:600;"></span>
+      <button type="submit" class="btn btn-secondary">Post Comment</button>
+    </div>
+  </form>
+</div>
+{% endif %}
+
+<script>
+// Community Voting
+async function handleCastVote() {
+  const btn = document.getElementById('voteBtn');
+  const msg = document.getElementById('voteMsg');
+  const voucherEl = document.getElementById('voteVoucher');
+  const voucherVal = voucherEl ? voucherEl.value.trim() : null;
+
+  btn.disabled = true;
+  msg.textContent = 'Recording vote...';
+  msg.style.color = 'var(--slate-600)';
+
+  const payload = {
+    project_id: {{ project.id | tojson }},
+    voter_token: localStorage.getItem('jf_voter_token') || Math.random().toString(36).substring(2),
+  };
+  localStorage.setItem('jf_voter_token', payload.voter_token);
+
+  if (voucherVal) {
+    if (voucherVal.includes('@')) {
+      payload.email = voucherVal;
+    } else {
+      payload.voucher_token = voucherVal;
+    }
+  }
+
+  try {
+    const res = await fetch('/api/events/{{ project.event_id }}/vote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      msg.textContent = '✓ ' + data.message;
+      msg.style.color = 'var(--emerald-600)';
+      btn.style.background = 'var(--emerald-600)';
+    } else {
+      msg.textContent = data.detail || 'Failed to record vote';
+      msg.style.color = 'var(--accent-rose)';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    msg.textContent = 'Network error: ' + err.message;
+    msg.style.color = 'var(--accent-rose)';
+    btn.disabled = false;
+  }
+}
+
+// Comments Management
+async function loadComments() {
+  const list = document.getElementById('commentsList');
+  const tag = document.getElementById('commentCountTag');
+  if (!list) return;
+
+  try {
+    const res = await fetch('/api/projects/{{ project.id }}/comments');
+    if (!res.ok) throw new Error('Could not load comments');
+    const comments = await res.json();
+
+    if (tag) tag.textContent = comments.length + ' Comments';
+
+    if (comments.length === 0) {
+      list.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">No comments yet. Start the conversation!</p>';
+      return;
+    }
+
+    list.innerHTML = comments.map(c => `
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+          <strong style="color:var(--slate-900);font-size:0.925rem;">${escapeHtml(c.author_name)}</strong>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="font-size:0.78rem;color:var(--text-muted);">${formatDate(c.created_at)}</span>
+            {% if user %}
+            <button onclick="handleDeleteComment(${c.id})" class="btn btn-secondary" style="padding:0.15rem 0.45rem;font-size:0.7rem;color:var(--accent-rose);">Delete</button>
+            {% endif %}
+          </div>
+        </div>
+        <p style="color:var(--slate-700);font-size:0.9rem;line-height:1.5;white-space:pre-wrap;margin:0;">${escapeHtml(c.content)}</p>
+      </div>
+    `).join('');
+  } catch (e) {
+    list.innerHTML = '<p style="color:var(--accent-rose);font-size:0.85rem;">Failed to load comments.</p>';
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+async function handlePostComment(e) {
+  e.preventDefault();
+  const authorEl = document.getElementById('commentAuthor');
+  const contentEl = document.getElementById('commentContent');
+  const msgEl = document.getElementById('commentMsg');
+
+  msgEl.textContent = '';
+  const payload = {
+    content: contentEl.value.trim(),
+    author_name: authorEl ? authorEl.value.trim() : undefined,
+  };
+
+  try {
+    const res = await fetch('/api/projects/{{ project.id }}/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      contentEl.value = '';
+      await loadComments();
+    } else {
+      msgEl.textContent = data.detail || 'Failed to post comment';
+    }
+  } catch (err) {
+    msgEl.textContent = 'Error: ' + err.message;
+  }
+}
+
+async function handleDeleteComment(cid) {
+  if (!confirm('Are you sure you want to delete this comment?')) return;
+  try {
+    const res = await fetch('/api/comments/' + cid, { method: 'DELETE' });
+    if (res.ok) {
+      await loadComments();
+    } else {
+      const err = await res.json();
+      alert('Delete failed: ' + (err.detail || 'Unauthorized'));
+    }
+  } catch (e) {
+    alert('Error deleting comment');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadComments);
+</script>
+
 {% if is_team_member and not is_closed %}
 <div class="card" style="padding:2rem;">
   <div class="card-header">

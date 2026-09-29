@@ -8,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database, print_demo_credentials
-from app.routers import health, auth, projects, judging, organizer, workflows
+from app.routers import health, auth, projects, judging, organizer, workflows, voting, comments
 from app.auth import get_current_user_optional
 from app.passwords import demo_enabled
 
@@ -27,6 +27,14 @@ def ensure_schema_migrations(eng):
                 conn.exec_driver_sql("ALTER TABLE events ADD COLUMN results_published INTEGER NOT NULL DEFAULT 0")
             if cols and "results_published_at" not in cols:
                 conn.exec_driver_sql("ALTER TABLE events ADD COLUMN results_published_at TIMESTAMP NULL")
+            if cols and "voting_mode" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN voting_mode VARCHAR NOT NULL DEFAULT 'authenticated'")
+            if cols and "voting_opens" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN voting_opens TIMESTAMP NULL")
+            if cols and "voting_closes" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN voting_closes TIMESTAMP NULL")
+            if cols and "voting_results_public" not in cols:
+                conn.exec_driver_sql("ALTER TABLE events ADD COLUMN voting_results_public INTEGER NOT NULL DEFAULT 0")
 
             res = conn.exec_driver_sql("PRAGMA table_info(projects)").fetchall()
             cols = {row[1] for row in res}
@@ -71,6 +79,9 @@ app.include_router(projects.router)
 app.include_router(judging.router)
 app.include_router(organizer.router)
 app.include_router(workflows.router)
+app.include_router(voting.router)
+app.include_router(comments.router)
+app.include_router(comments.comments_admin_router)
 
 
 @app.get("/")

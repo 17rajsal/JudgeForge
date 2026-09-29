@@ -53,12 +53,18 @@ class Event(Base):
     created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
     results_published = Column(Integer, nullable=False, default=0)
     results_published_at = Column(DateTime, nullable=True)
+    voting_mode = Column(String, nullable=False, default="authenticated")  # "authenticated", "email_gated", "open"
+    voting_opens = Column(DateTime, nullable=True)
+    voting_closes = Column(DateTime, nullable=True)
+    voting_results_public = Column(Integer, nullable=False, default=0)
 
     tracks = relationship("Track", back_populates="event", cascade="all, delete-orphan")
     teams = relationship("Team", back_populates="event", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="event", cascade="all, delete-orphan")
     rubric_criteria = relationship("RubricCriterion", back_populates="event", cascade="all, delete-orphan")
     prizes = relationship("Prize", back_populates="event", cascade="all, delete-orphan")
+    votes = relationship("CommunityVote", back_populates="event", cascade="all, delete-orphan")
+    vouchers = relationship("VotingVoucher", back_populates="event", cascade="all, delete-orphan")
 
 
 class Track(Base):
@@ -128,6 +134,8 @@ class Project(Base):
     team = relationship("Team", back_populates="projects")
     track = relationship("Track", back_populates="projects")
     scores = relationship("Score", back_populates="project", cascade="all, delete-orphan")
+    votes = relationship("CommunityVote", back_populates="project", cascade="all, delete-orphan")
+    comments = relationship("Comment", back_populates="project", cascade="all, delete-orphan")
 
 
 class Prize(Base):
@@ -201,3 +209,54 @@ class TeamInvite(Base):
     team_id = Column(String, ForeignKey("teams.id", ondelete="CASCADE"), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     used_by = Column(String, nullable=True)
+
+
+class CommunityVote(Base):
+    __tablename__ = "community_votes"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    voter_identifier = Column(String, nullable=False, index=True)
+    voter_type = Column(String, nullable=False)  # "authenticated", "email_gated", "open"
+    voter_email = Column(String, nullable=True, index=True)
+    voter_ip = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    event = relationship("Event", back_populates="votes")
+    project = relationship("Project", back_populates="votes")
+
+
+class VotingVoucher(Base):
+    __tablename__ = "voting_vouchers"
+
+    token = Column(String, primary_key=True, index=True)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    email = Column(String, nullable=False, index=True)
+    is_used = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    event = relationship("Event", back_populates="vouchers")
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    project_id = Column(String, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    author_name = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    is_flagged = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    project = relationship("Project", back_populates="comments")
+    user = relationship("User")
+
+
+class RateLimitRecord(Base):
+    __tablename__ = "rate_limit_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    key = Column(String, nullable=False, index=True)  # e.g. "vote:127.0.0.1" or "comment:127.0.0.1"
+    timestamp = Column(Float, nullable=False, index=True)
