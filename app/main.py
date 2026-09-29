@@ -8,7 +8,10 @@ from fastapi.templating import Jinja2Templates
 
 from app.database import engine, Base, SessionLocal
 from app.seed import seed_database, print_demo_credentials
-from app.routers import health, auth, projects, judging, organizer, workflows, voting, comments
+from app.routers import (
+    health, auth, projects, judging, organizer, workflows, voting, comments,
+    webhooks, verifiable_records, certificates, embed, bulk_data, api_v1,
+)
 from app.auth import get_current_user_optional
 from app.passwords import demo_enabled
 
@@ -82,6 +85,12 @@ app.include_router(workflows.router)
 app.include_router(voting.router)
 app.include_router(comments.router)
 app.include_router(comments.comments_admin_router)
+app.include_router(webhooks.router)
+app.include_router(verifiable_records.router)
+app.include_router(certificates.router)
+app.include_router(embed.router)
+app.include_router(bulk_data.router)
+app.include_router(api_v1.router)
 
 
 @app.get("/")

@@ -180,6 +180,35 @@ def submit_or_update_score(
     db.commit()
     db.refresh(score)
 
+    # Append to cryptographic tamper-evident record chain
+    try:
+        from app.services.verifiable_records import append_verifiable_record
+        append_verifiable_record(db, score)
+    except Exception:
+        pass
+
+    # Dispatch outbound webhook
+    try:
+        from app.services.webhooks import dispatch_webhook
+        project = db.query(Project).filter(Project.id == score.project_id).first()
+        if project:
+            dispatch_webhook(
+                db=db,
+                event_id=project.event_id,
+                event_type="score.submitted",
+                payload={
+                    "score_id": score.id,
+                    "judge_id": score.judge_id,
+                    "project_id": score.project_id,
+                    "functionality": score.functionality,
+                    "quality": score.quality,
+                    "innovation": score.innovation,
+                    "submitted_at": score.submitted_at.isoformat() if score.submitted_at else None,
+                },
+            )
+    except Exception:
+        pass
+
     return {
         "message": "Score saved successfully",
         "id": score.id,

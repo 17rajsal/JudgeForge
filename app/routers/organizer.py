@@ -493,6 +493,22 @@ def publish_results(
         )
     )
     db.commit()
+
+    try:
+        from app.services.webhooks import dispatch_webhook
+        dispatch_webhook(
+            db=db,
+            event_id=event.id,
+            event_type="results.published",
+            payload={
+                "event_id": event.id,
+                "event_name": event.name,
+                "published_at": now.isoformat(),
+            },
+        )
+    except Exception:
+        pass
+
     return {
         "message": "Results published successfully",
         "event_id": event.id,

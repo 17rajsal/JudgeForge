@@ -260,3 +260,46 @@ class RateLimitRecord(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     key = Column(String, nullable=False, index=True)  # e.g. "vote:127.0.0.1" or "comment:127.0.0.1"
     timestamp = Column(Float, nullable=False, index=True)
+
+
+class WebhookSubscription(Base):
+    __tablename__ = "webhook_subscriptions"
+
+    id = Column(String, primary_key=True, index=True)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False, index=True)
+    target_url = Column(String, nullable=False)
+    secret = Column(String, nullable=False)
+    events_subscribed = Column(String, nullable=False, default="*")  # comma-separated or "*"
+    is_active = Column(Integer, nullable=False, default=1)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    deliveries = relationship("WebhookDeliveryLog", back_populates="subscription", cascade="all, delete-orphan")
+
+
+class WebhookDeliveryLog(Base):
+    __tablename__ = "webhook_delivery_logs"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    subscription_id = Column(String, ForeignKey("webhook_subscriptions.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type = Column(String, nullable=False)
+    payload_json = Column(Text, nullable=False)
+    status_code = Column(Integer, nullable=True)
+    response_body = Column(Text, nullable=True)
+    success = Column(Integer, nullable=False, default=0)
+    attempted_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+
+    subscription = relationship("WebhookSubscription", back_populates="deliveries")
+
+
+class VerifiableJudgeRecord(Base):
+    __tablename__ = "verifiable_judge_records"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    score_id = Column(Integer, ForeignKey("scores.id", ondelete="CASCADE"), nullable=False, index=True)
+    judge_id = Column(String, nullable=False, index=True)
+    project_id = Column(String, nullable=False, index=True)
+    event_id = Column(String, nullable=False, index=True)
+    record_hash = Column(String, nullable=False, unique=True, index=True)
+    prev_hash = Column(String, nullable=False)
+    signature = Column(String, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))

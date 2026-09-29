@@ -280,6 +280,24 @@ def submit_project(
     db.commit()
     db.refresh(project)
 
+    if proj_status == "submitted":
+        try:
+            from app.services.webhooks import dispatch_webhook
+            dispatch_webhook(
+                db=db,
+                event_id=event.id,
+                event_type="project.submitted",
+                payload={
+                    "project_id": project.id,
+                    "title": project.title,
+                    "team_id": project.team_id,
+                    "track_id": project.track_id,
+                    "status": project.status,
+                },
+            )
+        except Exception:
+            pass
+
     return {
         "id": project.id,
         "title": project.title,
@@ -410,6 +428,23 @@ def finalize_project_submission(
     )
     db.commit()
     db.refresh(project)
+
+    try:
+        from app.services.webhooks import dispatch_webhook
+        dispatch_webhook(
+            db=db,
+            event_id=event.id if event else "evt_01",
+            event_type="project.submitted",
+            payload={
+                "project_id": project.id,
+                "title": project.title,
+                "team_id": project.team_id,
+                "track_id": project.track_id,
+                "status": project.status,
+            },
+        )
+    except Exception:
+        pass
 
     return {
         "message": "Project submitted successfully",

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery Embed | JudgeForge</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    body {
+      background: #f8fafc;
+      padding: 1rem;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .embed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .embed-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .embed-filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .embed-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .embed-card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .embed-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .embed-badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+    .embed-footer-brand {
+      margin-top: 1.5rem;
+      text-align: right;
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+    .embed-footer-brand a {
+      color: #6366f1;
+      text-decoration: none;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="embed-header">
+    <div class="embed-title">
+      <span>⚡</span>
+      <span>{{ event.name if event else 'Hackathon Gallery' }}</span>
+      <span style="font-size: 0.8rem; font-weight: 500; color: #64748b;">({{ projects|length }} projects)</span>
+    </div>
+    <form method="get" action="/embed/gallery" style="display: flex; gap: 0.35rem;">
+      {% if selected_track %}
+        <input type="hidden" name="track_id" value="{{ selected_track }}">
+      {% endif %}
+      <input type="text" name="search" value="{{ search_query }}" placeholder="Search projects..." style="padding: 0.3rem 0.6rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.8rem; width: 160px;">
+      <button type="submit" class="btn btn-secondary" style="padding: 0.3rem 0.6rem; font-size: 0.8rem;">Filter</button>
+    </form>
+  </div>
+
+  {% if tracks %}
+  <div class="embed-filter-bar">
+    <a href="/embed/gallery{% if search_query %}?search={{ search_query }}{% endif %}" class="btn {% if not selected_track %}btn-primary{% else %}btn-secondary{% endif %}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">
+      All Tracks
+    </a>
+    {% for trk in tracks %}
+      <a href="/embed/gallery?track_id={{ trk.id }}{% if search_query %}&search={{ search_query }}{% endif %}" class="btn {% if selected_track == trk.id %}btn-primary{% else %}btn-secondary{% endif %}" style="padding: 0.25rem 0.6rem; font-size: 0.75rem;">
+        {{ trk.name }}
+      </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if not projects %}
+    <div style="background: white; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 2rem; text-align: center; color: #64748b;">
+      No projects found matching your criteria.
+    </div>
+  {% else %}
+    <div class="embed-grid">
+      {% for p in projects %}
+      <div class="embed-card">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; gap: 0.5rem;">
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">
+              <a href="/projects/{{ p.id }}" target="_blank" style="color: #0f172a; text-decoration: none;">{{ p.title }}</a>
+            </h3>
+            {% if p.track %}
+              <span class="embed-badge">{{ p.track.name }}</span>
+            {% endif %}
+          </div>
+          <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 0.75rem 0; line-height: 1.4;">
+            {{ (p.summary or '')[:110] }}{% if p.summary and p.summary|length > 110 %}...{% endif %}
+          </p>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.5rem; font-size: 0.8rem; color: #64748b;">
+          <span>By: <strong>{{ p.team.name if p.team else (p.user.name if p.user else 'Solo Creator') }}</strong></span>
+          <a href="/projects/{{ p.id }}" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 600;">View →</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <div class="embed-footer-brand">
+    Powered by <a href="/" target="_blank">JudgeForge</a> — Fair & Verifiable Hackathon Judging
+  </div>
+</body>
+</html>

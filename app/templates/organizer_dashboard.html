@@ -406,6 +406,105 @@
   </table>
 </div>
 
+<!-- Section: Verifiable Judge Records & Cryptographic Audit -->
+<div class="page-header" style="margin-top:2.5rem;margin-bottom:1rem;">
+  <div>
+    <h2>Verifiable Judge Records &amp; Hash Chain</h2>
+    <div class="page-subtitle">SHA-256 HMAC-signed audit chain ensuring judge evaluations cannot be altered retroactively.</div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:2rem;padding:1.5rem;background:white;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem;">
+    <div>
+      <h3 style="font-size:1.1rem;margin-bottom:0.25rem;">Cryptographic Integrity Status</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Validate SHA-256 linkage across all score submission blocks.</p>
+    </div>
+    <button onclick="verifyRecordsChain()" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:0.4rem;">
+      🔍 Verify Hash Chain
+    </button>
+  </div>
+  <div id="chainVerifyResult" style="padding:1rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);font-size:0.9rem;color:var(--slate-700);">
+    Click "Verify Hash Chain" to cryptographically audit score records for this event.
+  </div>
+</div>
+
+<!-- Section: Outbound Webhooks -->
+<div class="page-header" style="margin-bottom:1rem;">
+  <div>
+    <h2>Outbound Webhooks</h2>
+    <div class="page-subtitle">Publish realtime events (project submissions, scores, voting, results) with HMAC-SHA256 signatures.</div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.5rem;margin-bottom:2rem;">
+  <div class="card" style="padding:1.5rem;background:white;">
+    <h3 style="font-size:1.05rem;margin-bottom:1rem;">Register Webhook Endpoint</h3>
+    <form onsubmit="handleCreateWebhook(event)">
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem;">TARGET URL</label>
+        <input type="url" id="whTargetUrl" placeholder="https://example.com/webhook" required class="input" style="width:100%;font-size:0.85rem;">
+      </div>
+      <div style="margin-bottom:1rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem;">SIGNING SECRET (OPTIONAL)</label>
+        <input type="text" id="whSecret" placeholder="Auto-generated if blank" class="input" style="width:100%;font-size:0.85rem;">
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem;">SUBSCRIBED EVENTS</label>
+        <input type="text" id="whEvents" value="*" placeholder="* or project.submitted,score.submitted" class="input" style="width:100%;font-size:0.85rem;">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.25rem;">Use '*' for all events, or comma-separated event types.</div>
+      </div>
+      <button type="submit" class="btn btn-primary" style="width:100%;">Create Webhook Subscription</button>
+    </form>
+  </div>
+
+  <div class="card" style="padding:1.5rem;background:white;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="font-size:1.05rem;margin:0;">Active Subscriptions</h3>
+      <button onclick="loadWebhooksList()" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;">Refresh</button>
+    </div>
+    <div id="webhooksListContainer" style="font-size:0.85rem;color:var(--text-muted);">
+      Loading subscriptions...
+    </div>
+  </div>
+</div>
+
+<!-- Section: Bulk Import / Export & Embed Gallery -->
+<div class="grid" style="grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:1.5rem;margin-bottom:2.5rem;">
+  <div class="card" style="padding:1.5rem;background:white;">
+    <h3 style="font-size:1.05rem;margin-bottom:0.5rem;">Bulk Data Portability</h3>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.25rem;">Export entire event data with SHA-256 integrity checksum, or import with transactional rollback safety.</p>
+
+    <div style="display:flex;gap:0.75rem;margin-bottom:1rem;">
+      <a href="/api/v1/export/bulk?event_id={{ event.id }}" target="_blank" download="judgeforge_bulk_export.json" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
+        ⬇️ Export Event JSON
+      </a>
+    </div>
+
+    <form onsubmit="handleImportBulk(event)" style="border-top:1px solid var(--slate-200);padding-top:1rem;">
+      <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem;">IMPORT DATA JSON</label>
+      <textarea id="importJsonText" rows="3" placeholder='Paste bulk export JSON package here...' class="input" style="width:100%;font-size:0.8rem;font-family:var(--font-mono);margin-bottom:0.75rem;" required></textarea>
+      <button type="submit" class="btn btn-primary" style="font-size:0.85rem;">Import with Rollback Protection</button>
+      <div id="importResult" style="font-size:0.8rem;margin-top:0.5rem;"></div>
+    </form>
+  </div>
+
+  <div class="card" style="padding:1.5rem;background:white;">
+    <h3 style="font-size:1.05rem;margin-bottom:0.5rem;">Embeddable Gallery Widget</h3>
+    <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1rem;">Embed the live project showcase on any external blog, company portal, or community page.</p>
+
+    <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.3rem;">IFRAME SNIPPET</label>
+    <div style="position:relative;margin-bottom:1rem;">
+      <textarea readonly rows="3" class="input" style="width:100%;font-size:0.8rem;font-family:var(--font-mono);background:var(--slate-50);"><iframe src="http://localhost:8000/embed/gallery" width="100%" height="600" frameborder="0" style="border:1px solid #e2e8f0;border-radius:12px;"></iframe></textarea>
+    </div>
+    <div>
+      <a href="/embed/gallery" target="_blank" class="btn btn-secondary" style="font-size:0.85rem;">
+        ↗️ Preview Standalone Embed
+      </a>
+    </div>
+  </div>
+</div>
+
 <script>
 async function handleRubricUpdate(e) {
   e.preventDefault();
@@ -580,6 +679,144 @@ async function loadCommunityResults() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadCommunityResults);
+document.addEventListener('DOMContentLoaded', () => {
+  loadCommunityResults();
+  loadWebhooksList();
+});
+
+async function verifyRecordsChain() {
+  const box = document.getElementById('chainVerifyResult');
+  box.innerHTML = 'Verifying cryptographic hash chain...';
+  try {
+    const res = await fetch('/api/v1/verifiable-records/verify?event_id={{ event.id }}');
+    const data = await res.json();
+    if (data.valid) {
+      box.innerHTML = `
+        <div style="color:var(--emerald-700);font-weight:700;display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--emerald-500);"></span>
+          CHAIN VALID &amp; INTACT (100% UNTAMPERED)
+        </div>
+        <div>Total Verified Records: <strong>${data.total_records}</strong></div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem;">${data.message}</div>
+      `;
+    } else {
+      box.innerHTML = `
+        <div style="color:var(--rose-700);font-weight:700;display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--rose-500);"></span>
+          TAMPERING DETECTED AT BLOCK #${data.broken_at_id}
+        </div>
+        <div style="font-size:0.85rem;color:var(--rose-600);">${data.message}</div>
+      `;
+    }
+  } catch (err) {
+    box.innerHTML = `<span style="color:var(--rose-600);">Verification error: ${err.message}</span>`;
+  }
+}
+
+async function loadWebhooksList() {
+  const container = document.getElementById('webhooksListContainer');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/v1/webhooks?event_id={{ event.id }}');
+    if (!res.ok) {
+      container.innerHTML = 'Failed to load webhooks.';
+      return;
+    }
+    const list = await res.json();
+    if (list.length === 0) {
+      container.innerHTML = '<div style="font-style:italic;">No webhooks registered yet.</div>';
+      return;
+    }
+    container.innerHTML = list.map(w => `
+      <div style="border-bottom:1px solid var(--slate-200);padding:0.6rem 0;display:flex;justify-content:space-between;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:600;color:var(--slate-800);word-break:break-all;">${w.target_url}</div>
+          <div style="font-size:0.75rem;color:var(--text-muted);">Events: <code>${w.events_subscribed}</code></div>
+        </div>
+        <div style="display:flex;gap:0.4rem;">
+          <button onclick="testWebhook('${w.id}')" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;">Test</button>
+          <button onclick="deleteWebhook('${w.id}')" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.5rem;color:var(--rose-600);">Delete</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = 'Error: ' + err.message;
+  }
+}
+
+async function handleCreateWebhook(e) {
+  e.preventDefault();
+  const url = document.getElementById('whTargetUrl').value.trim();
+  const secret = document.getElementById('whSecret').value.trim();
+  const events = document.getElementById('whEvents').value.trim();
+
+  const res = await fetch('/api/v1/webhooks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      event_id: '{{ event.id }}',
+      target_url: url,
+      secret: secret || null,
+      events_subscribed: events || '*'
+    })
+  });
+  if (res.ok) {
+    alert('Webhook registered successfully!');
+    document.getElementById('whTargetUrl').value = '';
+    document.getElementById('whSecret').value = '';
+    loadWebhooksList();
+  } else {
+    const err = await res.json();
+    alert('Failed: ' + (err.detail || 'Could not register webhook'));
+  }
+}
+
+async function testWebhook(id) {
+  const res = await fetch(`/api/v1/webhooks/${id}/test`, { method: 'POST' });
+  const data = await res.json();
+  if (data.test_result && data.test_result.success) {
+    alert('Test ping delivered successfully! Status: ' + data.test_result.status_code);
+  } else {
+    alert('Delivery attempted: Status ' + (data.test_result ? data.test_result.status_code : 'N/A') + '\nDetails: ' + (data.test_result ? data.test_result.response_body : 'Unknown'));
+  }
+}
+
+async function deleteWebhook(id) {
+  if (!confirm('Delete this webhook subscription?')) return;
+  const res = await fetch(`/api/v1/webhooks/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    loadWebhooksList();
+  } else {
+    alert('Failed to delete webhook.');
+  }
+}
+
+async function handleImportBulk(e) {
+  e.preventDefault();
+  const text = document.getElementById('importJsonText').value.trim();
+  const out = document.getElementById('importResult');
+  out.innerHTML = 'Validating and importing data...';
+
+  try {
+    const payload = JSON.parse(text);
+    // If user provided raw data dictionary or wrapped package
+    const body = payload.data ? payload : { version: "1.0", data: payload };
+
+    const res = await fetch('/api/v1/import/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const resData = await res.json();
+    if (res.ok) {
+      out.innerHTML = `<span style="color:var(--emerald-600);font-weight:600;">✅ ${resData.message}</span>`;
+      setTimeout(() => location.reload(), 1200);
+    } else {
+      out.innerHTML = `<span style="color:var(--rose-600);font-weight:600;">❌ ${resData.detail || 'Import failed'}</span>`;
+    }
+  } catch (err) {
+    out.innerHTML = `<span style="color:var(--rose-600);">Invalid JSON format: ${err.message}</span>`;
+  }
+}
 </script>
 {% endblock %}

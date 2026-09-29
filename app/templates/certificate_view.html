@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Certificate - {{ meta.project_title }} | JudgeForge{% endblock %}
+
+{% block content %}
+<div style="max-width: 1040px; margin: 0 auto; padding: 2rem 1rem;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <a href="/projects/{{ meta.project_id }}" class="btn btn-secondary" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">← Back to Project</a>
+      <h1 style="font-size: 1.75rem; font-weight: 800; color: #0f172a; margin-top: 0.5rem;">Official Hackathon Credential</h1>
+      <p style="color: #64748b; font-size: 0.9rem;">Cryptographically verifiable offline SVG certificate</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <button onclick="window.print()" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+        🖨️ Print
+      </button>
+      <a href="/certificates/project/{{ meta.project_id }}/svg" download="certificate_{{ meta.project_id }}.svg" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+        ⬇️ Download SVG
+      </a>
+    </div>
+  </div>
+
+  <!-- Certificate SVG Container -->
+  <div class="card" style="padding: 1rem; background: #0f172a; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);">
+    <div style="width: 100%; max-width: 1000px; margin: 0 auto;">
+      {{ svg_content | safe }}
+    </div>
+  </div>
+
+  <!-- Verification Card -->
+  <div class="card" style="margin-top: 1.5rem; padding: 1.5rem; background: white;">
+    <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">Cryptographic Verification</h3>
+    <p style="font-size: 0.875rem; color: #64748b; margin-bottom: 1rem;">
+      This certificate includes a SHA-256 digital fingerprint proving it was generated authentically for this project and event without third-party cloud dependencies.
+    </p>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.875rem; font-family: monospace; font-size: 0.85rem; color: #4338ca; word-break: break-all;">
+      {{ meta.fingerprint }}
+    </div>
+    <div style="margin-top: 1rem;">
+      <a href="/certificates/verify/{{ meta.fingerprint }}" class="btn btn-secondary" style="font-size: 0.85rem;">
+        🔍 Verify Credential Authenticity
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -230,6 +230,21 @@ def cast_community_vote(
     db.commit()
     db.refresh(vote)
 
+    try:
+        from app.services.webhooks import dispatch_webhook
+        dispatch_webhook(
+            db=db,
+            event_id=event_id,
+            event_type="vote.cast",
+            payload={
+                "vote_id": vote.id,
+                "project_id": vote.project_id,
+                "voter_type": vote.voter_type,
+            },
+        )
+    except Exception:
+        pass
+
     return {
         "status": "success",
         "vote_id": vote.id,
