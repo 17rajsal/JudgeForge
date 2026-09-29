@@ -1,11 +1,13 @@
 import datetime
+import os
+import re
 import secrets
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query, UploadFile, File
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.database import get_db, DATA_DIR
 from app.models import Project, Event, Track, Team, TeamMember, User, AuditLog
 from app.auth import (
     get_current_user_optional,
@@ -20,7 +22,14 @@ from app.templating import templates
 class ProjectCreateSchema(BaseModel):
     title: str
     summary: Optional[str] = None
+    tagline: Optional[str] = None
+    description: Optional[str] = None
     repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    video_url: Optional[str] = None
+    pitch_deck_url: Optional[str] = None
+    tech_stack: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     track_id: Optional[str] = None
     team_id: Optional[str] = None
     event_id: Optional[str] = None
@@ -30,7 +39,14 @@ class ProjectCreateSchema(BaseModel):
 class ProjectUpdateSchema(BaseModel):
     title: Optional[str] = None
     summary: Optional[str] = None
+    tagline: Optional[str] = None
+    description: Optional[str] = None
     repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    video_url: Optional[str] = None
+    pitch_deck_url: Optional[str] = None
+    tech_stack: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     track_id: Optional[str] = None
     status: Optional[str] = None
 
@@ -55,6 +71,17 @@ def view_submit_form(
     tracks = db.query(Track).filter_by(event_id=event.id).all()
     is_closed = event.is_closed
 
+    user_team = None
+    if user:
+        membership = (
+            db.query(TeamMember)
+            .join(Team, TeamMember.team_id == Team.id)
+            .filter(TeamMember.user_id == user.id, Team.event_id == event.id)
+            .first()
+        )
+        if membership:
+            user_team = membership.team
+
     return templates.TemplateResponse(
         request=request,
         name="submit.html",
@@ -62,6 +89,7 @@ def view_submit_form(
             "event": event,
             "tracks": tracks,
             "user": user,
+            "user_team": user_team,
             "is_closed": is_closed,
         },
     )
@@ -132,7 +160,14 @@ def list_projects_api(
             "id": p.id,
             "title": p.title,
             "summary": p.summary,
+            "tagline": p.tagline,
+            "description": p.description,
             "repo_url": p.repo_url,
+            "demo_url": p.demo_url,
+            "video_url": p.video_url,
+            "pitch_deck_url": p.pitch_deck_url,
+            "tech_stack": p.tech_stack,
+            "thumbnail_url": p.thumbnail_url,
             "track_id": p.track_id,
             "track_name": p.track.name if p.track else None,
             "team_id": p.team_id,
@@ -266,14 +301,25 @@ def submit_project(
         if s in ("draft", "submitted"):
             proj_status = s
 
+    summary_text = payload.summary.strip() if payload.summary else (payload.tagline.strip() if payload.tagline else "")
+    tagline_text = payload.tagline.strip() if payload.tagline else (payload.summary.strip() if payload.summary else None)
+    desc_text = payload.description.strip() if payload.description else (payload.summary.strip() if payload.summary else None)
+
     project = Project(
         id=project_id,
         event_id=event.id,
         team_id=team_id,
         track_id=track_id,
         title=payload.title.strip(),
-        summary=payload.summary.strip() if payload.summary else "",
+        summary=summary_text,
+        tagline=tagline_text,
+        description=desc_text,
         repo_url=payload.repo_url.strip() if payload.repo_url else "",
+        demo_url=payload.demo_url.strip() if payload.demo_url else None,
+        video_url=payload.video_url.strip() if payload.video_url else None,
+        pitch_deck_url=payload.pitch_deck_url.strip() if payload.pitch_deck_url else None,
+        tech_stack=payload.tech_stack.strip() if payload.tech_stack else None,
+        thumbnail_url=payload.thumbnail_url.strip() if payload.thumbnail_url else None,
         status=proj_status,
         submitted_at=now_utc,
     )
@@ -315,7 +361,14 @@ def submit_project(
         "id": project.id,
         "title": project.title,
         "summary": project.summary,
+        "tagline": project.tagline,
+        "description": project.description,
         "repo_url": project.repo_url,
+        "demo_url": project.demo_url,
+        "video_url": project.video_url,
+        "pitch_deck_url": project.pitch_deck_url,
+        "tech_stack": project.tech_stack,
+        "thumbnail_url": project.thumbnail_url,
         "team_id": project.team_id,
         "track_id": project.track_id,
         "status": project.status,
@@ -364,8 +417,22 @@ def update_project(
         project.title = payload.title.strip()
     if payload.summary is not None:
         project.summary = payload.summary.strip()
+    if payload.tagline is not None:
+        project.tagline = payload.tagline.strip() or None
+    if payload.description is not None:
+        project.description = payload.description.strip() or None
     if payload.repo_url is not None:
         project.repo_url = payload.repo_url.strip()
+    if payload.demo_url is not None:
+        project.demo_url = payload.demo_url.strip() or None
+    if payload.video_url is not None:
+        project.video_url = payload.video_url.strip() or None
+    if payload.pitch_deck_url is not None:
+        project.pitch_deck_url = payload.pitch_deck_url.strip() or None
+    if payload.tech_stack is not None:
+        project.tech_stack = payload.tech_stack.strip() or None
+    if payload.thumbnail_url is not None:
+        project.thumbnail_url = payload.thumbnail_url.strip() or None
     if payload.track_id is not None:
         track = db.get(Track, payload.track_id)
         if not track or track.event_id != project.event_id:
@@ -552,4 +619,57 @@ def add_team_member(
     db.add(TeamMember(team_id=team_id, email=email, user_id=user.id if user else None))
     db.commit()
     return {"message": f"Added {email} to team {team.name}", "team_id": team_id}
+
+
+@router.post("/api/upload")
+async def upload_asset(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Securely uploads an asset (pitch deck PDF/PPT/PPTX or screenshot) to local storage."""
+    filename = file.filename or "asset"
+    ext = os.path.splitext(filename)[1].lower()
+    allowed_extensions = {".pdf", ".ppt", ".pptx", ".png", ".jpg", ".jpeg", ".webp"}
+    if ext not in allowed_extensions:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type '{ext}'. Allowed types: PDF, PPT, PPTX, PNG, JPG, JPEG, WEBP",
+        )
+
+    MAX_BYTES = 25 * 1024 * 1024  # 25 MB
+    content = await file.read(MAX_BYTES + 1)
+    if len(content) > MAX_BYTES:
+        raise HTTPException(status_code=400, detail="File exceeds maximum size limit of 25MB")
+
+    uploads_dir = DATA_DIR / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_base = re.sub(r"[^a-zA-Z0-9_.-]", "_", os.path.basename(filename))
+    stored_filename = f"{secrets.token_hex(8)}_{safe_base}"
+    target_path = uploads_dir / stored_filename
+
+    with open(target_path, "wb") as f:
+        f.write(content)
+
+    return {
+        "url": f"/uploads/{stored_filename}",
+        "filename": safe_base,
+        "size_bytes": len(content),
+    }
+
+
+@router.get("/uploads/{filename}")
+def serve_upload(filename: str):
+    """Securely serves locally uploaded project assets with path traversal protection."""
+    clean_filename = os.path.basename(filename)
+    if clean_filename != filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="Invalid filename")
+
+    uploads_dir = (DATA_DIR / "uploads").resolve()
+    target_path = (uploads_dir / clean_filename).resolve()
+
+    if not str(target_path).startswith(str(uploads_dir)) or not target_path.is_file():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(target_path)
 

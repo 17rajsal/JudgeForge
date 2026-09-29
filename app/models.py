@@ -164,7 +164,14 @@ class Project(Base):
     track_id = Column(String, ForeignKey("tracks.id", ondelete="CASCADE"), nullable=False, index=True)
     title = Column(String, nullable=False)
     summary = Column(Text, nullable=True)
+    tagline = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
     repo_url = Column(String, nullable=True)
+    demo_url = Column(String, nullable=True)
+    video_url = Column(String, nullable=True)
+    pitch_deck_url = Column(String, nullable=True)
+    tech_stack = Column(String, nullable=True)
+    thumbnail_url = Column(String, nullable=True)
     status = Column(String, nullable=False, default="submitted")  # "draft" or "submitted"
     submitted_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
@@ -174,6 +181,20 @@ class Project(Base):
     scores = relationship("Score", back_populates="project", cascade="all, delete-orphan")
     votes = relationship("CommunityVote", back_populates="project", cascade="all, delete-orphan")
     comments = relationship("Comment", back_populates="project", cascade="all, delete-orphan")
+
+    @property
+    def short_description(self) -> str:
+        return self.tagline or self.summary or ""
+
+    @property
+    def full_description(self) -> str:
+        return self.description or self.summary or ""
+
+    @property
+    def tech_tags(self) -> list:
+        if not self.tech_stack:
+            return []
+        return [t.strip() for t in self.tech_stack.split(",") if t.strip()]
 
 
 class Prize(Base):

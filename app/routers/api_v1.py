@@ -47,7 +47,14 @@ class RegisterV1(BaseModel):
 class ProjectCreateV1(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     summary: Optional[str] = None
+    tagline: Optional[str] = None
+    description: Optional[str] = None
     repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    video_url: Optional[str] = None
+    pitch_deck_url: Optional[str] = None
+    tech_stack: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     track_id: Optional[str] = None
     event_id: Optional[str] = None
     team_id: Optional[str] = None
@@ -57,7 +64,14 @@ class ProjectCreateV1(BaseModel):
 class ProjectUpdateV1(BaseModel):
     title: Optional[str] = None
     summary: Optional[str] = None
+    tagline: Optional[str] = None
+    description: Optional[str] = None
     repo_url: Optional[str] = None
+    demo_url: Optional[str] = None
+    video_url: Optional[str] = None
+    pitch_deck_url: Optional[str] = None
+    tech_stack: Optional[str] = None
+    thumbnail_url: Optional[str] = None
     track_id: Optional[str] = None
     status: Optional[Literal["draft", "submitted"]] = None
 
@@ -423,14 +437,25 @@ def create_project_v1(
     project_id = "prj_" + secrets.token_hex(6)
     proj_status = (payload.status or "submitted").strip().lower()
 
+    summary_text = payload.summary.strip() if payload.summary else (payload.tagline.strip() if payload.tagline else payload.title.strip())
+    tagline_text = payload.tagline.strip() if payload.tagline else (payload.summary.strip() if payload.summary else None)
+    desc_text = payload.description.strip() if payload.description else (payload.summary.strip() if payload.summary else None)
+
     project = Project(
         id=project_id,
         event_id=event.id,
         team_id=team_id,
         track_id=track_id,
         title=payload.title.strip(),
-        summary=payload.summary.strip() if payload.summary else payload.title.strip(),
+        summary=summary_text,
+        tagline=tagline_text,
+        description=desc_text,
         repo_url=payload.repo_url.strip() if payload.repo_url else None,
+        demo_url=payload.demo_url.strip() if payload.demo_url else None,
+        video_url=payload.video_url.strip() if payload.video_url else None,
+        pitch_deck_url=payload.pitch_deck_url.strip() if payload.pitch_deck_url else None,
+        tech_stack=payload.tech_stack.strip() if payload.tech_stack else None,
+        thumbnail_url=payload.thumbnail_url.strip() if payload.thumbnail_url else None,
         status=proj_status,
         submitted_at=now_utc,
     )
@@ -461,6 +486,15 @@ def create_project_v1(
     return {
         "id": project.id,
         "title": project.title,
+        "summary": project.summary,
+        "tagline": project.tagline,
+        "description": project.description,
+        "repo_url": project.repo_url,
+        "demo_url": project.demo_url,
+        "video_url": project.video_url,
+        "pitch_deck_url": project.pitch_deck_url,
+        "tech_stack": project.tech_stack,
+        "thumbnail_url": project.thumbnail_url,
         "status": project.status,
         "submitted_at": project.submitted_at.isoformat() if project.submitted_at else None,
     }
@@ -496,8 +530,22 @@ def update_project_v1(
         project.title = payload.title.strip()
     if payload.summary is not None:
         project.summary = payload.summary.strip()
+    if payload.tagline is not None:
+        project.tagline = payload.tagline.strip() or None
+    if payload.description is not None:
+        project.description = payload.description.strip() or None
     if payload.repo_url is not None:
         project.repo_url = payload.repo_url.strip()
+    if payload.demo_url is not None:
+        project.demo_url = payload.demo_url.strip() or None
+    if payload.video_url is not None:
+        project.video_url = payload.video_url.strip() or None
+    if payload.pitch_deck_url is not None:
+        project.pitch_deck_url = payload.pitch_deck_url.strip() or None
+    if payload.tech_stack is not None:
+        project.tech_stack = payload.tech_stack.strip() or None
+    if payload.thumbnail_url is not None:
+        project.thumbnail_url = payload.thumbnail_url.strip() or None
     if payload.track_id is not None:
         project.track_id = payload.track_id
     if payload.status is not None:

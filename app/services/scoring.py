@@ -73,6 +73,13 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
                 "review_count": 0,
                 "raw_score": 0.0,
                 "normalized_score": 0.0,
+                "repo_url": p.repo_url or "",
+                "summary": p.summary or "",
+                "tagline": p.tagline or p.summary or "",
+                "demo_url": p.demo_url or "",
+                "video_url": p.video_url or "",
+                "pitch_deck_url": p.pitch_deck_url or "",
+                "tech_stack": p.tech_stack or "",
                 "rank": idx + 1,
             }
             for idx, p in enumerate(projects)
@@ -163,6 +170,11 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
             "normalized_score": round(avg_norm, 4),
             "repo_url": p.repo_url or "",
             "summary": p.summary or "",
+            "tagline": p.tagline or p.summary or "",
+            "demo_url": p.demo_url or "",
+            "video_url": p.video_url or "",
+            "pitch_deck_url": p.pitch_deck_url or "",
+            "tech_stack": p.tech_stack or "",
         })
 
     # Sort descending by normalized score, then raw score, then project_id

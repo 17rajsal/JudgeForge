@@ -43,6 +43,20 @@ def ensure_schema_migrations(eng):
             cols = {row[1] for row in res}
             if cols and "status" not in cols:
                 conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN status VARCHAR NOT NULL DEFAULT 'submitted'")
+            if cols and "tagline" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN tagline VARCHAR NULL")
+            if cols and "description" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN description TEXT NULL")
+            if cols and "demo_url" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN demo_url VARCHAR NULL")
+            if cols and "video_url" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN video_url VARCHAR NULL")
+            if cols and "pitch_deck_url" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN pitch_deck_url VARCHAR NULL")
+            if cols and "tech_stack" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN tech_stack VARCHAR NULL")
+            if cols and "thumbnail_url" not in cols:
+                conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN thumbnail_url VARCHAR NULL")
 
             conn.commit()
         except Exception:

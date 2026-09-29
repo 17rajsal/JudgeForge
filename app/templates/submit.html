@@ -51,11 +51,46 @@
     </div>
     {% endif %}
 
+    <!-- Team Context Indicator -->
+    <div style="padding:1rem 1.25rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);margin-bottom:1.5rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;">
+      <div>
+        <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Submitting Team</span>
+        {% if user_team %}
+        <div style="font-weight:700;color:var(--slate-900);font-size:1.05rem;margin-top:0.15rem;">
+          {{ user_team.name }}
+        </div>
+        <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;">
+          {% for m in user_team.members %}
+          <span class="role-pill role-participant" style="font-size:0.75rem;padding:0.15rem 0.55rem;">
+            {{ m.email }}
+          </span>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="font-weight:600;color:var(--slate-700);font-size:0.95rem;margin-top:0.15rem;">
+          Individual / Automatic Team
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
+          A team will be automatically created with you (<strong>{{ user.email if user else 'your account' }}</strong>) upon submission.
+        </div>
+        {% endif %}
+      </div>
+      {% if user_team %}
+      <a href="/workspace" class="btn btn-secondary" style="font-size:0.8rem;padding:0.3rem 0.75rem;">Manage Team</a>
+      {% endif %}
+    </div>
+
     <form onsubmit="handleSubmitProject(event)">
       <div class="form-group">
         <label for="projTitle">Project Title *</label>
         <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
-        <small>Provide a clear, descriptive title for your entry.</small>
+        <small>Provide a clear, memorable title for your entry.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="projTagline">Tagline / Short Pitch</label>
+        <input type="text" id="projTagline" placeholder="e.g. Edge computing mesh with deterministic zero-cloud consensus" maxlength="160" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+        <small>A concise 1-line elevator pitch shown in the gallery and podium.</small>
       </div>
 
       <div class="form-group">
@@ -69,15 +104,49 @@
       </div>
 
       <div class="form-group">
-        <label for="projSummary">Architecture Summary &amp; Overview</label>
-        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
+        <label for="projSummary">Architecture Summary &amp; Overview *</label>
+        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." required {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
         <small>Evaluators review this summary during judging rounds.</small>
       </div>
 
       <div class="form-group">
-        <label for="projRepo">Repository URL</label>
+        <label for="projDescription">Long Description &amp; Implementation Details</label>
+        <textarea id="projDescription" rows="5" placeholder="Deep dive into system architecture, trade-offs, reproducible benchmarking, and offline behavior..." {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
+        <small>Optional detailed breakdown of technical design and verification.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="projTechStack">Tech Stack &amp; Tags</label>
+        <input type="text" id="projTechStack" placeholder="e.g. Python, FastAPI, SQLite, Docker, Cryptography" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+        <small>Comma-separated technologies and frameworks used.</small>
+      </div>
+
+      <div class="form-group">
+        <label for="projRepo">GitHub / Source Repository URL</label>
         <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
         <small>Link to source repository, README documentation, and verification scripts.</small>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));gap:1rem;">
+        <div class="form-group">
+          <label for="projDemo">Live Demo URL</label>
+          <input type="url" id="projDemo" placeholder="https://demo.example.com" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>Interactive preview or deployed application.</small>
+        </div>
+        <div class="form-group">
+          <label for="projVideo">Demo Video Walkthrough</label>
+          <input type="url" id="projVideo" placeholder="https://youtube.com/... or loom.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <small>Recorded walkthrough (Loom, YouTube, Vimeo, etc.).</small>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="projDeck">Pitch Deck (URL or Safe Local Upload)</label>
+        <input type="text" id="projDeck" placeholder="https://speakerdeck.com/... or /uploads/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+        <div style="margin-top:0.4rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;">
+          <input type="file" id="deckFileInput" accept=".pdf,.ppt,.pptx" style="font-size:0.82rem;" onchange="handleFileUpload(this, 'projDeck', 'deckUploadStatus')" {% if is_closed %}disabled aria-disabled="true"{% endif %}>
+          <span id="deckUploadStatus" style="font-size:0.78rem;color:var(--text-muted);">PDF, PPT, PPTX (max 25MB stored locally)</span>
+        </div>
       </div>
 
       {% if is_closed %}
@@ -108,6 +177,37 @@
 </div>
 
 <script>
+async function handleFileUpload(inputEl, targetFieldId, statusId) {
+  const statusEl = document.getElementById(statusId);
+  const file = inputEl.files[0];
+  if (!file) return;
+
+  statusEl.textContent = 'Uploading ' + file.name + '...';
+  statusEl.style.color = 'var(--text-muted)';
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById(targetFieldId).value = data.url;
+      statusEl.textContent = 'Uploaded: ' + data.filename;
+      statusEl.style.color = 'var(--emerald-600)';
+    } else {
+      statusEl.textContent = 'Upload failed: ' + (data.detail || 'Error');
+      statusEl.style.color = 'var(--rose-600)';
+    }
+  } catch (err) {
+    statusEl.textContent = 'Upload error: ' + err.message;
+    statusEl.style.color = 'var(--rose-600)';
+  }
+}
+
 async function handleSubmitProject(e, targetStatus) {
   e.preventDefault();
   {% if is_closed %}
@@ -115,21 +215,37 @@ async function handleSubmitProject(e, targetStatus) {
   return;
   {% endif %}
   const title = document.getElementById('projTitle').value.trim();
+  const tagline = document.getElementById('projTagline') ? document.getElementById('projTagline').value.trim() : '';
   const trackId = document.getElementById('projTrack').value;
   const summary = document.getElementById('projSummary').value.trim();
+  const description = document.getElementById('projDescription') ? document.getElementById('projDescription').value.trim() : '';
+  const techStack = document.getElementById('projTechStack') ? document.getElementById('projTechStack').value.trim() : '';
   const repoUrl = document.getElementById('projRepo').value.trim();
+  const demoUrl = document.getElementById('projDemo') ? document.getElementById('projDemo').value.trim() : '';
+  const videoUrl = document.getElementById('projVideo') ? document.getElementById('projVideo').value.trim() : '';
+  const deckUrl = document.getElementById('projDeck') ? document.getElementById('projDeck').value.trim() : '';
 
   if (!title) {
     alert('Project title is required.');
+    return;
+  }
+  if (!summary) {
+    alert('Architecture summary is required.');
     return;
   }
 
   const payload = {
     event_id: "{{ event.id }}",
     title: title,
+    tagline: tagline || null,
     track_id: trackId,
-    summary: summary || null,
+    summary: summary,
+    description: description || null,
+    tech_stack: techStack || null,
     repo_url: repoUrl || null,
+    demo_url: demoUrl || null,
+    video_url: videoUrl || null,
+    pitch_deck_url: deckUrl || null,
     status: targetStatus || 'submitted'
   };
 

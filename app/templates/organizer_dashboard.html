@@ -89,6 +89,79 @@
   </div>
 </div>
 
+<!-- Section: Judging Progress Analytics & Review Quota -->
+<div class="card" style="margin-bottom:2rem;padding:1.5rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
+    <div>
+      <h3 style="font-size:1.25rem;color:var(--slate-900);">Judging Progress &amp; Deliberation Quota</h3>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.2rem;">
+        Monitor real-time evaluation throughput across assigned judges and unreviewed projects.
+      </p>
+    </div>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <span class="card-tag" style="font-size:0.85rem;font-weight:700;color:var(--primary-700);background:var(--primary-50);border-color:var(--primary-200);">
+        {{ judging_progress.completion_pct if judging_progress else 0 }}% Complete
+      </span>
+    </div>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="progress-track" style="height:10px;margin-bottom:1.25rem;">
+    <div class="progress-fill" style="width: {{ judging_progress.completion_pct if judging_progress else 0 }}%;"></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;">
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Reviews Completed</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
+        {{ judging_progress.completed_reviews if judging_progress else 0 }} <span style="font-size:0.85rem;font-weight:500;color:var(--text-secondary);">/ {{ judging_progress.expected_reviews if judging_progress else 0 }} expected</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Across {{ judging_progress.total_submissions if judging_progress else 0 }} submitted projects</div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Unreviewed Projects</div>
+      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.zero_review_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
+        {{ judging_progress.zero_review_count if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
+        {% if judging_progress and judging_progress.zero_review_count > 0 %}
+          Pending first review
+        {% else %}
+          All projects evaluated &check;
+        {% endif %}
+      </div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Inactive Judges</div>
+      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.inactive_judge_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
+        {{ judging_progress.inactive_judge_count if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
+        {% if judging_progress and judging_progress.inactive_judge_count > 0 %}
+          0 evaluations submitted
+        {% else %}
+          All assigned judges active &check;
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if judging_progress and judging_progress.zero_review_projects %}
+  <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--slate-200);">
+    <span style="font-size:0.8rem;font-weight:700;color:var(--slate-800);">Submissions Awaiting First Evaluation:</span>
+    <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.4rem;">
+      {% for zp in judging_progress.zero_review_projects %}
+      <a href="/projects/{{ zp.id }}" class="card-tag" style="background:#fffbeb;color:#92400e;border-color:#fde68a;text-decoration:none;font-size:0.78rem;">
+        {{ zp.title }} ({{ zp.track_name }})
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
 <!-- Section: Rubric Calibration & Weights -->
 <div class="card" style="margin-bottom:2rem;">
   <div class="card-header">
@@ -542,7 +615,20 @@ async function handleRubricUpdate(e) {
 }
 
 async function handlePublish() {
-  if (!confirm("Are you sure you want to publish official results? This will make final rankings public.")) return;
+  const completed = {{ judging_progress.completed_reviews if judging_progress else 0 }};
+  const expected = {{ judging_progress.expected_reviews if judging_progress else 0 }};
+  const zeroCount = {{ judging_progress.zero_review_count if judging_progress else 0 }};
+  const pct = {{ judging_progress.completion_pct if judging_progress else 0 }};
+
+  let promptMsg = "Publish Official Results for {{ event.name if event else 'Hackathon' }}?\n\n";
+  promptMsg += `Review Progress: ${completed} of ${expected} evaluations completed (${pct}%).\n`;
+  if (zeroCount > 0) {
+    promptMsg += `Notice: ${zeroCount} project(s) currently have 0 submitted evaluations.\n`;
+  }
+  promptMsg += "\nPublishing will make the official normalized rankings, podium, and awards publicly visible at /results.";
+
+  if (!confirm(promptMsg)) return;
+
   const res = await fetch('/api/events/{{ event.id }}/publish', { method: 'POST' });
   if (res.ok) {
     location.reload();
