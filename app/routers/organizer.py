@@ -265,6 +265,12 @@ def view_organizer_dashboard(
         "total_rubric_weight": total_rubric_weight,
     }
 
+    unassigned_tracks = []
+    for t in tracks:
+        covered = any((len(j.tracks) == 0 or any(jt.id == t.id for jt in j.tracks)) for j in judges)
+        if not covered:
+            unassigned_tracks.append(t.name)
+
     return templates.TemplateResponse(
         request=request,
         name="organizer_dashboard.html",
@@ -281,6 +287,7 @@ def view_organizer_dashboard(
             "all_users": all_users,
             "audit_logs": audit_logs,
             "judging_progress": judging_progress,
+            "unassigned_tracks": unassigned_tracks,
         },
     )
 
@@ -837,6 +844,12 @@ def update_user_role(
     new_role = payload.role.strip().lower()
     if new_role not in valid_roles:
         raise HTTPException(status_code=400, detail=f"Invalid role. Allowed roles: {', '.join(sorted(valid_roles))}")
+
+    if target_user.id == current_user.id and new_role != "admin":
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot demote your own admin account. Admin self-lockout prevention active.",
+        )
 
     old_role = target_user.role
     target_user.role = new_role

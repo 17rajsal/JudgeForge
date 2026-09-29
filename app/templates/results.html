@@ -240,8 +240,8 @@
           <th>Track</th>
           <th>Team</th>
           <th style="text-align:right;">Reviews</th>
-          <th style="text-align:right;">Raw Average</th>
-          <th style="text-align:right;">Normalized Score</th>
+          <th style="text-align:right;" title="Average before judge calibration">Raw Average</th>
+          <th style="text-align:right;" title="Final calibrated score used for ranking">Normalized Score</th>
           <th>Prize / Award</th>
         </tr>
       </thead>
@@ -315,20 +315,20 @@
       </p>
       <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.75rem;margin-bottom:0.85rem;">
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">1. Calibrated Rubric (1–5)</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Independent reviewers rate submissions on a 1–5 scale across Functionality, Code &amp; Design Quality, and Innovation.</span>
+          <strong style="color:var(--slate-900);">1. SCORE &mdash; Calibrated Rubric (1–5)</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Judges evaluate projects on a 1–5 rubric across Functionality, Code &amp; Design Quality, and Innovation.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">2. Criterion Weights &amp; Z-Score Standardization</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Organizer weights are applied, and per-judge Z-score standardization eliminates hawk (harsh) vs dove (lenient) grading biases.</span>
+          <strong style="color:var(--slate-900);">2. WEIGHT &mdash; Criterion Weights</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Criteria weights are applied to produce a weighted raw score prior to normalization.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">3. Zero-Variance Proofing</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">If a judge assigns identical grades, scores default to neutral (0.0) deviation, preventing division-by-zero errors.</span>
+          <strong style="color:var(--slate-900);">3. CALIBRATE &mdash; Z-Score Standardization &amp; Zero-Variance Proofing</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Judge scoring distributions are standardized via Z-score calibration to neutralize naturally harsh or lenient tendencies. Zero-variance judges contribute neutrally.</span>
         </div>
         <div style="background:white;padding:0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
-          <strong style="color:var(--slate-900);">4. Rescaled to 1–5 Scale &amp; Final Ranking</strong><br>
-          <span style="font-size:0.82rem;color:var(--text-secondary);">Normalized scores are averaged across all assigned reviewers and mapped back to the 1.00–5.00 rubric scale to determine podium winners.</span>
+          <strong style="color:var(--slate-900);">4. RANK &mdash; Rescaled to 1–5 Scale</strong><br>
+          <span style="font-size:0.82rem;color:var(--text-secondary);">Projects are ranked by calibrated score. Normalized values are mapped back to the 1–5 scale to determine podium winners.</span>
         </div>
       </div>
       <div style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">

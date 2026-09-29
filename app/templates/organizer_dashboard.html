@@ -117,7 +117,7 @@
 </div>
 
 <!-- ==========================================================================
-     SECTION 2 — Judging Progress & Deliberation Quota
+     SECTION 2 — Judging Control Center (Judging Progress & Deliberation Quota)
      ========================================================================== -->
 <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.25rem;">
@@ -134,37 +134,50 @@
     </div>
   </div>
 
-  <!-- Attention Warnings if zero or below target -->
-  {% if judging_progress and judging_progress.zero_review_count > 0 %}
-  <div class="callout callout-danger" style="margin-bottom:1.25rem;">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <div>
-      <strong>Review Coverage Alert:</strong> {{ judging_progress.zero_review_count }} project(s) have no judge reviews yet.
-    </div>
-  </div>
-  {% endif %}
-
-  {% if judging_progress and judging_progress.below_target_count > 0 %}
-  <div class="callout callout-warning" style="margin-bottom:1.25rem;">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <div>
-      <strong>Deliberation Quota:</strong> {{ judging_progress.below_target_count }} project(s) have fewer than the target number of reviews (target: {{ judging_progress.target_reviews_per_project }} reviews/project).
-    </div>
-  </div>
-  {% endif %}
-
   <!-- Strong Progress Bar -->
   <div class="progress-track" style="height:10px;margin-bottom:1.25rem;">
     <div class="progress-fill" style="width: {{ judging_progress.completion_pct if judging_progress else 0 }}%;"></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(170px, 1fr));gap:1rem;">
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Submitted Projects</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
+        {{ judging_progress.total_submissions if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Eligible for scoring</div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Assigned Judges</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
+        {{ judging_progress.total_judges if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Active evaluation panel</div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Expected Reviews</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
+        {{ judging_progress.expected_reviews if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Target deliberation total</div>
+    </div>
+
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
       <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Reviews Completed</div>
       <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
-        {{ judging_progress.completed_reviews if judging_progress else 0 }} <span style="font-size:0.85rem;font-weight:500;color:var(--text-secondary);">/ {{ judging_progress.expected_reviews if judging_progress else 0 }}</span>
+        {{ judging_progress.completed_reviews if judging_progress else 0 }}
       </div>
-      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">{{ judging_progress.total_submissions if judging_progress else 0 }} submitted projects</div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Submitted judge ballots</div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Remaining Reviews</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
+        {{ (judging_progress.expected_reviews - judging_progress.completed_reviews) if judging_progress and (judging_progress.expected_reviews > judging_progress.completed_reviews) else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Needed for full panel</div>
     </div>
 
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
@@ -176,98 +189,190 @@
         {% if judging_progress and judging_progress.zero_review_count > 0 %}Pending first evaluation{% else %}All projects started &check;{% endif %}
       </div>
     </div>
-
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
-      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Below Target Quota</div>
-      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.below_target_count > 0 %}var(--warning){% else %}var(--success){% endif %};margin-top:0.2rem;">
-        {{ judging_progress.below_target_count if judging_progress else 0 }}
-      </div>
-      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
-        Target: {{ judging_progress.target_reviews_per_project if judging_progress else 2 }} reviews each
-      </div>
-    </div>
-
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
-      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Fully Reviewed</div>
-      <div style="font-size:1.35rem;font-weight:800;color:var(--success);margin-top:0.2rem;">
-        {{ judging_progress.fully_reviewed_count if judging_progress else 0 }}
-      </div>
-      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Met or exceeded quota</div>
-    </div>
   </div>
 
-  {% if judging_progress and judging_progress.zero_review_projects %}
-  <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--slate-200);">
-    <span style="font-size:0.8rem;font-weight:700;color:var(--slate-800);">Submissions Awaiting First Evaluation:</span>
-    <div style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;margin-top:0.4rem;">
-      {% for zp in judging_progress.zero_review_projects %}
-      <a href="/projects/{{ zp.id }}" class="card-tag" style="background:#fffbeb;color:#92400e;border-color:#fde68a;text-decoration:none;font-size:0.78rem;">
-        {{ zp.title }} ({{ zp.track_name }})
-      </a>
-      {% endfor %}
+  <!-- Coverage Problems Section -->
+  <div style="margin-top:1.5rem;padding:1.25rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+      <h3 style="font-size:1rem;font-weight:700;color:var(--slate-900);margin:0;">Coverage Problems</h3>
+      <span style="font-size:0.8rem;color:var(--text-muted);">Deliberation target: {{ judging_progress.target_reviews_per_project if judging_progress else 2 }} reviews per project</span>
     </div>
+
+    {% if judging_progress and (judging_progress.zero_review_count > 0 or judging_progress.below_target_count > 0) %}
+      {% if judging_progress.zero_review_count > 0 %}
+      <div class="callout callout-danger" style="margin-bottom:0.75rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div>
+          <strong>Review Coverage Alert:</strong> {{ judging_progress.zero_review_count }} project(s) have no judge reviews yet.
+        </div>
+      </div>
+      {% endif %}
+
+      <div style="display:flex;flex-direction:column;gap:0.5rem;">
+        {% for zp in judging_progress.zero_review_projects %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.85rem;background:white;border:1px solid #fee2e2;border-radius:var(--radius-sm);flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <a href="/projects/{{ zp.id }}" style="font-weight:700;color:var(--slate-900);text-decoration:none;">{{ zp.title }}</a>
+            <span style="color:var(--text-muted);font-size:0.8rem;"> &bull; {{ zp.track_name }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="color:var(--danger);font-weight:700;font-size:0.85rem;">(0/{{ judging_progress.target_reviews_per_project }} reviews) &mdash; Missing all reviews</span>
+            <a href="/projects/{{ zp.id }}" class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.75rem;">View Project &rarr;</a>
+          </div>
+        </div>
+        {% endfor %}
+
+        {% for bp in judging_progress.below_target_projects %}
+        {% if bp.review_count > 0 %}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.85rem;background:white;border:1px solid #fef3c7;border-radius:var(--radius-sm);flex-wrap:wrap;gap:0.5rem;">
+          <div>
+            <a href="/projects/{{ bp.id }}" style="font-weight:700;color:var(--slate-900);text-decoration:none;">{{ bp.title }}</a>
+            <span style="color:var(--text-muted);font-size:0.8rem;"> &bull; {{ bp.track_name }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <span style="color:var(--warning);font-weight:700;font-size:0.85rem;">({{ bp.review_count }}/{{ judging_progress.target_reviews_per_project }} reviews) &mdash; Needs {{ judging_progress.target_reviews_per_project - bp.review_count }} more review(s)</span>
+            <a href="/projects/{{ bp.id }}" class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.75rem;">View Project &rarr;</a>
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="callout callout-success" style="margin:0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>
+          <strong>Deliberation Target Met:</strong> All projects meet deliberation target ({{ judging_progress.target_reviews_per_project if judging_progress else 2 }} reviews each).
+        </div>
+      </div>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 <!-- ==========================================================================
-     SECTION 3 — Judge Activity
+     SECTION 3 — Judge Activity & Assignment Matrix
      ========================================================================== -->
 <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
-  <div class="page-header" style="margin-bottom:1rem;">
+  <div class="page-header" style="margin-bottom:1.25rem;">
     <div>
-      <h2 style="font-size:1.25rem;">3. Judge Activity</h2>
-      <div class="page-subtitle">Track submission review completion rates and status per assigned judge.</div>
+      <h2 style="font-size:1.25rem;">3. Judge Activity &amp; Assignment Matrix</h2>
+      <div class="page-subtitle">Track submission review completion rates and track coverage per assigned judge.</div>
     </div>
     <span class="card-tag">{{ judges | length }} Panel Members</span>
   </div>
 
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>Judge</th>
-          <th>Assigned Track</th>
-          <th>Reviews Completed</th>
-          <th>Reviews Expected</th>
-          <th style="text-align:right;">Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for j in judges %}
-        {% set completed = j.scores | length %}
-        {% set expected = judging_progress.target_reviews_per_project if judging_progress else 2 %}
-        <tr>
-          <td>
-            <strong>{{ j.name }}</strong>
-            <div style="font-size:0.78rem;color:var(--text-secondary);">{{ j.email }} &middot; <code style="font-size:0.75rem;">{{ j.id }}</code></div>
-          </td>
-          <td>
-            {% for t in j.tracks %}
-            <span class="card-tag" style="font-size:0.72rem;margin-right:0.25rem;">{{ t.name }}</span>
-            {% else %}
-            <span class="card-tag" style="font-size:0.72rem;">All Tracks</span>
+  <!-- 3A: Judge Assignment Matrix -->
+  <div style="margin-bottom:2rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+      <h3 style="font-size:1.05rem;color:var(--slate-900);margin:0;">Judge Track Assignment Matrix</h3>
+      <span style="font-size:0.8rem;color:var(--text-muted);">Judges without specific track constraints evaluate all tracks</span>
+    </div>
+
+    {% if unassigned_tracks and (unassigned_tracks | length > 0) %}
+    <div class="callout callout-warning" style="margin-bottom:0.75rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div>
+        <strong>Review Coverage Warning:</strong> Track(s) <strong>{{ unassigned_tracks | join(', ') }}</strong> currently have no assigned judges. Submissions in these tracks may lack reviews.
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="min-width:180px;">Judge</th>
+            {% for trk in tracks %}
+            <th style="text-align:center;">{{ trk.name }}</th>
             {% endfor %}
-          </td>
-          <td class="tabular-nums">
-            <strong style="color:var(--slate-900);">{{ completed }}</strong> reviews
-          </td>
-          <td class="tabular-nums" style="color:var(--text-secondary);">
-            {{ expected }} target
-          </td>
-          <td style="text-align:right;">
-            {% if completed >= expected %}
-            <span class="status-chip status-open" style="font-size:0.75rem;">Complete</span>
-            {% elif completed > 0 %}
-            <span class="status-chip status-judging" style="font-size:0.75rem;">In Progress</span>
-            {% else %}
-            <span class="status-chip status-closed" style="font-size:0.75rem;">Not Started</span>
-            {% endif %}
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+          </tr>
+        </thead>
+        <tbody>
+          {% for j in judges %}
+          <tr>
+            <td>
+              <strong>{{ j.name }}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ j.email }}</div>
+            </td>
+            {% for trk in tracks %}
+            <td style="text-align:center;">
+              {% set covers_all = (j.tracks | length == 0) %}
+              {% set covers_trk = false %}
+              {% for jt in j.tracks %}{% if jt.id == trk.id %}{% set covers_trk = true %}{% endif %}{% endfor %}
+              {% if covers_all or covers_trk %}
+                <span class="matrix-check" title="Assigned to {{ trk.name }}{% if covers_all %} (All Tracks){% endif %}">&check;</span>
+              {% else %}
+                <span class="matrix-dash" title="Not Assigned">&mdash;</span>
+              {% endif %}
+            </td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 3B: Judge Activity Roster -->
+  <div>
+    <h3 style="font-size:1.05rem;color:var(--slate-900);margin:0 0 0.75rem 0;">Judge Activity Roster</h3>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Judge</th>
+            <th>Assigned Track(s)</th>
+            <th style="text-align:right;">Completed</th>
+            <th style="text-align:right;">Remaining</th>
+            <th style="width:160px;">Progress %</th>
+            <th style="text-align:right;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for j in judges %}
+          {% set completed = j.scores | length %}
+          {% set target_per_judge = judging_progress.total_submissions if (judging_progress and judging_progress.total_submissions > 0) else 1 %}
+          {% set remaining = (target_per_judge - completed) if target_per_judge > completed else 0 %}
+          {% set j_pct = [((completed / target_per_judge) * 100) | round | int, 100] | min if target_per_judge > 0 else 0 %}
+          <tr>
+            <td>
+              <strong>{{ j.name }}</strong>
+              <div style="font-size:0.78rem;color:var(--text-secondary);">{{ j.email }} &middot; <code style="font-size:0.75rem;">{{ j.id }}</code></div>
+            </td>
+            <td>
+              {% for t in j.tracks %}
+              <span class="card-tag" style="font-size:0.72rem;margin-right:0.25rem;">{{ t.name }}</span>
+              {% else %}
+              <span class="card-tag" style="font-size:0.72rem;background:#f0fdf4;color:#166534;border-color:#bbf7d0;">All Tracks</span>
+              {% endfor %}
+            </td>
+            <td class="tabular-nums" style="text-align:right;">
+              <strong style="color:var(--slate-900);">{{ completed }}</strong> reviews
+            </td>
+            <td class="tabular-nums" style="text-align:right;color:var(--text-secondary);">
+              {{ remaining }} remaining
+            </td>
+            <td>
+              <div style="display:flex;align-items:center;gap:0.5rem;">
+                <div class="progress-track" style="height:6px;flex:1;">
+                  <div class="progress-fill" style="width: {{ j_pct }}%;"></div>
+                </div>
+                <span style="font-size:0.78rem;font-weight:700;color:var(--slate-700);width:32px;text-align:right;">{{ j_pct }}%</span>
+              </div>
+            </td>
+            <td style="text-align:right;">
+              {% if completed >= target_per_judge and target_per_judge > 0 %}
+              <span class="status-chip status-open" style="font-size:0.75rem;">Complete</span>
+              {% elif completed > 0 %}
+              <span class="status-chip status-judging" style="font-size:0.75rem;">In Progress</span>
+              {% else %}
+              <span class="status-chip status-closed" style="font-size:0.75rem;">Not Started</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -275,28 +380,58 @@
      SECTION 4 — Rubric Criteria & Weights
      ========================================================================== -->
 <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
-  <div class="card-header">
+  <div class="card-header" style="margin-bottom:1rem;">
     <div>
       <h2 style="font-size:1.25rem;">4. Rubric Criteria &amp; Weights</h2>
       <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem;">
-        Organizer-configured rubric weights. Changing weights dynamically triggers Z-score re-normalization across all submissions.
+        Weights determine criterion impact on raw score before judge normalization. Changing weights dynamically triggers Z-score re-normalization across all submissions.
       </p>
     </div>
-    <div style="display:flex;gap:0.5rem;align-items:center;">
-      <span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);">Total Configured Weight: {{ total_rubric_weight }}</span>
+    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
+      <span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);">Total Configured Weight: <strong id="totalWeightBadge">{{ total_rubric_weight }}</strong></span>
+      <button type="button" id="rubricModeBtn" onclick="toggleRubricMode()" class="btn btn-secondary" style="font-size:0.85rem;padding:0.35rem 0.75rem;">
+        Edit Weights
+      </button>
     </div>
   </div>
 
-  <form id="rubricForm" onsubmit="handleRubricUpdate(event)" style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-end;margin-top:0.5rem;">
+  <!-- View Mode (Default) -->
+  <div id="rubricViewMode" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-top:0.5rem;">
     {% for c in criteria %}
-    <div style="flex:1;min-width:180px;">
-      <label for="weight_{{ c.name }}" style="font-weight:600;font-size:0.85rem;">{{ c.label }} (Weight)</label>
-      <input type="number" step="0.1" min="0" max="10" id="weight_{{ c.name }}" value="{{ c.weight }}" required style="font-size:0.95rem;font-weight:600;">
-      <small style="color:var(--text-muted);display:block;margin-top:0.2rem;">{{ c.description or 'Evaluated on 1-5 scale' }}</small>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+        <span style="font-weight:700;font-size:0.95rem;color:var(--slate-900);">{{ c.label }}</span>
+        <span class="card-tag" style="font-weight:800;font-size:0.8rem;background:white;">
+          Weight: {{ c.weight }}
+        </span>
+      </div>
+      <div style="font-size:0.78rem;font-weight:600;color:var(--primary);margin-bottom:0.4rem;">
+        {{ '%.1f' | format((c.weight / (total_rubric_weight if total_rubric_weight > 0 else 1)) * 100) }}% raw contribution
+      </div>
+      <p style="font-size:0.82rem;color:var(--text-secondary);margin:0;line-height:1.4;">
+        {{ c.description or 'Evaluated on 1–5 scale by assigned panel judges.' }}
+      </p>
     </div>
     {% endfor %}
-    <div>
-      <button type="submit" class="btn btn-secondary" style="min-height:40px;">Save Weights</button>
+  </div>
+
+  <!-- Edit Mode (Hidden initially) -->
+  <form id="rubricEditMode" onsubmit="handleRubricUpdate(event)" style="display:none;margin-top:0.75rem;">
+    <div style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-end;">
+      {% for c in criteria %}
+      <div style="flex:1;min-width:180px;">
+        <label for="weight_{{ c.name }}" style="font-weight:600;font-size:0.85rem;">{{ c.label }} (Weight)</label>
+        <input type="number" step="0.1" min="0" max="10" id="weight_{{ c.name }}" value="{{ c.weight }}" required style="font-size:0.95rem;font-weight:600;">
+        <small style="color:var(--text-muted);display:block;margin-top:0.2rem;">{{ c.description or 'Evaluated on 1-5 scale' }}</small>
+      </div>
+      {% endfor %}
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button type="submit" class="btn btn-primary" style="min-height:40px;">Save Weights</button>
+        <button type="button" onclick="toggleRubricMode()" class="btn btn-secondary" style="min-height:40px;">Cancel</button>
+      </div>
+    </div>
+    <div id="rubricWeightWarning" style="color:var(--danger);font-size:0.85rem;font-weight:600;margin-top:0.5rem;display:none;">
+      Total rubric weight must be greater than 0.
     </div>
   </form>
 </div>
@@ -389,10 +524,10 @@
 </div>
 
 <!-- ==========================================================================
-     SECTION 6 — Publication
+     SECTION 6 — Results Publication
      ========================================================================== -->
-<div class="card" style="margin-bottom:2rem;border-color:{% if event and event.results_published %}var(--emerald-200){% else %}var(--amber-200){% endif %};background:{% if event and event.results_published %}var(--emerald-50){% else %}var(--amber-50){% endif %};">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.25rem;">
+<div class="card" style="margin-bottom:2rem;border-color:{% if event and event.results_published %}var(--emerald-200){% else %}var(--amber-200){% endif %};background:{% if event and event.results_published %}var(--emerald-50){% else %}var(--amber-50){% endif %};padding:1.5rem;">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1.25rem;margin-bottom:1.25rem;">
     <div>
       <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem;">
         <span class="role-pill {% if event and event.results_published %}role-participant{% else %}role-organizer{% endif %}" style="font-size:0.75rem;">
@@ -404,21 +539,79 @@
         {% if event and event.results_published %}
           Official results are currently <strong>PUBLIC</strong>. Visitors and participants can view podium winners and rankings at <a href="/results?event_id={{ event.id }}" style="font-weight:700;">/results</a>.
         {% else %}
-          {% if judging_progress and (judging_progress.completion_pct < 100 or judging_progress.zero_review_count > 0) %}
-            Judging is still in progress ({{ judging_progress.zero_review_count }} unreviewed projects, {{ judging_progress.below_target_count }} below target). Results remain private until you confirm publication.
-          {% else %}
-            Final standings ready for review. All projects meet deliberation targets.
-          {% endif %}
+          Official standings remain private to organizers and administrators until published.
         {% endif %}
       </p>
     </div>
-    <div style="display:flex;gap:0.75rem;align-items:center;">
+    <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap;">
       <a href="/results?event_id={{ event.id }}" class="btn btn-secondary">Preview Results</a>
       {% if event and event.results_published %}
       <button onclick="handleUnpublish()" class="btn btn-secondary">Unpublish Results</button>
       {% else %}
       <button onclick="handlePublish()" class="btn btn-primary">Publish Results</button>
       {% endif %}
+    </div>
+  </div>
+
+  <!-- Results Readiness Checklist Card -->
+  {% set submissions_closed = (event and event.is_closed) %}
+  {% set all_reviewed = (judging_progress and judging_progress.zero_review_count == 0 and judging_progress.total_submissions > 0) %}
+  {% set target_met = (judging_progress and judging_progress.below_target_count == 0 and judging_progress.total_submissions > 0) %}
+
+  {% set readiness_warnings = 0 %}
+  {% if not submissions_closed %}{% set readiness_warnings = readiness_warnings + 1 %}{% endif %}
+  {% if not all_reviewed %}{% set readiness_warnings = readiness_warnings + 1 %}{% endif %}
+  {% if not target_met %}{% set readiness_warnings = readiness_warnings + 1 %}{% endif %}
+
+  <div style="background:white;border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1.25rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;flex-wrap:wrap;gap:0.5rem;">
+      <h3 style="font-size:1rem;color:var(--slate-900);margin:0;font-weight:700;">Results Publication Readiness</h3>
+      {% if readiness_warnings > 0 %}
+      <span class="role-pill" style="background:#fffbeb;color:#b45309;border-color:#fde68a;font-weight:700;font-size:0.78rem;">
+        {{ readiness_warnings }} item(s) need attention before publishing
+      </span>
+      {% else %}
+      <span class="role-pill" style="background:#ecfdf5;color:#047857;border-color:#a7f3d0;font-weight:700;font-size:0.78rem;">
+        &check; All Readiness Conditions Met
+      </span>
+      {% endif %}
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:0.75rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--slate-800);">
+        {% if submissions_closed %}
+        <span class="matrix-check">&check;</span>
+        <span>Submissions closed (cutoff passed)</span>
+        {% else %}
+        <span class="matrix-dash" style="color:var(--warning);font-size:1.1rem;font-weight:bold;">&excl;</span>
+        <span style="color:#b45309;font-weight:600;">Submissions still open</span>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--slate-800);">
+        {% if all_reviewed %}
+        <span class="matrix-check">&check;</span>
+        <span>All projects reviewed ({{ judging_progress.total_submissions }}/{{ judging_progress.total_submissions }})</span>
+        {% else %}
+        <span class="matrix-dash" style="color:var(--danger);font-size:1.1rem;font-weight:bold;">&excl;</span>
+        <span style="color:var(--danger);font-weight:600;">Coverage incomplete ({{ (judging_progress.total_submissions - judging_progress.zero_review_count) if judging_progress else 0 }}/{{ judging_progress.total_submissions if judging_progress else 0 }})</span>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--slate-800);">
+        {% if target_met %}
+        <span class="matrix-check">&check;</span>
+        <span>Deliberation quota met ({{ judging_progress.fully_reviewed_count }}/{{ judging_progress.total_submissions }})</span>
+        {% else %}
+        <span class="matrix-dash" style="color:var(--warning);font-size:1.1rem;font-weight:bold;">&excl;</span>
+        <span style="color:#b45309;font-weight:600;">Quota pending ({{ judging_progress.fully_reviewed_count if judging_progress else 0 }}/{{ judging_progress.total_submissions if judging_progress else 0 }} met)</span>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:var(--slate-800);">
+        <span class="matrix-check">&check;</span>
+        <span>Z-score normalization computed</span>
+      </div>
     </div>
   </div>
 </div>
@@ -561,68 +754,287 @@
   </div>
 </div>
 
-{% if user.role == 'admin' %}
-<!-- Section: Administrator User Role Management -->
+<!-- ==========================================================================
+     ROLE GOVERNANCE & ACCESS REFERENCE (ORGANIZER & ADMIN)
+     ========================================================================== -->
 <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
-  <div class="card-header">
+  <div class="card-header" style="margin-bottom:1rem;">
     <div>
-      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.25rem;">
-        <span class="role-pill role-admin">Administrator</span>
-        <h3 style="font-size:1.2rem;color:var(--slate-900);">User Role Management</h3>
-      </div>
-      <p style="color:var(--text-secondary);font-size:0.88rem;">
-        Audit user accounts and assign RBAC roles across participants, judges, organizers, and administrators.
+      <h3 style="font-size:1.15rem;color:var(--slate-900);margin:0;">Platform Role Governance &amp; Access Reference</h3>
+      <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.25rem;">
+        JudgeForge enforces strict role separation across public, participant, evaluation, and operational tiers.
       </p>
     </div>
-    <span class="card-tag">{{ all_users | length }} Accounts</span>
+    <span class="card-tag">5 System Roles</span>
   </div>
 
-  <div class="table-container" style="margin-top:1rem;">
-    <table>
-      <thead>
-        <tr>
-          <th>User ID</th>
-          <th>Name</th>
-          <th>Email</th>
-          <th>Current Role</th>
-          <th style="text-align:right;">Update Role</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for u in all_users %}
-        <tr>
-          <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);">{{ u.id }}</td>
-          <td><strong>{{ u.name }}</strong></td>
-          <td style="color:var(--text-secondary);">{{ u.email }}</td>
-          <td><span class="role-pill role-{{ u.role }}">{{ u.role }}</span></td>
-          <td style="text-align:right;">
-            <div style="display:inline-flex;gap:0.5rem;align-items:center;">
-              <select id="role_select_{{ u.id }}" style="padding:0.25rem 0.5rem;font-size:0.85rem;min-height:34px;width:130px;">
-                <option value="participant" {% if u.role == 'participant' %}selected{% endif %}>participant</option>
-                <option value="judge" {% if u.role == 'judge' %}selected{% endif %}>judge</option>
-                <option value="organizer" {% if u.role == 'organizer' %}selected{% endif %}>organizer</option>
-                <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>admin</option>
-              </select>
-              <button onclick="handleUpdateRole('{{ u.id }}')" class="btn btn-secondary" style="padding:0.25rem 0.65rem;font-size:0.8rem;">
-                Save
-              </button>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:0.85rem;">
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;">
+        <span class="role-pill role-participant">Participant</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--slate-700);margin:0;line-height:1.45;">
+        Submit projects, manage team members, edit drafts prior to deadline, view submission confirmation and published results.
+      </p>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;">
+        <span class="role-pill role-judge">Judge</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--slate-700);margin:0;line-height:1.45;">
+        Evaluate assigned track submissions on 1–5 rubric cards, submit private feedback, save reviews independently.
+      </p>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;">
+        <span class="role-pill role-organizer">Organizer</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--slate-700);margin:0;line-height:1.45;">
+        Configure competition parameters, assign judges to tracks, monitor deliberation quotas, review normalization standings, publish results.
+      </p>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;">
+        <span class="role-pill role-admin">Administrator</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--slate-700);margin:0;line-height:1.45;">
+        Platform-level governance, RBAC user role administration with self-lockout defense, multi-event oversight, and system status monitoring.
+      </p>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.4rem;">
+        <span class="role-pill" style="background:var(--slate-100);color:var(--slate-700);">Visitor</span>
+      </div>
+      <p style="font-size:0.82rem;color:var(--slate-700);margin:0;line-height:1.45;">
+        Unauthenticated public access. Browse showcase gallery, inspect project profiles and media, view published podium winners.
+      </p>
+    </div>
+  </div>
+</div>
+
+{% if user.role == 'admin' %}
+<!-- ==========================================================================
+     DEDICATED PLATFORM ADMINISTRATION CONTAINER (ADMIN ONLY)
+     ========================================================================== -->
+<div style="border-top:2px solid var(--primary-border);padding-top:2rem;margin-top:2rem;">
+  <div class="page-header" style="margin-bottom:1.5rem;">
+    <div>
+      <div class="hero-eyebrow" style="color:var(--primary-700);">PLATFORM GOVERNANCE &amp; OVERSIGHT</div>
+      <h2 style="font-size:1.6rem;color:var(--slate-900);">Platform Administration</h2>
+      <p class="page-subtitle">Multi-event oversight, RBAC user directory, and platform system health.</p>
+    </div>
+    <span class="role-pill role-admin" style="font-size:0.85rem;padding:0.4rem 0.85rem;">System Administrator</span>
+  </div>
+
+  <!-- A: System Status Cards -->
+  <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
+    <h3 style="font-size:1.1rem;color:var(--slate-900);margin:0 0 1rem 0;">System Status &amp; Platform Health</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;">
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Database Status</div>
+        <div style="font-weight:700;color:var(--success);font-size:1rem;margin-top:0.25rem;">
+          &check; SQLite Connected
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">WAL mode &middot; dogfood.db verified</div>
+      </div>
+
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Upload Storage</div>
+        <div style="font-weight:700;color:var(--success);font-size:1rem;margin-top:0.25rem;">
+          &check; Directory Writable
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">uploads/ directory mounted &amp; active</div>
+      </div>
+
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Session Signing Key</div>
+        <div style="font-weight:700;color:var(--success);font-size:1rem;margin-top:0.25rem;">
+          &check; SHA-256 HMAC Active
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">Cryptographic cookie signing enabled</div>
+      </div>
+
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Server Health Endpoint</div>
+        <div style="font-weight:700;color:var(--success);font-size:1rem;margin-top:0.25rem;">
+          &check; Responsive (/health)
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">Docker HEALTHCHECK reporting healthy</div>
+      </div>
+
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+        <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Platform Version</div>
+        <div style="font-weight:700;color:var(--slate-900);font-size:1rem;margin-top:0.25rem;">
+          JudgeForge v2.0-prod
+        </div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.2rem;">Enterprise-grade hackathon OS</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B: Multi-Event Oversight Table -->
+  <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
+    <div class="card-header" style="margin-bottom:1rem;">
+      <div>
+        <h3 style="font-size:1.1rem;color:var(--slate-900);margin:0;">Multi-Event Oversight</h3>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.25rem;">
+          Global catalog of all hosted hackathon events across lifecycle stages.
+        </p>
+      </div>
+      <span class="card-tag">{{ events | length }} Total Events</span>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Event Name &amp; ID</th>
+            <th>Lifecycle Status</th>
+            <th>Submission Cutoff</th>
+            <th>Results State</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for ev in events %}
+          <tr>
+            <td>
+              <strong>{{ ev.name }}</strong>
+              <div style="font-size:0.78rem;color:var(--text-muted);font-family:var(--font-mono);">{{ ev.id }}</div>
+            </td>
+            <td>
+              <span class="status-chip {{ ev.status_class }}">{{ ev.status_label }}</span>
+            </td>
+            <td style="font-size:0.85rem;color:var(--text-secondary);">
+              {{ ev.submissions_close.strftime('%b %d, %Y %H:%M UTC') if ev.submissions_close else 'No cutoff' }}
+            </td>
+            <td>
+              {% if ev.results_published %}
+              <span class="role-pill role-participant" style="font-size:0.75rem;">Published &check;</span>
+              {% else %}
+              <span class="role-pill role-organizer" style="font-size:0.75rem;">Private Draft</span>
+              {% endif %}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex;gap:0.5rem;">
+                <a href="/organizer?event_id={{ ev.id }}" class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.75rem;">Manage Event</a>
+                <a href="/results?event_id={{ ev.id }}" class="btn btn-secondary" style="padding:0.25rem 0.6rem;font-size:0.75rem;">Standings</a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- C: Admin User Management Table -->
+  <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
+    <div class="card-header" style="margin-bottom:1rem;">
+      <div>
+        <h3 style="font-size:1.1rem;color:var(--slate-900);margin:0;">User Account Management (RBAC)</h3>
+        <p style="color:var(--text-secondary);font-size:0.88rem;margin-top:0.25rem;">
+          Assign roles across Participant, Judge, Organizer, and Admin. Self-lockout protection prevents administrators from removing their own admin privilege.
+        </p>
+      </div>
+      <span class="card-tag">{{ all_users | length }} Accounts</span>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in all_users %}
+          {% set is_self = (u.id == user.id) %}
+          <tr>
+            <td>
+              <strong>{{ u.name }}</strong>
+              <div style="font-size:0.75rem;color:var(--text-muted);font-family:var(--font-mono);">{{ u.id }}</div>
+            </td>
+            <td style="color:var(--slate-700);font-size:0.88rem;">{{ u.email }}</td>
+            <td>
+              <span class="role-pill role-{{ u.role }}">{{ u.role }}</span>
+            </td>
+            <td>
+              <span class="card-tag" style="background:#ecfdf5;color:#047857;border-color:#a7f3d0;font-size:0.75rem;font-weight:700;">
+                Active
+              </span>
+            </td>
+            <td style="font-size:0.82rem;color:var(--text-muted);">
+              {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else 'System Initial' }}
+            </td>
+            <td style="text-align:right;">
+              <div style="display:inline-flex;gap:0.5rem;align-items:center;">
+                <select id="role_select_{{ u.id }}" {% if is_self %}disabled title="Cannot change own admin role (self-lockout protection active)"{% endif %} style="padding:0.25rem 0.5rem;font-size:0.85rem;min-height:34px;width:130px;">
+                  <option value="participant" {% if u.role == 'participant' %}selected{% endif %}>participant</option>
+                  <option value="judge" {% if u.role == 'judge' %}selected{% endif %}>judge</option>
+                  <option value="organizer" {% if u.role == 'organizer' %}selected{% endif %}>organizer</option>
+                  <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>admin</option>
+                </select>
+                <button onclick="handleUpdateRole('{{ u.id }}')" class="btn btn-secondary" style="padding:0.25rem 0.65rem;font-size:0.8rem;{% if is_self %}opacity:0.5;cursor:not-allowed;{% endif %}" {% if is_self %}disabled title="Self-lockout protection active"{% endif %}>
+                  Update Role
+                </button>
+              </div>
+              {% if is_self %}
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;font-weight:600;">(Current Admin &middot; Self-Lockout Protected)</div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 {% endif %}
 
 <script>
+function toggleRubricMode() {
+  const viewEl = document.getElementById('rubricViewMode');
+  const editEl = document.getElementById('rubricEditMode');
+  const btn = document.getElementById('rubricModeBtn');
+  if (!editEl || !viewEl) return;
+  if (editEl.style.display === 'none') {
+    editEl.style.display = 'block';
+    viewEl.style.display = 'none';
+    if (btn) btn.textContent = 'View Mode';
+  } else {
+    editEl.style.display = 'none';
+    viewEl.style.display = 'grid';
+    if (btn) btn.textContent = 'Edit Weights';
+  }
+}
+
 async function handleRubricUpdate(e) {
   e.preventDefault();
   const weights = {};
+  let totalWeight = 0;
   {% for c in criteria %}
-  weights['{{ c.name }}'] = parseFloat(document.getElementById('weight_{{ c.name }}').value);
+  const val_{{ c.name }} = parseFloat(document.getElementById('weight_{{ c.name }}').value) || 0;
+  weights['{{ c.name }}'] = val_{{ c.name }};
+  totalWeight += val_{{ c.name }};
   {% endfor %}
+
+  const warnEl = document.getElementById('rubricWeightWarning');
+  if (totalWeight <= 0) {
+    if (warnEl) warnEl.style.display = 'block';
+    alert('Total rubric weight must be greater than 0.');
+    return;
+  }
+  if (warnEl) warnEl.style.display = 'none';
 
   const res = await fetch('/api/organizer/rubric', {
     method: 'PUT',
@@ -630,7 +1042,7 @@ async function handleRubricUpdate(e) {
     body: JSON.stringify({ weights: weights })
   });
   if (res.ok) {
-    alert('Rubric weights updated successfully');
+    alert('Rubric weights updated successfully. Normalization recalculated.');
     window.location.reload();
   } else {
     alert('Failed to update rubric');

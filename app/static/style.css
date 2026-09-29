@@ -1385,6 +1385,163 @@ td strong, td a {
 }
 
 /* ==========================================================================
+   Judge Scoring & Rubric Evaluation Components
+   ========================================================================== */
+.score-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+  margin: 0.6rem 0;
+}
+
+.score-btn {
+  background: var(--bg-secondary);
+  border: 1.5px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.25rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  color: var(--text-primary);
+  user-select: none;
+}
+
+.score-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-subtle);
+}
+
+.score-btn.selected {
+  border-color: var(--primary);
+  background: #312e81;
+  color: #ffffff;
+  box-shadow: 0 0 0 2px rgba(67, 56, 202, 0.25);
+}
+
+.score-btn-number {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1.1;
+}
+
+.score-btn.selected .score-btn-number {
+  color: #ffffff;
+}
+
+.score-btn-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.score-btn.selected .score-btn-label {
+  color: #e0e7ff;
+}
+
+.score-btn-desc {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1.1;
+  margin-top: 0.1rem;
+}
+
+.score-btn.selected .score-btn-desc {
+  color: #c7d2fe;
+}
+
+.rubric-eval-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  transition: border-color var(--transition);
+}
+
+.rubric-eval-card:hover {
+  border-color: var(--slate-300);
+}
+
+.score-summary-panel {
+  background: var(--slate-900);
+  color: #ffffff;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  margin-bottom: var(--space-4);
+}
+
+.score-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.85rem;
+  color: var(--slate-300);
+  padding: 0.35rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-review-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.modal-evidence-col {
+  overflow-y: auto;
+  max-height: calc(88vh - 120px);
+  padding-right: 0.5rem;
+}
+
+.modal-eval-col {
+  overflow-y: auto;
+  max-height: calc(88vh - 120px);
+  padding-right: 0.25rem;
+}
+
+.evidence-checklist {
+  background: var(--slate-50);
+  border: 1px solid var(--slate-200);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.84rem;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  cursor: pointer;
+  color: var(--slate-700);
+}
+
+.matrix-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ecfdf5;
+  color: #059669;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.matrix-dash {
+  color: var(--slate-400);
+  font-weight: bold;
+}
+
+/* ==========================================================================
    Responsive Adaptations
    ========================================================================== */
 @media (max-width: 900px) {
@@ -1394,6 +1551,14 @@ td strong, td a {
 }
 
 @media (max-width: 860px) {
+  .modal-review-layout {
+    grid-template-columns: 1fr;
+  }
+  .modal-evidence-col, .modal-eval-col {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
   .auth-wrapper {
     grid-template-columns: 1fr;
   }
@@ -1433,6 +1598,18 @@ td strong, td a {
 }
 
 @media (max-width: 540px) {
+  .score-selector-grid {
+    gap: 0.25rem;
+  }
+  .score-btn {
+    padding: 0.45rem 0.15rem;
+  }
+  .score-btn-number {
+    font-size: 1rem;
+  }
+  .score-btn-label {
+    font-size: 0.62rem;
+  }
   .stat-grid {
     grid-template-columns: 1fr;
   }
