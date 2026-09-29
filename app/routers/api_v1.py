@@ -356,11 +356,27 @@ def create_project_v1(
     if not track_id:
         t = db.query(Track).filter(Track.event_id == event.id).first()
         track_id = t.id if t else "trk_01"
+    else:
+        track = db.query(Track).filter(Track.id == track_id).first()
+        if not track:
+            raise HTTPException(status_code=404, detail="Track not found")
+        if track.event_id != event.id:
+            raise HTTPException(status_code=400, detail="Track does not belong to the selected event")
 
     if payload.team_id:
         team = db.query(Team).filter(Team.id == payload.team_id).first()
         if not team:
             raise HTTPException(status_code=404, detail="Specified team not found")
+        if team.event_id != event.id:
+            raise HTTPException(status_code=400, detail="Team does not belong to the selected event")
+        if current_user.role not in ["organizer", "admin"]:
+            is_member = (
+                db.query(TeamMember)
+                .filter(TeamMember.team_id == team.id, TeamMember.user_id == current_user.id)
+                .first()
+            )
+            if not is_member:
+                raise HTTPException(status_code=403, detail="Forbidden: You are not a member of the specified team")
         team_id = team.id
     else:
         team_membership = (
@@ -596,7 +612,7 @@ def list_teams_v1(
     event_id: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
-    """Lists teams with members and project counts."""
+    """Lists teams with public metadata (emails and user IDs redacted for privacy)."""
     query = db.query(Team)
     if event_id:
         query = query.filter(Team.event_id == event_id)
@@ -606,25 +622,70 @@ def list_teams_v1(
             "id": t.id,
             "name": t.name,
             "event_id": t.event_id,
-            "members": [m.email for m in t.members],
-            "project_count": len(t.projects),
+            "member_count": len(t.members),
+            "submitted_project_count": len([p for p in t.projects if p.status == "submitted"]),
         }
         for t in teams
     ]
 
 
 @router.get("/teams/{team_id}", summary="Get team details")
-def get_team_v1(team_id: str, db: Session = Depends(get_db)):
-    """Retrieves single team details."""
+def get_team_v1(
+    team_id: str,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user_optional),
+):
+    """
+    Retrieves team details.
+    Anonymous callers and other participants receive only redacted public info (no member emails,
+    no user IDs, and no draft projects).
+    Authenticated team members or organizers/admins receive full member and draft details.
+    """
     team = db.query(Team).filter(Team.id == team_id).first()
     if not team:
         raise HTTPException(status_code=404, detail="Team not found")
+
+    is_privileged = False
+    if user:
+        if user.role in ["organizer", "admin"]:
+            is_privileged = True
+        else:
+            is_member = (
+                db.query(TeamMember)
+                .filter(TeamMember.team_id == team.id, TeamMember.user_id == user.id)
+                .first()
+            )
+            if is_member:
+                is_privileged = True
+
+    submitted_projects = [
+        {"id": p.id, "title": p.title, "status": p.status}
+        for p in team.projects
+        if p.status == "submitted"
+    ]
+
+    if not is_privileged:
+        return {
+            "id": team.id,
+            "name": team.name,
+            "event_id": team.event_id,
+            "member_count": len(team.members),
+            "submitted_project_count": len(submitted_projects),
+            "projects": submitted_projects,
+        }
+
+    all_projects = [
+        {"id": p.id, "title": p.title, "status": p.status}
+        for p in team.projects
+    ]
     return {
         "id": team.id,
         "name": team.name,
         "event_id": team.event_id,
+        "member_count": len(team.members),
+        "submitted_project_count": len(submitted_projects),
         "members": [{"email": m.email, "user_id": m.user_id} for m in team.members],
-        "projects": [{"id": p.id, "title": p.title, "status": p.status} for p in team.projects],
+        "projects": all_projects,
     }
 
 

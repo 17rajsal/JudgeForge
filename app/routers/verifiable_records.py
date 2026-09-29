@@ -18,8 +18,7 @@ class VerifyRecordRequest(BaseModel):
     record_id: Optional[int] = None
     record_hash: Optional[str] = None
     signature: Optional[str] = None
-    modulus_n: Optional[str] = None
-    exponent_e: Optional[int] = 65537
+    public_key: Optional[str] = None
 
 
 @router.get("")
@@ -32,7 +31,8 @@ def list_verifiable_records(
 ):
     """
     Returns signed tamper-evident judge score records including previous hash,
-    record hash, and asymmetric digital signature.
+    record hash, and asymmetric Ed25519 digital signature.
+    Exposes proof of evaluation integrity without leaking numeric scores or private comments.
     """
     query = db.query(VerifiableJudgeRecord)
     if event_id:
@@ -47,14 +47,13 @@ def list_verifiable_records(
     return [
         {
             "id": r.id,
-            "score_id": r.score_id,
             "judge_id": r.judge_id,
             "project_id": r.project_id,
             "event_id": r.event_id,
             "record_hash": r.record_hash,
             "prev_hash": r.prev_hash,
             "signature": r.signature,
-            "signature_scheme": "RSASSA-PKCS1-v1_5-SHA256",
+            "signature_scheme": "Ed25519",
             "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r in records
@@ -64,7 +63,7 @@ def list_verifiable_records(
 @router.get("/public-key")
 def get_verification_public_key():
     """
-    Returns the server's public cryptographic verification key.
+    Returns the server's public cryptographic Ed25519 verification key.
     Enables any participant, judge, organizer, or external auditor to independently
     verify the authenticity and integrity of signed judge participation records
     without cloud dependencies or private credentials.
@@ -78,9 +77,9 @@ def verify_single_record(
     db: Session = Depends(get_db),
 ):
     """
-    Independently verifies an asymmetric RSA digital signature for a single judge record.
+    Independently verifies an asymmetric Ed25519 digital signature for a single judge record.
     Can verify by `record_id` or directly by `record_hash` and `signature`.
-    Optionally accepts a custom public key (`modulus_n`, `exponent_e`) for offline audits.
+    Optionally accepts a custom public key (`public_key`) for offline audits.
     """
     record = None
     if payload.record_id is not None:
@@ -98,16 +97,15 @@ def verify_single_record(
             detail="Must provide either 'record_id' or both 'record_hash' and 'signature'",
         )
 
-    # Verify asymmetric RSA signature
+    # Verify asymmetric Ed25519 signature
     is_valid = verify_record_signature(
         hash_hex=hash_hex,
         signature_hex=signature_hex,
-        public_n=payload.modulus_n,
-        public_e=payload.exponent_e,
+        public_key_hex=payload.public_key,
     )
 
     # If verification failed on server key, check legacy HMAC as backwards fallback
-    if not is_valid and payload.modulus_n is None:
+    if not is_valid and payload.public_key is None:
         import hmac
         expected_hmac = sign_hash_legacy(hash_hex)
         if hmac.compare_digest(signature_hex, expected_hmac):
@@ -118,12 +116,12 @@ def verify_single_record(
         "record_id": record.id if record else payload.record_id,
         "record_hash": hash_hex,
         "signature": signature_hex,
-        "signature_scheme": "RSASSA-PKCS1-v1_5-SHA256",
-        "verified_with": "custom_public_key" if payload.modulus_n else "server_public_key",
+        "signature_scheme": "Ed25519",
+        "verified_with": "custom_public_key" if payload.public_key else "server_public_key",
         "message": (
-            "Cryptographic signature verified successfully with public key"
+            "Cryptographic Ed25519 signature verified successfully with public key"
             if is_valid
-            else "Cryptographic signature verification failed: signature does not match public key"
+            else "Cryptographic Ed25519 signature verification failed: signature does not match public key"
         ),
     }
 
@@ -136,7 +134,7 @@ def verify_hash_chain(
     """
     Cryptographically verifies the judge records hash chain for an event:
     1. Checks SHA-256 link continuity across all records (prev_hash chain).
-    2. Re-verifies asymmetric RSA digital signatures with published public key.
+    2. Re-verifies asymmetric Ed25519 digital signatures with published public key.
     3. Detects any retroactively altered score values or deleted reviews.
     """
     target_event_id = event_id or "evt_01"
