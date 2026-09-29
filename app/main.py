@@ -58,6 +58,11 @@ def ensure_schema_migrations(eng):
             if cols and "thumbnail_url" not in cols:
                 conn.exec_driver_sql("ALTER TABLE projects ADD COLUMN thumbnail_url VARCHAR NULL")
 
+            res = conn.exec_driver_sql("PRAGMA table_info(scores)").fetchall()
+            cols = {row[1] for row in res}
+            if cols and "criteria_json" not in cols:
+                conn.exec_driver_sql("ALTER TABLE scores ADD COLUMN criteria_json TEXT NULL")
+
             conn.commit()
         except Exception:
             pass
