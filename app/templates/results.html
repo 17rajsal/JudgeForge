@@ -20,7 +20,7 @@
       <select id="resultsEventSelector" class="form-input" style="width:auto;padding:0.35rem 0.75rem;font-size:0.875rem;" onchange="window.location.href='/results?event_id=' + this.value;">
         {% for ev in events %}
         <option value="{{ ev.id }}" {% if event and ev.id == event.id %}selected{% endif %}>
-          {{ ev.name }} ({{ ev.status_label }})
+          {{ ev.name }} &middot; {{ ev.demo_status_badge }}
         </option>
         {% endfor %}
       </select>
@@ -91,7 +91,14 @@
     <!-- 2nd Place -->
     {% set p2 = leaderboard[1] %}
     <div class="podium-card podium-2">
-      <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 2 &middot; Runner Up</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">
+        <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 2 &middot; Runner Up</div>
+        {% if p2.prize %}
+        <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.8rem;">
+          {{ p2.prize.amount }} &middot; {{ p2.prize.title }}
+        </span>
+        {% endif %}
+      </div>
       <h3 style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p2.project_id }}" style="color:var(--slate-900);">{{ p2.title }}</a>
       </h3>
@@ -118,7 +125,14 @@
     <!-- 1st Place (Prominent) -->
     {% set p1 = leaderboard[0] %}
     <div class="podium-card podium-1">
-      <div class="podium-rank-badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">Rank 1 &middot; Winner</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">
+        <div class="podium-rank-badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">Rank 1 &middot; Winner</div>
+        {% if p1.prize %}
+        <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.85rem;">
+          {{ p1.prize.amount }} &middot; {{ p1.prize.title }}
+        </span>
+        {% endif %}
+      </div>
       <h3 style="font-size:1.55rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p1.project_id }}" style="color:var(--slate-900);">{{ p1.title }}</a>
       </h3>
@@ -145,7 +159,14 @@
     <!-- 3rd Place -->
     {% set p3 = leaderboard[2] %}
     <div class="podium-card podium-3">
-      <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 3 &middot; Finalist</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem;flex-wrap:wrap;gap:0.4rem;">
+        <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 3 &middot; Finalist</div>
+        {% if p3.prize %}
+        <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.8rem;">
+          {{ p3.prize.amount }} &middot; {{ p3.prize.title }}
+        </span>
+        {% endif %}
+      </div>
       <h3 style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p3.project_id }}" style="color:var(--slate-900);">{{ p3.title }}</a>
       </h3>
@@ -210,6 +231,7 @@
           <th>Reviews</th>
           <th>Raw Average</th>
           <th>Normalized Score</th>
+          <th>Prize / Award</th>
         </tr>
       </thead>
       <tbody>
@@ -249,10 +271,19 @@
               {{ '%.2f' | format(row.normalized_score) }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
             </span>
           </td>
+          <td>
+            {% if row.prize %}
+            <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:700;font-size:0.8rem;">
+              <strong>{{ row.prize.amount }}</strong> &middot; {{ row.prize.title }}
+            </span>
+            {% else %}
+            <span style="color:var(--text-muted);font-size:0.85rem;">—</span>
+            {% endif %}
+          </td>
         </tr>
         {% else %}
         <tr>
-          <td colspan="7" style="text-align:center;padding:2.5rem;color:var(--text-muted);">
+          <td colspan="8" style="text-align:center;padding:2.5rem;color:var(--text-muted);">
             No submitted projects found for scoring.
           </td>
         </tr>

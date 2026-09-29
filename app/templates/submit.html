@@ -162,14 +162,21 @@
         </div>
       </div>
       {% else %}
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
-        <a href="/projects" class="btn btn-secondary">Cancel</a>
-        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary">
-          Save Draft
-        </button>
-        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary">
-          Submit Final Entry
-        </button>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
+        <div>
+          <button type="button" onclick="fillDemoProjectDetails()" class="btn btn-secondary" style="font-size:0.85rem;background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">
+            &plusmn; Fill Demo Details
+          </button>
+        </div>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <a href="/projects" class="btn btn-secondary">Cancel</a>
+          <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary">
+            Save Draft
+          </button>
+          <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary">
+            Submit Final Entry
+          </button>
+        </div>
       </div>
       {% endif %}
     </form>
@@ -206,6 +213,28 @@ async function handleFileUpload(inputEl, targetFieldId, statusId) {
     statusEl.textContent = 'Upload error: ' + err.message;
     statusEl.style.color = 'var(--rose-600)';
   }
+}
+
+function fillDemoProjectDetails() {
+  const titleEl = document.getElementById('projTitle');
+  const taglineEl = document.getElementById('projTagline');
+  const summaryEl = document.getElementById('projSummary');
+  const descEl = document.getElementById('projDescription');
+  const techStackEl = document.getElementById('projTechStack');
+  const repoEl = document.getElementById('projRepo');
+  const demoEl = document.getElementById('projDemo');
+  const videoEl = document.getElementById('projVideo');
+  const deckEl = document.getElementById('projDeck');
+
+  if (titleEl) titleEl.value = 'PulseGrid';
+  if (taglineEl) taglineEl.value = 'Decentralized sensor telemetry & low-power mesh protocol for isolated infrastructure';
+  if (summaryEl) summaryEl.value = 'PulseGrid enables mission-critical edge sensor telemetry across mesh networks without internet or cloud gateways. Built for rugged deployment in remote research stations.';
+  if (descEl) descEl.value = 'Architected with SQLite-backed write-ahead event streams, cryptographic Ed25519 signature verification on payload packets, and peer gossip replication. All nodes maintain local state caches and synchronize deterministically when radio links establish contact. Fully verified offline without third-party services.';
+  if (techStackEl) techStackEl.value = 'Python 3.12, FastAPI, SQLite WAL, Cryptography (Ed25519), Docker';
+  if (repoEl) repoEl.value = 'https://github.com/judgeforge-demo/pulsegrid';
+  if (demoEl) demoEl.value = 'https://pulsegrid.local.mesh';
+  if (videoEl) videoEl.value = 'https://loom.com/share/pulsegrid-demo-walkthrough';
+  if (deckEl) deckEl.value = 'https://speakerdeck.com/judgeforge/pulsegrid-architecture';
 }
 
 async function handleSubmitProject(e, targetStatus) {

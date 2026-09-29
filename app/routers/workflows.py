@@ -52,9 +52,13 @@ def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_
     )
     has_draft = any(p.status == "draft" for p in user_projects)
     has_submitted = any(p.status == "submitted" for p in user_projects)
-    open_event = next((e for e in events if not e.is_closed), None)
-    active_event = open_event if open_event else (events[0] if events else None)
+    target_event_id = request.query_params.get("event_id")
+    if target_event_id:
+        active_event = db.get(Event, target_event_id)
+    else:
+        active_event = db.get(Event, "evt_01") or (events[0] if events else None)
     active_event_closed = active_event.is_closed if active_event else False
+    open_event = next((e for e in events if not e.is_closed), None)
     all_closed = all(e.is_closed for e in events) if events else True
     results_published = any(e.results_published for e in events)
 

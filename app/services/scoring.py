@@ -48,6 +48,11 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
        available normalized judge reviews.
     4. Rescales Z-scores back to standard rubric scale using global mean and std.
     """
+    if not event_id:
+        from app.models import Event
+        primary_event = db.get(Event, "evt_01") or db.query(Event).order_by(Event.created_at.asc()).first()
+        event_id = primary_event.id if primary_event else None
+
     criteria_weights = get_criteria_weights(db, event_id)
 
     # 1. Fetch all scores

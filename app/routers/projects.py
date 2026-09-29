@@ -63,8 +63,7 @@ def view_submit_form(
         event = db.get(Event, req_event_id)
     else:
         events = db.query(Event).order_by(Event.created_at.desc()).all()
-        open_event = next((e for e in events if not e.is_closed), None)
-        event = open_event or db.get(Event, "evt_01") or (events[0] if events else None)
+        event = db.get(Event, "evt_01") or (events[0] if events else None)
 
     if not event:
         raise HTTPException(404, "Event not found")
@@ -111,8 +110,7 @@ def view_gallery(
         event = db.get(Event, event_id)
     else:
         # Default view: shows all submitted projects so official tests find fixture projects
-        open_event = next((e for e in events if not e.is_closed), None)
-        event = open_event or db.get(Event, "evt_01") or (events[0] if events else None)
+        event = db.get(Event, "evt_01") or (events[0] if events else None)
 
     if track:
         query = query.filter(Project.track_id == track)

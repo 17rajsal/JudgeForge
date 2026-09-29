@@ -761,6 +761,27 @@ def view_public_results(
 
     prizes = db.query(Prize).filter(Prize.event_id == event.id).order_by(Prize.created_at.asc()).all()
 
+    prize_by_rank = {}
+    for p in prizes:
+        plc = (p.placement or "").lower()
+        if "1st" in plc or "first" in plc or "grand" in plc:
+            prize_by_rank[1] = p
+        elif "2nd" in plc or "second" in plc or "runner" in plc:
+            prize_by_rank[2] = p
+        elif "3rd" in plc or "third" in plc or "bronze" in plc:
+            prize_by_rank[3] = p
+        elif "4th" in plc or "fourth" in plc:
+            prize_by_rank[4] = p
+        elif "5th" in plc or "fifth" in plc:
+            prize_by_rank[5] = p
+
+    for idx, p in enumerate(prizes):
+        if (idx + 1) not in prize_by_rank:
+            prize_by_rank[idx + 1] = p
+
+    for row in leaderboard:
+        row["prize"] = prize_by_rank.get(row.get("rank"))
+
     return templates.TemplateResponse(
         request=request,
         name="results.html",
@@ -769,6 +790,7 @@ def view_public_results(
             "event": event,
             "events": events,
             "prizes": prizes,
+            "prize_by_rank": prize_by_rank,
             "leaderboard": leaderboard,
             "is_published": bool(event.results_published),
             "is_organizer_or_admin": is_organizer_or_admin,

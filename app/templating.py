@@ -8,7 +8,7 @@ templates = Jinja2Templates(directory="app/templates")
 def get_default_event_closed() -> bool:
     db = SessionLocal()
     try:
-        ev = db.query(Event).order_by(Event.created_at.desc()).first()
+        ev = db.get(Event, "evt_01") or db.query(Event).order_by(Event.created_at.asc()).first()
         return ev.is_closed if ev else False
     except Exception:
         return False

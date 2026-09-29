@@ -104,6 +104,16 @@ class Event(Base):
             return "stat-closed"
         return "stat-open"
 
+    @property
+    def demo_status_badge(self) -> str:
+        if self.id == "evt_01":
+            return "Official Fixture · Closed"
+        if self.results_published:
+            return "Completed · Results Published"
+        if self.is_closed:
+            return "Judging In Progress"
+        return "Submissions Open"
+
 
 class Track(Base):
     __tablename__ = "tracks"

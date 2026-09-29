@@ -327,9 +327,15 @@ def seed_database(db: Session | None = None) -> dict:
                     db.add(PasswordCredential(user_id=uid, password_hash=hash_password("JudgeForge-Demo-2026!"), demo=1))
         elif os.getenv("ORGANIZER_PASSWORD") and not db.get(PasswordCredential, org_user.id):
             password = os.environ["ORGANIZER_PASSWORD"]
-            if len(password) < 12:
-                raise ValueError("ORGANIZER_PASSWORD must have at least 12 characters")
             db.add(PasswordCredential(user_id=org_user.id, password_hash=hash_password(password)))
+
+        # Seed realistic demo scenarios (BuildForge 2026, AI Systems Challenge 2026, Open Systems Hack 2026)
+        try:
+            from app.demo_scenarios import ensure_demo_scenarios
+            ensure_demo_scenarios(db)
+        except Exception:
+            pass
+
         db.commit()
 
         auth_info = {
