@@ -4,7 +4,7 @@ import json
 import re
 import hashlib
 import random
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request, Response
 from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import select, func
@@ -24,19 +24,9 @@ from app.passwords import hash_password, verify_password, demo_enabled
 from app.services.scoring import compute_leaderboard, generate_results_csv
 from app.services.verifiable_records import append_verifiable_record
 from app.services.webhooks import dispatch_webhook
-from app.rate_limiter import check_rate_limit
+from app.rate_limiter import check_rate_limit, get_client_ip
 
 router = APIRouter(prefix="/api/v1", tags=["REST API v1"])
-
-
-# ============================================================================
-# Helpers
-# ============================================================================
-def get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
 
 
 # ============================================================================
@@ -61,7 +51,7 @@ class ProjectCreateV1(BaseModel):
     track_id: Optional[str] = None
     event_id: Optional[str] = None
     team_id: Optional[str] = None
-    status: Optional[str] = "submitted"
+    status: Optional[Literal["draft", "submitted"]] = "submitted"
 
 
 class ProjectUpdateV1(BaseModel):
@@ -69,7 +59,7 @@ class ProjectUpdateV1(BaseModel):
     summary: Optional[str] = None
     repo_url: Optional[str] = None
     track_id: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[Literal["draft", "submitted"]] = None
 
 
 class ScoreSubmitV1(BaseModel):
@@ -172,7 +162,7 @@ def login_v1(payload: LoginV1, response: Response, db: Session = Depends(get_db)
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_session(user.id, db)
-    response.set_cookie(key="session", value=token, httponly=True, samesite="lax")
+    response.set_cookie(key="session", value=token, httponly=True, samesite="lax", path="/")
 
     judge_id = user.judge_profile.id if user.judge_profile else None
     return {
@@ -223,7 +213,7 @@ def logout_v1(request: Request, response: Response, db: Session = Depends(get_db
         db.query(SessionToken).filter(SessionToken.token == token_str).delete()
         db.commit()
 
-    response.delete_cookie("session")
+    response.delete_cookie("session", path="/")
     return {"message": "Logged out successfully"}
 
 
@@ -255,19 +245,50 @@ def list_projects_v1(
     status_filter: Optional[str] = Query(None, alias="status"),
     search: Optional[str] = Query(None, alias="q"),
     event_id: Optional[str] = None,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
     user: Optional[User] = Depends(get_current_user_optional),
 ):
-    """Lists projects with optional filtering by track, search query, status, and event."""
+    """Lists projects with optional filtering by track, search query, status, and event.
+    Enforces strict draft protection: anonymous callers and unrelated participants cannot
+    enumerate or view draft projects.
+    """
     query = db.query(Project)
 
     if event_id:
         query = query.filter(Project.event_id == event_id)
 
-    if status_filter:
-        query = query.filter(Project.status == status_filter)
-    elif not user or user.role not in ["organizer", "admin"]:
+    # Draft access control
+    if not user:
+        # Anonymous users can ONLY ever see submitted projects
         query = query.filter(Project.status == "submitted")
+    elif user.role in ["organizer", "admin"]:
+        # Organizers and admins may filter by any status or view all
+        if status_filter:
+            query = query.filter(Project.status == status_filter)
+    else:
+        # Authenticated participant:
+        user_team_ids = [
+            tm.team_id for tm in db.query(TeamMember.team_id).filter(TeamMember.user_id == user.id).all()
+        ]
+        if status_filter == "draft":
+            # Participant specifically asking for drafts: only show their own team's drafts
+            if user_team_ids:
+                query = query.filter(Project.status == "draft", Project.team_id.in_(user_team_ids))
+            else:
+                query = query.filter(False)
+        elif status_filter == "submitted":
+            query = query.filter(Project.status == "submitted")
+        else:
+            # No status specified: show submitted projects + participant's own drafts
+            if user_team_ids:
+                query = query.filter(
+                    (Project.status == "submitted") |
+                    ((Project.status == "draft") & (Project.team_id.in_(user_team_ids)))
+                )
+            else:
+                query = query.filter(Project.status == "submitted")
 
     if track_id:
         query = query.filter(Project.track_id == track_id)
@@ -276,7 +297,7 @@ def list_projects_v1(
         s = f"%{search.strip()}%"
         query = query.filter((Project.title.ilike(s)) | (Project.summary.ilike(s)))
 
-    projects = query.order_by(Project.submitted_at.desc()).all()
+    projects = query.order_by(Project.submitted_at.desc()).offset(offset).limit(limit).all()
 
     return [
         {
@@ -1397,9 +1418,12 @@ def get_event_results_v1(
 # Tracks Endpoints
 # ============================================================================
 @router.get("/tracks", summary="List all tracks")
-def list_tracks_v1(db: Session = Depends(get_db)):
-    """Lists all tracks across events."""
-    tracks = db.query(Track).all()
+def list_tracks_v1(event_id: Optional[str] = None, db: Session = Depends(get_db)):
+    """Lists tracks with optional event_id filtering."""
+    query = db.query(Track)
+    if event_id:
+        query = query.filter(Track.event_id == event_id)
+    tracks = query.all()
     return [{"id": t.id, "event_id": t.event_id, "name": t.name} for t in tracks]
 
 
@@ -1608,7 +1632,6 @@ def list_comments_v1(project_id: str, db: Session = Depends(get_db)):
         {
             "id": c.id,
             "project_id": c.project_id,
-            "user_id": c.user_id,
             "author_name": c.author_name,
             "content": c.content,
             "created_at": c.created_at.isoformat(),

@@ -51,7 +51,7 @@ def api_login(payload: LoginRequest, response: Response, db: Session = Depends(g
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_session(user.id, db)
-    response.set_cookie(key="session", value=token, httponly=True, samesite="lax")
+    response.set_cookie(key="session", value=token, httponly=True, samesite="lax", path="/")
 
     judge_id = user.judge_profile.id if user.judge_profile else None
     return {
@@ -97,5 +97,5 @@ def api_logout(request: Request, response: Response, db: Session = Depends(get_d
         db.query(SessionToken).filter(SessionToken.token == token_str).delete()
         db.commit()
 
-    response.delete_cookie("session")
+    response.delete_cookie("session", path="/")
     return {"message": "Logged out successfully"}

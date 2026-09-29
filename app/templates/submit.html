@@ -12,7 +12,7 @@
     </div>
     <div class="step-item active">
       <div class="step-number">2</div>
-      <span>2. Submission Details</span>
+      <span>2. Project Details</span>
     </div>
     <div class="step-item">
       <div class="step-number">3</div>
@@ -20,35 +20,35 @@
     </div>
   </div>
 
-  <div class="card" style="padding:2.5rem;">
+  <div class="card" style="padding:2rem;">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
       <div>
-        <h1 style="font-size:1.85rem;margin-bottom:0.35rem;">Submit Project</h1>
-        <p style="color:var(--text-secondary);font-size:0.95rem;">
-          Register your hackathon project for <strong>{{ event.name if event else 'the competition' }}</strong>.
+        <h1 style="font-size:1.5rem;margin-bottom:0.25rem;">Project Submission</h1>
+        <p style="color:var(--text-secondary);font-size:0.9rem;">
+          Register or update your project entry for <strong>{{ event.name if event else 'the competition' }}</strong>.
         </p>
       </div>
       <div>
         {% if is_closed %}
-        <span class="stat-closed" style="font-size:0.85rem;padding:0.3rem 0.75rem;">Submissions Closed</span>
+        <span class="stat-closed">Submissions Closed</span>
         {% else %}
-        <span class="stat-open" style="font-size:0.85rem;padding:0.3rem 0.75rem;">Submissions Open</span>
+        <span class="stat-open">Submissions Open</span>
         {% endif %}
       </div>
     </div>
 
     {% if is_closed %}
-    <div class="callout callout-danger" style="margin-bottom:1.75rem;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div class="callout callout-danger" style="margin-bottom:1.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div>
-        <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event and event.submissions_close else 'in the past' }}. New project submissions and edits are no longer accepted.
+        <strong>Submissions Closed:</strong> The deadline for this event was {{ event.submissions_close.strftime('%B %d, %Y at %H:%M UTC') if event and event.submissions_close else 'in the past' }}. New project entries and modifications are no longer accepted.
       </div>
     </div>
     {% else %}
-    <div class="callout callout-info" style="margin-bottom:1.75rem;">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+    <div class="callout callout-info" style="margin-bottom:1.5rem;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
       <div>
-        <strong>Draft Workflow:</strong> You can save a working draft at any time and continue refining your summary before the final deadline. Only <em>Submitted</em> projects are visible to judges and in the public showcase.
+        <strong>Draft Workflow:</strong> Save working drafts anytime before the deadline. Only finalized <em>Submitted</em> projects are visible to judges and listed in the public directory.
       </div>
     </div>
     {% endif %}
@@ -57,7 +57,7 @@
       <div class="form-group">
         <label for="projTitle">Project Title *</label>
         <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled{% endif %}>
-        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Give your project a distinctive, memorable name.</small>
+        <small>Provide a clear, descriptive title for your entry.</small>
       </div>
 
       <div class="form-group">
@@ -67,28 +67,28 @@
           <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}
         </select>
-        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Select the category your project aligns with best.</small>
+        <small>Select the thematic track that best categorizes your technical work.</small>
       </div>
 
       <div class="form-group">
-        <label for="projSummary">Project Pitch &amp; Architecture Summary</label>
-        <textarea id="projSummary" rows="4" placeholder="Describe the problem, your technical solution, offline architecture, and how it was tested..." {% if is_closed %}disabled{% endif %}></textarea>
-        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Judges will review this description during evaluation.</small>
+        <label for="projSummary">Architecture Summary &amp; Overview</label>
+        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." {% if is_closed %}disabled{% endif %}></textarea>
+        <small>Evaluators review this summary during judging rounds.</small>
       </div>
 
       <div class="form-group">
-        <label for="projRepo">Source Code Repository URL</label>
+        <label for="projRepo">Repository URL</label>
         <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled{% endif %}>
-        <small style="color:var(--text-muted);font-size:0.8rem;margin-top:0.25rem;display:block;">Link to git repository, README, and verification instructions.</small>
+        <small>Link to source repository, README documentation, and verification scripts.</small>
       </div>
 
-      <div style="display:flex;justify-content:flex-end;align-items:center;gap:1rem;margin-top:2rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
         <a href="/projects" class="btn btn-secondary">Cancel</a>
         <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary" {% if is_closed %}disabled{% endif %}>
-          Save as Draft
+          Save Draft
         </button>
         <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary" {% if is_closed %}disabled{% endif %}>
-          Submit Project
+          Submit Final Entry
         </button>
       </div>
     </form>
@@ -99,29 +99,39 @@
 async function handleSubmitProject(e, targetStatus) {
   e.preventDefault();
   const title = document.getElementById('projTitle').value.trim();
+  const trackId = document.getElementById('projTrack').value;
+  const summary = document.getElementById('projSummary').value.trim();
+  const repoUrl = document.getElementById('projRepo').value.trim();
+
   if (!title) {
-    alert('Project title is required');
+    alert('Project title is required.');
     return;
   }
-  const res = await fetch('/api/projects', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      event_id: {{ event.id | tojson }},
-      title: title,
-      track_id: document.getElementById('projTrack').value,
-      summary: document.getElementById('projSummary').value,
-      repo_url: document.getElementById('projRepo').value,
-      status: targetStatus || 'submitted'
-    })
-  });
-  if (res.ok) {
+
+  const payload = {
+    title: title,
+    track_id: trackId,
+    summary: summary || null,
+    repo_url: repoUrl || null,
+    status: targetStatus || 'submitted'
+  };
+
+  try {
+    const res = await fetch('/api/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+
     const data = await res.json();
-    alert(targetStatus === 'draft' ? 'Draft saved successfully!' : 'Project submitted successfully!');
+    if (!res.ok) {
+      alert(data.detail || 'Submission failed. Please verify form details.');
+      return;
+    }
+
     window.location.href = '/projects/' + data.id;
-  } else {
-    const err = await res.json();
-    alert('Action failed: ' + (err.detail || 'Unknown error'));
+  } catch (err) {
+    alert('Error submitting project. Check connection.');
   }
 }
 </script>

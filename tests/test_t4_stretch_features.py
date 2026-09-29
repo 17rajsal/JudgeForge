@@ -1,5 +1,6 @@
 import os
 import json
+import datetime
 import pytest
 from starlette.testclient import TestClient
 from cryptography.hazmat.primitives.asymmetric import ed25519
@@ -700,3 +701,121 @@ def test_t4_bulk_export_and_import_with_rollback_safety(client):
     valid_res = client.post("/api/v1/import/bulk", json=valid_import, headers=ORG)
     assert valid_res.status_code == 200
     assert "Bulk import completed successfully" in valid_res.json()["message"]
+
+
+def test_security_draft_project_disclosure_protection(client):
+    """Proves that anonymous callers and unrelated participants cannot enumerate draft projects."""
+    # 1. Create an open event and two distinct teams
+    evt_res = client.post("/api/v1/events", json={
+        "name": "Draft Security Hack 2026",
+        "submissions_close": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=2)).isoformat(),
+        "tracks": ["Security Track"],
+    }, headers=ORG)
+    evt_id = evt_res.json()["id"]
+    trks_res = client.get(f"/api/v1/tracks?event_id={evt_id}")
+    trk_id = trks_res.json()[0]["id"]
+
+    # Team A with Participant A
+    tm_a = client.post("/api/v1/teams", json={"name": "Team Alpha", "event_id": evt_id}, headers=PARTICIPANT).json()
+    # Team B with Admin/Organizer creating it
+    tm_b = client.post("/api/v1/teams", json={"name": "Team Beta", "event_id": evt_id}, headers=ORG).json()
+
+    # Create a draft for Team A
+    draft_a = client.post("/api/v1/projects", json={
+        "title": "Alpha Secret Draft",
+        "summary": "Should be private to Alpha",
+        "event_id": evt_id,
+        "track_id": trk_id,
+        "team_id": tm_a["id"],
+        "status": "draft",
+    }, headers=PARTICIPANT).json()
+
+    # Create a draft for Team B
+    draft_b = client.post("/api/v1/projects", json={
+        "title": "Beta Secret Draft",
+        "summary": "Should be private to Beta",
+        "event_id": evt_id,
+        "track_id": trk_id,
+        "team_id": tm_b["id"],
+        "status": "draft",
+    }, headers=ORG).json()
+
+    # A. Anonymous caller querying ?status=draft must get 0 drafts
+    anon_res = client.get(f"/api/v1/projects?event_id={evt_id}&status=draft")
+    assert anon_res.status_code == 200
+    assert len(anon_res.json()) == 0
+
+    # B. Participant A (member of Team A, but NOT Team B) querying ?status=draft
+    # should only see Team Alpha's draft, NEVER Team Beta's draft
+    prt_res = client.get(f"/api/v1/projects?event_id={evt_id}&status=draft", headers=PARTICIPANT)
+    assert prt_res.status_code == 200
+    titles = [p["title"] for p in prt_res.json()]
+    assert "Alpha Secret Draft" in titles
+    assert "Beta Secret Draft" not in titles
+
+    # C. Organizer querying ?status=draft sees all drafts
+    org_res = client.get(f"/api/v1/projects?event_id={evt_id}&status=draft", headers=ORG)
+    assert org_res.status_code == 200
+    org_titles = [p["title"] for p in org_res.json()]
+    assert "Alpha Secret Draft" in org_titles
+    assert "Beta Secret Draft" in org_titles
+
+
+def test_security_comment_user_id_redacted(client):
+    """Proves that public comment listing never leaks internal user_ids."""
+    # 1. Post a comment as authenticated participant
+    proj_id = "prj_01"
+    post_res = client.post(f"/api/projects/{proj_id}/comments", json={
+        "content": "A thoughtful review of the project architecture.",
+    }, headers=PARTICIPANT)
+    assert post_res.status_code == 201
+
+    # 2. Query public comments via /api/projects/{id}/comments
+    res1 = client.get(f"/api/projects/{proj_id}/comments")
+    assert res1.status_code == 200
+    for c in res1.json():
+        assert "user_id" not in c
+        assert "author_name" in c
+        assert "content" in c
+
+    # 3. Query public comments via REST v1 /api/v1/projects/{id}/comments
+    res2 = client.get(f"/api/v1/projects/{proj_id}/comments")
+    assert res2.status_code == 200
+    for c in res2.json():
+        assert "user_id" not in c
+        assert "author_name" in c
+        assert "content" in c
+
+
+def test_security_proxy_ip_trust_and_rate_limiting(client):
+    """Proves that forged X-Forwarded-For cannot bypass SQLite rate limiting in default configuration."""
+    proj_id = "prj_01"
+    # By default, without TRUSTED_PROXIES, connecting client host is used regardless of X-Forwarded-For
+    # Send comments with alternating forged X-Forwarded-For headers
+    # Rate limit is 10 comments per 300s
+    for i in range(10):
+        res = client.post(
+            f"/api/projects/{proj_id}/comments",
+            json={"content": f"Automated spam test {i}"},
+            headers={"X-Forwarded-For": f"198.51.100.{i}"},
+        )
+        assert res.status_code == 201
+
+    # 11th request with yet another forged IP should STILL be blocked by client.host rate limit
+    blocked_res = client.post(
+        f"/api/projects/{proj_id}/comments",
+        json={"content": "Spam request 11 with forged IP"},
+        headers={"X-Forwarded-For": "203.0.113.99"},
+    )
+    assert blocked_res.status_code == 429
+    assert "Rate limit exceeded" in blocked_res.json()["detail"]
+
+
+def test_security_project_status_validation(client):
+    """Proves that invalid project statuses like 'approved' or 'deleted' are rejected."""
+    bad_res = client.post("/api/v1/projects", json={
+        "title": "Bad Status Project",
+        "event_id": "evt_01",
+        "status": "published_winner",
+    }, headers=ORG)
+    assert bad_res.status_code == 422

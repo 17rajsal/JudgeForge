@@ -5,11 +5,11 @@
 {% block content %}
 <div class="hero">
   <div class="hero-eyebrow">
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="display:inline-block;vertical-align:-1px;margin-right:2px;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-    PROJECT SHOWCASE
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+    Submissions Directory
   </div>
-  <h1>{{ event.name if event else 'Dogfood Hackathon 2026' }}</h1>
-  <p>Explore submitted projects from teams across all tracks. Review submissions, architecture summaries, and open source repositories.</p>
+  <h1>{{ event.name if event else 'Hackathon 2026' }}</h1>
+  <p>Review submitted projects across all tracks. Inspect architecture summaries, open source codebases, and team contributions.</p>
 
   <div class="event-banner">
     <div class="event-stat">
@@ -25,7 +25,7 @@
       <span class="stat-val">{{ tracks | length }}</span>
     </div>
     <div style="margin-left:auto;">
-      <a href="/submit" class="btn btn-primary" style="padding:0.45rem 1rem;font-size:0.85rem;">+ Submit Project</a>
+      <a href="/submit" class="btn btn-primary">+ Submit Project</a>
     </div>
   </div>
 </div>
@@ -48,8 +48,8 @@
     {% if current_track %}
     <input type="hidden" name="track" value="{{ current_track }}">
     {% endif %}
-    <input type="text" name="q" value="{{ search_query }}" placeholder="Search projects..." class="search-input">
-    <button type="submit" class="btn btn-secondary" style="padding:0.55rem 0.9rem;">Search</button>
+    <input type="text" name="q" value="{{ search_query }}" placeholder="Search submissions..." class="search-input">
+    <button type="submit" class="btn btn-secondary">Search</button>
   </form>
 </div>
 
@@ -66,21 +66,23 @@
     </div>
     <div class="card-footer">
       <span>Team: <strong>{{ p.team.name if p.team else 'Independent' }}</strong></span>
-      <a href="/projects/{{ p.id }}" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">
-        View Details &rarr;
+      <a href="/projects/{{ p.id }}" class="btn btn-secondary">
+        View Project &rarr;
       </a>
     </div>
   </div>
   {% endfor %}
 </div>
 {% else %}
-<div class="card" style="text-align:center;padding:4rem 2rem;margin:2rem 0;">
-  <div style="font-size:2.5rem;margin-bottom:0.75rem;color:var(--text-muted);">&#128269;</div>
-  <h3 style="font-size:1.4rem;margin-bottom:0.5rem;">No Projects Found</h3>
-  <p style="color:var(--text-secondary);margin-bottom:1.5rem;max-width:480px;margin-left:auto;margin-right:auto;">
-    No submitted projects match the current track filter or search query. Try broadening your criteria or reset the search.
+<div class="card" style="text-align:center;padding:3.5rem 2rem;margin:2rem 0;">
+  <div style="margin-bottom:1rem;color:var(--text-muted);">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  </div>
+  <h3 style="font-size:1.2rem;margin-bottom:0.35rem;">No Projects Found</h3>
+  <p style="color:var(--text-secondary);margin-bottom:1.5rem;max-width:440px;margin-left:auto;margin-right:auto;">
+    No submitted projects match the current track filter or search query.
   </p>
-  <a href="/projects" class="btn btn-primary">Clear Filters</a>
+  <a href="/projects" class="btn btn-secondary">Clear Filters</a>
 </div>
 {% endif %}
 {% endblock %}

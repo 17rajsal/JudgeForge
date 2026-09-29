@@ -6,8 +6,8 @@
 <div style="max-width: 760px; margin: 3rem auto; padding: 0 1rem;">
   <div class="card" style="padding: 2.5rem; background: white; border-radius: 16px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); text-align: center;">
     {% if result.valid %}
-      <div style="width: 64px; height: 64px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem;">
-        ✅
+      <div style="width: 64px; height: 64px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
       <span class="badge" style="background: #ecfdf5; color: #065f46; font-size: 0.9rem; padding: 0.4rem 0.8rem; border: 1px solid #a7f3d0; margin-bottom: 1rem; display: inline-block;">
         VERIFIED AUTHENTIC
@@ -40,8 +40,8 @@
       <a href="/certificates/project/{{ result.project_id }}" class="btn btn-secondary">View Certificate</a>
 
     {% else %}
-      <div style="width: 64px; height: 64px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem;">
-        ❌
+      <div style="width: 64px; height: 64px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </div>
       <span class="badge" style="background: #fef2f2; color: #991b1b; font-size: 0.9rem; padding: 0.4rem 0.8rem; border: 1px solid #fecaca; margin-bottom: 1rem; display: inline-block;">
         VERIFICATION FAILED

@@ -78,7 +78,7 @@
 <body>
   <div class="embed-header">
     <div class="embed-title">
-      <span>⚡</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#4f46e5;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       <span>{{ event.name if event else 'Hackathon Gallery' }}</span>
       <span style="font-size: 0.8rem; font-weight: 500; color: #64748b;">({{ projects|length }} projects)</span>
     </div>
@@ -127,7 +127,7 @@
         </div>
         <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 0.5rem; font-size: 0.8rem; color: #64748b;">
           <span>By: <strong>{{ p.team.name if p.team else (p.user.name if p.user else 'Solo Creator') }}</strong></span>
-          <a href="/projects/{{ p.id }}" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 600;">View →</a>
+          <a href="/projects/{{ p.id }}" target="_blank" style="color: #4f46e5; text-decoration: none; font-weight: 600;">View &rarr;</a>
         </div>
       </div>
       {% endfor %}

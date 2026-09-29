@@ -4,14 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}JudgeForge | Hackathon Platform{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css?v=saas-1">
+  <link rel="stylesheet" href="/static/style.css?v=prod-1">
   {% block head %}{% endblock %}
 </head>
 <body>
   <nav class="navbar">
     <div class="nav-brand">
-      <a href="/projects" class="brand-link">
-        <div class="brand-logo">JF</div>
+      <a href="/projects" class="brand-link" title="JudgeForge">
+        <div class="brand-logo" aria-hidden="true">JF</div>
         <span class="brand-text">JudgeForge</span>
       </a>
       <span class="brand-badge">Dogfood 2026</span>
@@ -19,16 +19,46 @@
 
     <ul class="nav-links">
       {% if user %}
-      <li><a href="/workspace" class="{% if request.url.path == '/workspace' %}active{% endif %}">Workspace</a></li>
+      <li>
+        <a href="/workspace" class="{% if request.url.path == '/workspace' %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Workspace
+        </a>
+      </li>
       {% endif %}
-      <li><a href="/projects" class="{% if request.url.path.startswith('/projects') %}active{% endif %}">Gallery</a></li>
-      <li><a href="/results" class="{% if request.url.path.startswith('/results') %}active{% endif %}">Results</a></li>
-      <li><a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}">Submit</a></li>
+      <li>
+        <a href="/projects" class="{% if request.url.path.startswith('/projects') %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          Gallery
+        </a>
+      </li>
+      <li>
+        <a href="/results" class="{% if request.url.path.startswith('/results') %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-2.34"/><path d="M14 14.66V17c0 .55.45 1 1 1h2c.55 0 1-.45 1-1v-2.34"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+          Results
+        </a>
+      </li>
+      <li>
+        <a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          Submit
+        </a>
+      </li>
       {% if user and user.role in ['judge', 'organizer', 'admin'] %}
-      <li><a href="/judge" class="{% if request.url.path.startswith('/judge') %}active{% endif %}">Judging</a></li>
+      <li>
+        <a href="/judge" class="{% if request.url.path.startswith('/judge') %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          Judging
+        </a>
+      </li>
       {% endif %}
       {% if user and user.role in ['organizer', 'admin'] %}
-      <li><a href="/organizer" class="{% if request.url.path.startswith('/organizer') %}active{% endif %}">Organizer</a></li>
+      <li>
+        <a href="/organizer" class="{% if request.url.path.startswith('/organizer') %}active{% endif %}">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2v-.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2v.09a1.65 1.65 0 0 0-1.6 1.91z"/></svg>
+          Organizer
+        </a>
+      </li>
       {% endif %}
     </ul>
 
@@ -38,9 +68,9 @@
           <span>{{ user.name }}</span>
           <span class="role-pill role-{{ user.role }}">{{ user.role }}</span>
         </div>
-        <button onclick="handleLogout()" class="btn btn-secondary" style="padding:0.35rem 0.75rem;font-size:0.8rem;">Logout</button>
+        <button onclick="handleLogout()" class="btn btn-secondary">Sign Out</button>
       {% else %}
-        <a href="/login" class="btn btn-primary" style="padding:0.4rem 1rem;font-size:0.85rem;">Login</a>
+        <a href="/login" class="btn btn-primary">Sign In</a>
       {% endif %}
     </div>
   </nav>

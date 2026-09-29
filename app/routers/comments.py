@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Comment, AuditLog, User
 from app.auth import get_current_user_optional, require_organizer
-from app.rate_limiter import check_rate_limit
+from app.rate_limiter import check_rate_limit, get_client_ip
 
 router = APIRouter(prefix="/api/projects/{project_id}/comments", tags=["comments"])
 
@@ -18,19 +18,12 @@ class CommentCreateRequest(BaseModel):
     content: str = Field(..., min_length=1, max_length=2000)
 
 
-def get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
-
-
 @router.get("")
 def list_comments(
     project_id: str,
     db: Session = Depends(get_db),
 ):
-    """Retrieve public comments for a project."""
+    """Retrieve public comments for a project (user IDs redacted for privacy)."""
     project = db.get(Project, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -45,7 +38,6 @@ def list_comments(
         {
             "id": c.id,
             "project_id": c.project_id,
-            "user_id": c.user_id,
             "author_name": c.author_name,
             "content": c.content,
             "created_at": c.created_at.isoformat(),

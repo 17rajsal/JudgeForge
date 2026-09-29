@@ -1,8 +1,28 @@
 import time
+import os
 from sqlalchemy import select, delete, func
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 from app.models import RateLimitRecord
+
+
+def get_client_ip(request: Request) -> str:
+    """Extract client IP securely.
+    Default self-hosted deployment uses request.client.host directly to prevent
+    arbitrary clients from forging X-Forwarded-For to bypass rate limits or spoof votes.
+
+    If the TRUSTED_PROXIES environment variable is configured (comma-separated list of IP addresses),
+    X-Forwarded-For is only parsed when the immediate peer is in TRUSTED_PROXIES.
+    """
+    peer_ip = request.client.host if request.client else "127.0.0.1"
+    trusted_env = os.environ.get("TRUSTED_PROXIES", "").strip()
+    if trusted_env:
+        trusted_proxies = {ip.strip() for ip in trusted_env.split(",") if ip.strip()}
+        if peer_ip in trusted_proxies:
+            forwarded = request.headers.get("x-forwarded-for")
+            if forwarded:
+                return forwarded.split(",")[0].strip()
+    return peer_ip
 
 
 def check_rate_limit(db: Session, key: str, max_requests: int, window_seconds: float) -> None:

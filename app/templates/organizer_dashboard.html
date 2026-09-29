@@ -421,7 +421,8 @@
       <p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Validate SHA-256 linkage across all score submission blocks.</p>
     </div>
     <button onclick="verifyRecordsChain()" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:0.4rem;">
-      🔍 Verify Hash Chain
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      Verify Hash Chain
     </button>
   </div>
   <div id="chainVerifyResult" style="padding:1rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);font-size:0.9rem;color:var(--slate-700);">
@@ -477,7 +478,8 @@
 
     <div style="display:flex;gap:0.75rem;margin-bottom:1rem;">
       <a href="/api/v1/export/bulk?event_id={{ event.id }}" target="_blank" download="judgeforge_bulk_export.json" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
-        ⬇️ Export Event JSON
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Export Event JSON
       </a>
     </div>
 
@@ -498,8 +500,9 @@
       <textarea readonly rows="3" class="input" style="width:100%;font-size:0.8rem;font-family:var(--font-mono);background:var(--slate-50);"><iframe src="http://localhost:8000/embed/gallery" width="100%" height="600" frameborder="0" style="border:1px solid #e2e8f0;border-radius:12px;"></iframe></textarea>
     </div>
     <div>
-      <a href="/embed/gallery" target="_blank" class="btn btn-secondary" style="font-size:0.85rem;">
-        ↗️ Preview Standalone Embed
+      <a href="/embed/gallery" target="_blank" class="btn btn-secondary" style="display:inline-flex;align-items:center;gap:0.4rem;font-size:0.85rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Preview Standalone Embed
       </a>
     </div>
   </div>
@@ -809,10 +812,10 @@ async function handleImportBulk(e) {
     });
     const resData = await res.json();
     if (res.ok) {
-      out.innerHTML = `<span style="color:var(--emerald-600);font-weight:600;">✅ ${resData.message}</span>`;
+      out.innerHTML = `<span style="color:var(--emerald-600);font-weight:600;">${resData.message}</span>`;
       setTimeout(() => location.reload(), 1200);
     } else {
-      out.innerHTML = `<span style="color:var(--rose-600);font-weight:600;">❌ ${resData.detail || 'Import failed'}</span>`;
+      out.innerHTML = `<span style="color:var(--rose-600);font-weight:600;">${resData.detail || 'Import failed'}</span>`;
     }
   } catch (err) {
     out.innerHTML = `<span style="color:var(--rose-600);">Invalid JSON format: ${err.message}</span>`;

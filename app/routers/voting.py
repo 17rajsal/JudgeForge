@@ -33,11 +33,7 @@ class VoucherCreateRequest(BaseModel):
     email: str
 
 
-def get_client_ip(request: Request) -> str:
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        return forwarded.split(",")[0].strip()
-    return request.client.host if request.client else "127.0.0.1"
+from app.rate_limiter import check_rate_limit, get_client_ip
 
 
 @router.get("/ballot")

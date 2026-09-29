@@ -79,7 +79,7 @@
     <!-- 2nd Place -->
     {% set p2 = leaderboard[1] %}
     <div class="podium-card podium-2">
-      <div class="podium-rank-badge">&#129352; 2nd Place &middot; Runner Up</div>
+      <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 2 &middot; Runner Up</div>
       <h3 style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p2.project_id }}" style="color:var(--slate-900);">{{ p2.title }}</a>
       </h3>
@@ -97,7 +97,7 @@
     <!-- 1st Place (Prominent) -->
     {% set p1 = leaderboard[0] %}
     <div class="podium-card podium-1">
-      <div class="podium-rank-badge">&#127942; 1st Place &middot; Grand Champion</div>
+      <div class="podium-rank-badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">Rank 1 &middot; Winner</div>
       <h3 style="font-size:1.55rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p1.project_id }}" style="color:var(--slate-900);">{{ p1.title }}</a>
       </h3>
@@ -115,7 +115,7 @@
     <!-- 3rd Place -->
     {% set p3 = leaderboard[2] %}
     <div class="podium-card podium-3">
-      <div class="podium-rank-badge">&#129353; 3rd Place</div>
+      <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 3 &middot; Finalist</div>
       <h3 style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-bottom:0.35rem;">
         <a href="/projects/{{ p3.project_id }}" style="color:var(--slate-900);">{{ p3.title }}</a>
       </h3>
@@ -177,7 +177,7 @@
         {% for row in leaderboard %}
         <tr>
           <td style="font-weight:800;font-size:1.1rem;color:{% if row.rank == 1 %}var(--amber-600){% elif row.rank <= 3 %}var(--primary-600){% else %}var(--slate-500){% endif %};">
-            {% if row.rank == 1 %}&#127942; #1{% elif row.rank == 2 %}&#129352; #2{% elif row.rank == 3 %}&#129353; #3{% else %}#{{ row.rank }}{% endif %}
+            #{{ row.rank }}
           </td>
           <td>
             <a href="/projects/{{ row.project_id }}" style="font-weight:700;color:var(--slate-900);">{{ row.title }}</a>
@@ -211,7 +211,9 @@
 {% else %}
   <!-- Unpublished Public State -->
   <div class="card" style="padding:4rem 2rem;text-align:center;margin:2rem 0;">
-    <div style="font-size:3rem;margin-bottom:1rem;color:var(--amber-500);">&#9203;</div>
+    <div style="display:flex;justify-content:center;margin-bottom:1.25rem;">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" style="color:var(--amber-600);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    </div>
     <h2 style="font-size:1.85rem;margin-bottom:0.75rem;">Judging In Progress</h2>
     <p style="color:var(--text-secondary);max-width:560px;margin:0 auto 1.75rem;font-size:1.05rem;line-height:1.6;">
       Submissions are undergoing peer review and deliberation by the judging panel. Official winners and normalized rankings will be posted here as soon as organizers release the results.
