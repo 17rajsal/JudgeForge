@@ -1,6 +1,6 @@
 # JudgeForge
 
-> **Self-hosted hackathon operating system focused on fair, auditable judging.**
+> **Self-hosted hackathon submission and fair-judging platform.**
 
 JudgeForge is a resilient, offline-capable hackathon management and fair evaluation platform built for the **Dogfood 2026** competition. It turns hackathon operations into an auditable, statistically defensible workflow: from event creation, team formation, and rich project submissions to peer-isolated judge evaluations, cross-judge Z-score normalization, organizer review coverage monitoring, and transparent public results.
 
@@ -13,20 +13,20 @@ JudgeForge is a resilient, offline-capable hackathon management and fair evaluat
 
 - **T1 Core**: Participant registration, team management, deadline-enforced project submissions, project editing rules, public gallery with track filtering and search.
 - **T2 Judging Engine**: Judge track assignments, isolated scoring interfaces (judges cannot view peer scores), weighted rubric configuration, zero-variance Z-score normalization, organizer progress dashboards, and RFC-compliant CSV export.
-- **Verification Evidence**: Official acceptance checker 7/7 PASS (`python run.py .dogfood.toml`), full test suite 76/76 PASS (`pytest -q`), and Docker container healthcheck passing (`healthy`).
+- **Verification Evidence**: Official acceptance checker 7/7 PASS (`python run.py .dogfood.toml`), full test suite 80/80 PASS (`pytest -q`), and Docker container healthcheck passing (`healthy`).
 
 ---
 
 ## Key Differentiators
 
-1. **Zero Cloud Runtime Dependencies**: Runs completely offline using a local SQLite database, vanilla JavaScript, and local CSS stylesheets. Zero CDN dependencies, zero external font calls, zero analytics trackers.
+1. **Zero Cloud Runtime Dependencies**: Runtime has no hosted or cloud service dependency. Runs completely offline using a local SQLite database, vanilla JavaScript, and local CSS stylesheets. Zero CDN dependencies, zero external font calls, zero analytics trackers. (Note: A fresh Docker image build from scratch may require standard package downloads if wheels are not cached locally).
 2. **Strict Backend-Enforced Role Isolation**: Enforces permissions on the server for `organizer`, `judge`, and `participant`. UI controls reflect permissions, but backend authorization guards prevent bypass.
 3. **Strict Judge Peer Isolation**: Judges can only view and update their own scores. Any attempt by a judge to inspect peer reviews (e.g. via direct query parameters or API calls) is rejected with HTTP `403 Forbidden`.
 4. **Calibrated Rubric Scoring UX**: 1–5 scoring scale with explicit scoring anchors for Functionality, Quality, and Innovation, live weighted raw-score calculation preview, and "Save & Next" review workflows.
 5. **Defensible Statistical Normalization**: Per-judge Z-score standardization ($z = \frac{x - \mu_j}{\sigma_j}$) rescaled to the 1.0–5.0 competition domain ($\mu_{global} + z \cdot \sigma_{global}$), removing individual judge strictness or leniency while handling zero-variance reviews ($\sigma_j = 0$) without division by zero.
 6. **Organizer Judging Command Center**: Real-time evaluation progress, deliberation quota tracking, unreviewed project warnings, below-target review warnings, and interactive **Normalization Lab & Fairness Analysis** with rank movement indicators.
 7. **Rich Submission Pipeline**: Tagline, architecture overview, Markdown long description, tech stack tags, repository URL, live demo URL, demo video URL, and safe local presentation deck uploads (`.pdf`, `.ppt`, `.pptx` stored locally under `data/uploads`).
-8. **Auditable Integrity**: Immutable append-only audit trail and optional Ed25519 digitally signed judge participation records with offline public verification.
+8. **Auditable Integrity**: Immutable append-only audit trail and optional Ed25519 digitally signed judge participation records (via `cryptography`) with offline public verification.
 
 ---
 
@@ -219,7 +219,7 @@ Coverage includes:
 
 ## Additional T3/T4 Capabilities
 
-In addition to core T1 and T2 features, JudgeForge implements full T3 and T4 capabilities:
+In addition to core T1 and T2 features, JudgeForge implements comprehensive Tier 3 and Tier 4 capabilities (manual-review extras, NOT officially checker-verified):
 
 ### Tier 3 (T3) Capabilities
 - **Community Voting**: Dedicated voting portal allowing participants and attendees to cast ballots across submitted projects.

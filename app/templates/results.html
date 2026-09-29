@@ -95,7 +95,7 @@
         <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 2 &middot; Runner Up</div>
         {% if p2.prize %}
         <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.8rem;">
-          {{ p2.prize.amount }} &middot; {{ p2.prize.title }}
+          {{ p2.prize.amount }} &middot; {{ p2.prize.title }}{% if event and event.id != 'evt_01' %} (Demo Prize){% endif %}
         </span>
         {% endif %}
       </div>
@@ -129,7 +129,7 @@
         <div class="podium-rank-badge" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">Rank 1 &middot; Winner</div>
         {% if p1.prize %}
         <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.85rem;">
-          {{ p1.prize.amount }} &middot; {{ p1.prize.title }}
+          {{ p1.prize.amount }} &middot; {{ p1.prize.title }}{% if event and event.id != 'evt_01' %} (Demo Prize){% endif %}
         </span>
         {% endif %}
       </div>
@@ -163,7 +163,7 @@
         <div class="podium-rank-badge" style="background:var(--slate-100);color:var(--slate-800);border-color:var(--slate-300);">Rank 3 &middot; Finalist</div>
         {% if p3.prize %}
         <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:800;font-size:0.8rem;">
-          {{ p3.prize.amount }} &middot; {{ p3.prize.title }}
+          {{ p3.prize.amount }} &middot; {{ p3.prize.title }}{% if event and event.id != 'evt_01' %} (Demo Prize){% endif %}
         </span>
         {% endif %}
       </div>
@@ -196,14 +196,25 @@
   {% if prizes %}
   <div class="page-header" style="margin-top:1.5rem;margin-bottom:1rem;">
     <h2>Award Categories &amp; Prizes</h2>
-    <span style="color:var(--text-muted);font-size:0.85rem;">Official prize distributions</span>
+    <span style="color:var(--text-muted);font-size:0.85rem;">
+      {% if event and event.id != 'evt_01' %}
+        Demo Event Prizes &middot; Simulated allocation for scenario evaluation
+      {% else %}
+        Official prize distributions
+      {% endif %}
+    </span>
   </div>
   <div class="cards-grid" style="margin-bottom:2.5rem;">
     {% for prz in prizes %}
     <div class="card" style="padding:1.5rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.75rem;">
         <span class="card-tag">{{ prz.placement }}</span>
-        <span style="font-size:1.35rem;font-weight:800;color:var(--emerald-600);">{{ prz.amount }}</span>
+        <div style="text-align:right;">
+          <span style="font-size:1.35rem;font-weight:800;color:var(--emerald-600);">{{ prz.amount }}</span>
+          {% if event and event.id != 'evt_01' %}
+          <div style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">Demo Event Prize</div>
+          {% endif %}
+        </div>
       </div>
       <h3 class="card-title" style="margin-bottom:0.4rem;">{{ prz.title }}</h3>
       <p class="card-body" style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:0;">
@@ -274,7 +285,7 @@
           <td>
             {% if row.prize %}
             <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:700;font-size:0.8rem;">
-              <strong>{{ row.prize.amount }}</strong> &middot; {{ row.prize.title }}
+              <strong>{{ row.prize.amount }}</strong> &middot; {{ row.prize.title }}{% if event and event.id != 'evt_01' %} <span style="font-size:0.7rem;color:var(--text-muted);font-weight:600;">(Demo Prize)</span>{% endif %}
             </span>
             {% else %}
             <span style="color:var(--text-muted);font-size:0.85rem;">—</span>

@@ -96,11 +96,11 @@ def ensure_demo_scenarios(db: Session) -> dict:
 
         # 5 Placement Prizes matching Top 5 Leaderboard
         prizes = [
-            Prize(id="prz_bf_01", event_id=bf_event.id, title="1st Place — Grand Prize", description="Top scoring overall submission across all tracks", amount="$10,000", placement="1st"),
-            Prize(id="prz_bf_02", event_id=bf_event.id, title="2nd Place — Runner Up", description="Second place overall across all tracks", amount="$5,000", placement="2nd"),
-            Prize(id="prz_bf_03", event_id=bf_event.id, title="3rd Place — Bronze Award", description="Third place overall across all tracks", amount="$2,500", placement="3rd"),
-            Prize(id="prz_bf_04", event_id=bf_event.id, title="4th Place — Honorable Mention", description="Fourth place overall across all tracks", amount="$1,000", placement="4th"),
-            Prize(id="prz_bf_05", event_id=bf_event.id, title="5th Place — Finalist Award", description="Fifth place overall across all tracks", amount="$500", placement="5th"),
+            Prize(id="prz_bf_01", event_id=bf_event.id, title="1st Place — Grand Prize", description="Demo Event Prize — Top scoring overall submission across all tracks (simulated for platform evaluation)", amount="$10,000", placement="1st"),
+            Prize(id="prz_bf_02", event_id=bf_event.id, title="2nd Place — Runner Up", description="Demo Event Prize — Second place overall across all tracks (simulated for platform evaluation)", amount="$5,000", placement="2nd"),
+            Prize(id="prz_bf_03", event_id=bf_event.id, title="3rd Place — Bronze Award", description="Demo Event Prize — Third place overall across all tracks (simulated for platform evaluation)", amount="$2,500", placement="3rd"),
+            Prize(id="prz_bf_04", event_id=bf_event.id, title="4th Place — Honorable Mention", description="Demo Event Prize — Fourth place overall across all tracks (simulated for platform evaluation)", amount="$1,000", placement="4th"),
+            Prize(id="prz_bf_05", event_id=bf_event.id, title="5th Place — Finalist Award", description="Demo Event Prize — Fifth place overall across all tracks (simulated for platform evaluation)", amount="$500", placement="5th"),
         ]
         db.add_all(prizes)
         db.flush()
