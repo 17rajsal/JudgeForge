@@ -1,4 +1,5 @@
 import datetime
+import json
 from sqlalchemy.orm import Session
 from app.models import (
     Event,
@@ -15,6 +16,68 @@ from app.models import (
     PasswordCredential,
 )
 from app.passwords import hash_password
+from app.services.scoring import DEFAULT_FIVE_CRITERIA
+
+BF_SCORES_DATA = [
+    # prj_bf_01 (NovaStack): 1st place
+    ("sc_bf_01_1", "jdg_01", "prj_bf_01", 4, 4, 4, 5, 4, "Exceptional system design. Firecracker integration is well-engineered."),
+    ("sc_bf_01_2", "jdg_02", "prj_bf_01", 5, 5, 5, 5, 5, "Stunning project! Production-ready architecture and instant boot times."),
+    ("sc_bf_01_3", "jdg_03", "prj_bf_01", 5, 4, 4, 5, 4, "Robust engineering and solid benchmark evidence. Clear winner."),
+
+    # prj_bf_02 (ByteForge): 2nd place
+    ("sc_bf_02_1", "jdg_01", "prj_bf_02", 4, 3, 4, 4, 3, "Solid WASM memory boundary implementation."),
+    ("sc_bf_02_2", "jdg_02", "prj_bf_02", 5, 4, 5, 5, 4, "Brilliant compiler optimizations and clean developer experience."),
+    ("sc_bf_02_3", "jdg_03", "prj_bf_02", 4, 4, 4, 4, 4, "Reliable execution sandbox with good unit test coverage."),
+
+    # prj_bf_03 (Neural Nomads): 3rd place
+    ("sc_bf_03_1", "jdg_01", "prj_bf_03", 3, 4, 3, 3, 4, "Ambitious federated architecture, though proof-of-concept is somewhat raw."),
+    ("sc_bf_03_2", "jdg_02", "prj_bf_03", 4, 5, 4, 4, 4, "Loved the privacy guarantees and decentralized ethos."),
+    ("sc_bf_03_3", "jdg_03", "prj_bf_03", 4, 4, 3, 3, 4, "Interesting research direction, good technical progress."),
+
+    # prj_bf_04 (Runtime Rebels): 4th place
+    ("sc_bf_04_1", "jdg_01", "prj_bf_04", 3, 3, 3, 3, 3, "Competent io_uring wrapper, standard design patterns."),
+    ("sc_bf_04_2", "jdg_02", "prj_bf_04", 4, 4, 4, 4, 3, "High throughput and beautiful C++ codebase."),
+    ("sc_bf_04_3", "jdg_03", "prj_bf_04", 4, 3, 3, 3, 3, "Solid low-latency broker implementation."),
+
+    # prj_bf_05 (ZeroDay Studio): 5th place
+    ("sc_bf_05_1", "jdg_01", "prj_bf_05", 3, 3, 3, 2, 3, "Fuzzing works but relies heavily on upstream AFL++ heuristics."),
+    ("sc_bf_05_2", "jdg_02", "prj_bf_05", 4, 4, 4, 3, 4, "Very useful security pipeline for CI integration."),
+    ("sc_bf_05_3", "jdg_03", "prj_bf_05", 3, 3, 3, 3, 3, "Reasonable fuzzing harness."),
+
+    # prj_bf_06 (EdgeCraft): 6th place
+    ("sc_bf_06_1", "jdg_01", "prj_bf_06", 2, 3, 2, 3, 2, "Hardware constraints make it tricky to reproduce in evaluation."),
+    ("sc_bf_06_2", "jdg_02", "prj_bf_06", 4, 4, 3, 4, 3, "Great IoT physical hardware demonstration."),
+    ("sc_bf_06_3", "jdg_03", "prj_bf_06", 3, 3, 3, 3, 2, "Working embedded sensor prototype."),
+
+    # prj_bf_07 (Synthetix Agent): 7th place
+    ("sc_bf_07_1", "jdg_01", "prj_bf_07", 3, 2, 2, 2, 2, "Standard prompt engineering wrapper around existing APIs."),
+    ("sc_bf_07_2", "jdg_02", "prj_bf_07", 3, 4, 3, 4, 3, "Helpful developer tool that reduces onboarding friction."),
+    ("sc_bf_07_3", "jdg_03", "prj_bf_07", 3, 3, 3, 2, 2, "Usable developer onboarding agent."),
+]
+
+AI_SCORES_DATA = [
+    # prj_ai_01 (3/3)
+    ("sc_ai_01_1", "jdg_01", "prj_ai_01", 4, 5, 4, 4, 4, "Strong agent coordination architecture."),
+    ("sc_ai_01_2", "jdg_02", "prj_ai_01", 5, 4, 4, 5, 5, "Impressive live multi-agent negotiation."),
+    ("sc_ai_01_3", "jdg_03", "prj_ai_01", 4, 4, 4, 4, 4, "Technically sound and well documented."),
+
+    # prj_ai_02 (2/3)
+    ("sc_ai_02_1", "jdg_01", "prj_ai_02", 4, 4, 5, 4, 4, "High performance CUDA kernels."),
+    ("sc_ai_02_2", "jdg_02", "prj_ai_02", 4, 4, 4, 4, 4, "Clean vector database API."),
+
+    # prj_ai_03 (1/3)
+    ("sc_ai_03_2", "jdg_02", "prj_ai_03", 4, 4, 3, 3, 4, "Practical prompt security guardrails."),
+
+    # prj_ai_04 (DeepTrace): 0 reviews! Intentionally left empty!
+
+    # prj_ai_05 (2/3)
+    ("sc_ai_05_2", "jdg_02", "prj_ai_05", 4, 4, 4, 4, 4, "Good workflow abstraction."),
+    ("sc_ai_05_3", "jdg_03", "prj_ai_05", 3, 3, 4, 4, 3, "Solid graph scheduler."),
+
+    # prj_ai_06 (2/3)
+    ("sc_ai_06_1", "jdg_01", "prj_ai_06", 4, 4, 4, 4, 4, "Kubernetes operator is well structured."),
+    ("sc_ai_06_3", "jdg_03", "prj_ai_06", 4, 4, 3, 4, 3, "Speculative decoding benchmarks look promising."),
+]
 
 
 def ensure_demo_scenarios(db: Session) -> dict:
@@ -88,11 +151,13 @@ def ensure_demo_scenarios(db: Session) -> dict:
                         j.tracks.append(t)
         db.flush()
 
-        # Rubric Criteria
-        crit_func = RubricCriterion(id="crit_bf_func", event_id=bf_event.id, name="functionality", label="Functionality", weight=1.2, min_score=1, max_score=5)
-        crit_qual = RubricCriterion(id="crit_bf_qual", event_id=bf_event.id, name="quality", label="Code & Design Quality", weight=1.0, min_score=1, max_score=5)
-        crit_innov = RubricCriterion(id="crit_bf_innov", event_id=bf_event.id, name="innovation", label="Innovation & Creativity", weight=0.8, min_score=1, max_score=5)
-        db.add_all([crit_func, crit_qual, crit_innov])
+        # Rubric Criteria (5 default criteria with weights 0.25, 0.20, 0.25, 0.20, 0.10)
+        crit_func = RubricCriterion(id="crit_bf_func", event_id=bf_event.id, name="functionality", label="Functionality & Completeness", description="Does the project actually work and deliver its core promise?", weight=0.25, min_score=1, max_score=5)
+        crit_innov = RubricCriterion(id="crit_bf_innov", event_id=bf_event.id, name="innovation", label="Innovation & Problem Solving", description="How original and meaningful is the solution?", weight=0.20, min_score=1, max_score=5)
+        crit_qual = RubricCriterion(id="crit_bf_qual", event_id=bf_event.id, name="quality", label="GitHub Code & Engineering Quality", description="How strong is the actual implementation behind the project?", weight=0.25, min_score=1, max_score=5)
+        crit_demo = RubricCriterion(id="crit_bf_demo", event_id=bf_event.id, name="live_demo", label="Live Demo & Product Experience", description="How convincing is the working product experience?", weight=0.20, min_score=1, max_score=5)
+        crit_pres = RubricCriterion(id="crit_bf_pres", event_id=bf_event.id, name="presentation", label="Pitch Deck & Presentation", description="How clearly does the team communicate the problem, solution and value?", weight=0.10, min_score=1, max_score=5)
+        db.add_all([crit_func, crit_innov, crit_qual, crit_demo, crit_pres])
 
         # 5 Placement Prizes matching Top 5 Leaderboard
         prizes = [
@@ -252,50 +317,23 @@ def ensure_demo_scenarios(db: Session) -> dict:
 
         # Review Scores (Judge 1: Strict, Judge 2: Lenient, Judge 3: Moderate)
         # Formulated so NovaStack is 1st, ByteForge is 2nd, Neural Nomads is 3rd, Runtime Rebels is 4th, ZeroDay is 5th
-        scores_data = [
-            # prj_bf_01 (NovaStack): 1st place
-            ("sc_bf_01_1", "jdg_01", "prj_bf_01", 4, 4, 4, "Exceptional system design. Firecracker integration is well-engineered."),
-            ("sc_bf_01_2", "jdg_02", "prj_bf_01", 5, 5, 5, "Stunning project! Production-ready architecture and instant boot times."),
-            ("sc_bf_01_3", "jdg_03", "prj_bf_01", 5, 4, 4, "Robust engineering and solid benchmark evidence. Clear winner."),
+        scores_data = BF_SCORES_DATA
 
-            # prj_bf_02 (ByteForge): 2nd place
-            ("sc_bf_02_1", "jdg_01", "prj_bf_02", 3, 4, 3, "Solid WASM memory boundary implementation."),
-            ("sc_bf_02_2", "jdg_02", "prj_bf_02", 5, 5, 4, "Brilliant compiler optimizations and clean developer experience."),
-            ("sc_bf_02_3", "jdg_03", "prj_bf_02", 4, 4, 4, "Reliable execution sandbox with good unit test coverage."),
-
-            # prj_bf_03 (Neural Nomads): 3rd place
-            ("sc_bf_03_1", "jdg_01", "prj_bf_03", 3, 3, 4, "Ambitious federated architecture, though proof-of-concept is somewhat raw."),
-            ("sc_bf_03_2", "jdg_02", "prj_bf_03", 4, 4, 5, "Loved the privacy guarantees and decentralized ethos."),
-            ("sc_bf_03_3", "jdg_03", "prj_bf_03", 4, 3, 4, "Interesting research direction, good technical progress."),
-
-            # prj_bf_04 (Runtime Rebels): 4th place
-            ("sc_bf_04_1", "jdg_01", "prj_bf_04", 3, 3, 3, "Competent io_uring wrapper, standard design patterns."),
-            ("sc_bf_04_2", "jdg_02", "prj_bf_04", 4, 4, 4, "High throughput and beautiful C++ codebase."),
-            ("sc_bf_04_3", "jdg_03", "prj_bf_04", 4, 3, 3, "Solid low-latency broker implementation."),
-
-            # prj_bf_05 (ZeroDay Studio): 5th place
-            ("sc_bf_05_1", "jdg_01", "prj_bf_05", 2, 3, 3, "Fuzzing works but relies heavily on upstream AFL++ heuristics."),
-            ("sc_bf_05_2", "jdg_02", "prj_bf_05", 4, 4, 4, "Very useful security pipeline for CI integration."),
-            ("sc_bf_05_3", "jdg_03", "prj_bf_05", 3, 3, 3, "Reasonable fuzzing harness."),
-
-            # prj_bf_06 (EdgeCraft): 6th place
-            ("sc_bf_06_1", "jdg_01", "prj_bf_06", 2, 2, 3, "Hardware constraints make it tricky to reproduce in evaluation."),
-            ("sc_bf_06_2", "jdg_02", "prj_bf_06", 4, 3, 4, "Great IoT physical hardware demonstration."),
-            ("sc_bf_06_3", "jdg_03", "prj_bf_06", 3, 3, 3, "Working embedded sensor prototype."),
-
-            # prj_bf_07 (Synthetix Agent): 7th place
-            ("sc_bf_07_1", "jdg_01", "prj_bf_07", 3, 2, 2, "Standard prompt engineering wrapper around existing APIs."),
-            ("sc_bf_07_2", "jdg_02", "prj_bf_07", 4, 4, 4, "Helpful developer tool that reduces onboarding friction."),
-            ("sc_bf_07_3", "jdg_03", "prj_bf_07", 3, 3, 3, "Usable developer onboarding agent."),
-        ]
-
-        for _, j_id, p_id, f, q, i, comment in scores_data:
+        for _, j_id, p_id, f, i, q, ld, pres, comment in scores_data:
+            c_dict = {
+                "functionality": f,
+                "innovation": i,
+                "quality": q,
+                "live_demo": ld,
+                "presentation": pres,
+            }
             sc = Score(
                 judge_id=j_id,
                 project_id=p_id,
                 functionality=f,
                 quality=q,
                 innovation=i,
+                criteria_json=json.dumps(c_dict),
                 comment=comment,
                 submitted_at=bf_close - datetime.timedelta(hours=2),
             )
@@ -337,10 +375,12 @@ def ensure_demo_scenarios(db: Session) -> dict:
         db.flush()
 
         # Criteria
-        crit_ai_func = RubricCriterion(id="crit_ai_func", event_id=ai_event.id, name="functionality", label="Functionality", weight=1.0, min_score=1, max_score=5)
-        crit_ai_qual = RubricCriterion(id="crit_ai_qual", event_id=ai_event.id, name="quality", label="Code & Design Quality", weight=1.0, min_score=1, max_score=5)
-        crit_ai_innov = RubricCriterion(id="crit_ai_innov", event_id=ai_event.id, name="innovation", label="Innovation & Creativity", weight=1.0, min_score=1, max_score=5)
-        db.add_all([crit_ai_func, crit_ai_qual, crit_ai_innov])
+        crit_ai_func = RubricCriterion(id="crit_ai_func", event_id=ai_event.id, name="functionality", label="Functionality & Completeness", description="Does the project actually work and deliver its core promise?", weight=0.25, min_score=1, max_score=5)
+        crit_ai_innov = RubricCriterion(id="crit_ai_innov", event_id=ai_event.id, name="innovation", label="Innovation & Problem Solving", description="How original and meaningful is the solution?", weight=0.20, min_score=1, max_score=5)
+        crit_ai_qual = RubricCriterion(id="crit_ai_qual", event_id=ai_event.id, name="quality", label="GitHub Code & Engineering Quality", description="How strong is the actual implementation behind the project?", weight=0.25, min_score=1, max_score=5)
+        crit_ai_demo = RubricCriterion(id="crit_ai_demo", event_id=ai_event.id, name="live_demo", label="Live Demo & Product Experience", description="How convincing is the working product experience?", weight=0.20, min_score=1, max_score=5)
+        crit_ai_pres = RubricCriterion(id="crit_ai_pres", event_id=ai_event.id, name="presentation", label="Pitch Deck & Presentation", description="How clearly does the team communicate the problem, solution and value?", weight=0.10, min_score=1, max_score=5)
+        db.add_all([crit_ai_func, crit_ai_innov, crit_ai_qual, crit_ai_demo, crit_ai_pres])
 
         # Prizes
         db.add_all([
@@ -391,37 +431,23 @@ def ensure_demo_scenarios(db: Session) -> dict:
         # Project 4 (DeepTrace): 0/3 reviews (ZERO reviews -> unreviewed warning alert!)
         # Project 5 (CognitiveFlow): 2/3 reviews
         # Project 6 (KubeLLM): 2/3 reviews
-        ai_scores = [
-            # prj_ai_01 (3/3)
-            ("sc_ai_01_1", "jdg_01", "prj_ai_01", 4, 4, 5, "Strong agent coordination architecture."),
-            ("sc_ai_01_2", "jdg_02", "prj_ai_01", 5, 4, 4, "Impressive live multi-agent negotiation."),
-            ("sc_ai_01_3", "jdg_03", "prj_ai_01", 4, 4, 4, "Technically sound and well documented."),
+        ai_scores = AI_SCORES_DATA
 
-            # prj_ai_02 (2/3)
-            ("sc_ai_02_1", "jdg_01", "prj_ai_02", 4, 5, 4, "High performance CUDA kernels."),
-            ("sc_ai_02_2", "jdg_02", "prj_ai_02", 4, 4, 4, "Clean vector database API."),
-
-            # prj_ai_03 (1/3)
-            ("sc_ai_03_2", "jdg_02", "prj_ai_03", 4, 3, 4, "Practical prompt security guardrails."),
-
-            # prj_ai_04 (DeepTrace): 0 reviews! Intentionally left empty!
-
-            # prj_ai_05 (2/3)
-            ("sc_ai_05_2", "jdg_02", "prj_ai_05", 4, 4, 4, "Good workflow abstraction."),
-            ("sc_ai_05_3", "jdg_03", "prj_ai_05", 3, 4, 3, "Solid graph scheduler."),
-
-            # prj_ai_06 (2/3)
-            ("sc_ai_06_1", "jdg_01", "prj_ai_06", 4, 4, 4, "Kubernetes operator is well structured."),
-            ("sc_ai_06_3", "jdg_03", "prj_ai_06", 4, 3, 4, "Speculative decoding benchmarks look promising."),
-        ]
-
-        for _, j_id, p_id, f, q, i, comment in ai_scores:
+        for _, j_id, p_id, f, i, q, ld, pres, comment in ai_scores:
+            c_dict = {
+                "functionality": f,
+                "innovation": i,
+                "quality": q,
+                "live_demo": ld,
+                "presentation": pres,
+            }
             sc = Score(
                 judge_id=j_id,
                 project_id=p_id,
                 functionality=f,
                 quality=q,
                 innovation=i,
+                criteria_json=json.dumps(c_dict),
                 comment=comment,
                 submitted_at=now - datetime.timedelta(hours=6),
             )
@@ -460,11 +486,13 @@ def ensure_demo_scenarios(db: Session) -> dict:
                         j.tracks.append(t)
         db.flush()
 
-        # Criteria
+        # Criteria (5 default criteria)
         db.add_all([
-            RubricCriterion(id="crit_live_func", event_id=open_event.id, name="functionality", label="Functionality", weight=1.0, min_score=1, max_score=5),
-            RubricCriterion(id="crit_live_qual", event_id=open_event.id, name="quality", label="Code & Design Quality", weight=1.0, min_score=1, max_score=5),
-            RubricCriterion(id="crit_live_innov", event_id=open_event.id, name="innovation", label="Innovation & Creativity", weight=1.0, min_score=1, max_score=5),
+            RubricCriterion(id="crit_live_func", event_id=open_event.id, name="functionality", label="Functionality & Completeness", description="Does the project actually work and deliver its core promise?", weight=0.25, min_score=1, max_score=5),
+            RubricCriterion(id="crit_live_innov", event_id=open_event.id, name="innovation", label="Innovation & Problem Solving", description="How original and meaningful is the solution?", weight=0.20, min_score=1, max_score=5),
+            RubricCriterion(id="crit_live_qual", event_id=open_event.id, name="quality", label="GitHub Code & Engineering Quality", description="How strong is the actual implementation behind the project?", weight=0.25, min_score=1, max_score=5),
+            RubricCriterion(id="crit_live_demo", event_id=open_event.id, name="live_demo", label="Live Demo & Product Experience", description="How convincing is the working product experience?", weight=0.20, min_score=1, max_score=5),
+            RubricCriterion(id="crit_live_pres", event_id=open_event.id, name="presentation", label="Pitch Deck & Presentation", description="How clearly does the team communicate the problem, solution and value?", weight=0.10, min_score=1, max_score=5),
         ])
 
         # Prizes
@@ -476,5 +504,89 @@ def ensure_demo_scenarios(db: Session) -> dict:
         results["open_live"] = "Created Open Systems Hack 2026 (Open for live submission)"
     else:
         results["open_live"] = "Open Systems Hack 2026 already exists"
+
+    # Ensure existing demo events have all 5 criteria and updated weights/labels
+    for ev_id, prefix in [("evt_buildforge", "crit_bf"), ("evt_aisystems", "crit_ai"), ("evt_open_live", "crit_live")]:
+        ev = db.query(Event).filter(Event.id == ev_id).first()
+        if ev:
+            existing_crit = {c.name: c for c in db.query(RubricCriterion).filter(RubricCriterion.event_id == ev_id).all()}
+            for crit_def in DEFAULT_FIVE_CRITERIA:
+                c_name = crit_def["name"]
+                if c_name not in existing_crit:
+                    db.add(RubricCriterion(
+                        id=f"{prefix}_{c_name}",
+                        event_id=ev_id,
+                        name=c_name,
+                        label=crit_def["label"],
+                        description=crit_def["description"],
+                        weight=crit_def["weight"],
+                        min_score=1,
+                        max_score=5,
+                    ))
+                else:
+                    c = existing_crit[c_name]
+                    c.label = crit_def["label"]
+                    c.description = crit_def["description"]
+                    c.weight = crit_def["weight"]
+
+    # Ensure existing scores in evt_buildforge have criteria_json populated and match podium
+    bf_scores = db.query(Score).join(Project).filter(Project.event_id == "evt_buildforge").all()
+    bf_score_map = {
+        (j_id, p_id): {
+            "functionality": f,
+            "innovation": i,
+            "quality": q,
+            "live_demo": ld,
+            "presentation": pres,
+        }
+        for _, j_id, p_id, f, i, q, ld, pres, _ in BF_SCORES_DATA
+    }
+    for sc in bf_scores:
+        key = (sc.judge_id, sc.project_id)
+        if key in bf_score_map:
+            c_dict = bf_score_map[key]
+            sc.criteria_json = json.dumps(c_dict)
+            sc.functionality = c_dict["functionality"]
+            sc.quality = c_dict["quality"]
+            sc.innovation = c_dict["innovation"]
+        elif not sc.criteria_json:
+            sc.criteria_json = json.dumps({
+                "functionality": sc.functionality or 3,
+                "innovation": sc.innovation or 3,
+                "quality": sc.quality or 3,
+                "live_demo": 3,
+                "presentation": 3,
+            })
+
+    # Ensure existing scores in evt_aisystems have criteria_json populated
+    ai_score_map = {
+        (j_id, p_id): {
+            "functionality": f,
+            "innovation": i,
+            "quality": q,
+            "live_demo": ld,
+            "presentation": pres,
+        }
+        for _, j_id, p_id, f, i, q, ld, pres, _ in AI_SCORES_DATA
+    }
+    ai_scores_db = db.query(Score).join(Project).filter(Project.event_id == "evt_aisystems").all()
+    for sc in ai_scores_db:
+        key = (sc.judge_id, sc.project_id)
+        if key in ai_score_map:
+            c_dict = ai_score_map[key]
+            sc.criteria_json = json.dumps(c_dict)
+            sc.functionality = c_dict["functionality"]
+            sc.quality = c_dict["quality"]
+            sc.innovation = c_dict["innovation"]
+        elif not sc.criteria_json:
+            sc.criteria_json = json.dumps({
+                "functionality": sc.functionality or 3,
+                "innovation": sc.innovation or 3,
+                "quality": sc.quality or 3,
+                "live_demo": 3,
+                "presentation": 3,
+            })
+
+    db.commit()
 
     return results

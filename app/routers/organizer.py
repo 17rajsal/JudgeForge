@@ -149,12 +149,18 @@ def get_judging_progress(
 @router.put("/api/organizer/rubric")
 def update_rubric_weights(
     payload: RubricUpdateSchema,
+    event_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_organizer),
 ):
     for name, weight in payload.weights.items():
-        crit = db.query(RubricCriterion).filter(RubricCriterion.name == name).first()
-        if crit:
+        q = db.query(RubricCriterion).filter(RubricCriterion.name == name)
+        if event_id:
+            q = q.filter(RubricCriterion.event_id == event_id)
+            crits = q.all()
+        else:
+            crits = q.all()
+        for crit in crits:
             crit.weight = max(0.0, float(weight))
 
     db.add(
@@ -163,7 +169,7 @@ def update_rubric_weights(
             action="UPDATE_RUBRIC",
             target_type="RubricCriterion",
             target_id="weights",
-            details=str(payload.weights),
+            details=f"Event: {event_id or 'all'}, Weights: {payload.weights}",
         )
     )
     db.commit()

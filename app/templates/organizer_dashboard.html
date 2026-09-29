@@ -289,9 +289,13 @@
 
   <form id="rubricForm" onsubmit="handleRubricUpdate(event)" style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-end;margin-top:0.5rem;">
     {% for c in criteria %}
+    {% set pct = ((c.weight / total_rubric_weight) * 100) | round | int if total_rubric_weight > 0 else 0 %}
     <div style="flex:1;min-width:180px;">
-      <label for="weight_{{ c.name }}" style="font-weight:600;font-size:0.85rem;">{{ c.label }} (Weight)</label>
-      <input type="number" step="0.1" min="0" max="10" id="weight_{{ c.name }}" value="{{ c.weight }}" required style="font-size:0.95rem;font-weight:600;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
+        <label for="weight_{{ c.name }}" style="font-weight:600;font-size:0.85rem;">{{ c.label }}</label>
+        <span class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.35rem;background:var(--slate-100);">{{ pct }}%</span>
+      </div>
+      <input type="number" step="0.05" min="0" max="10" id="weight_{{ c.name }}" value="{{ c.weight }}" required style="font-size:0.95rem;font-weight:600;">
       <small style="color:var(--text-muted);display:block;margin-top:0.2rem;">{{ c.description or 'Evaluated on 1-5 scale' }}</small>
     </div>
     {% endfor %}
@@ -624,7 +628,7 @@ async function handleRubricUpdate(e) {
   weights['{{ c.name }}'] = parseFloat(document.getElementById('weight_{{ c.name }}').value);
   {% endfor %}
 
-  const res = await fetch('/api/organizer/rubric', {
+  const res = await fetch('/api/organizer/rubric{% if event %}?event_id={{ event.id }}{% endif %}', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ weights: weights })

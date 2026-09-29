@@ -1,0 +1,641 @@
+{% extends "base.html" %}
+
+{% block title %}Review {{ project.title }} | JudgeForge{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb & Top Bar -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <a href="/judge" class="btn btn-secondary" style="padding:0.4rem 0.85rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.35rem;">
+      &larr; Back to Queue
+    </a>
+    <span style="color:var(--text-muted);font-size:0.85rem;">/</span>
+    <span style="font-size:0.85rem;font-weight:600;color:var(--slate-700);">
+      {{ project.track.name if project.track else 'General Track' }}
+    </span>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);font-size:0.8rem;padding:0.25rem 0.65rem;">
+      Queue: {{ completed_count }} of {{ total_assigned }} Reviewed
+    </span>
+    {% if existing_score %}
+    <span class="status-chip status-open" style="font-size:0.8rem;">
+      &check; Previously Scored ({{ existing_raw | round(2) if existing_raw else 'Saved' }})
+    </span>
+    {% else %}
+    <span class="status-chip status-judging" style="font-size:0.8rem;">
+      Pending Review
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Two-Column Review Layout -->
+<div class="review-workspace-grid">
+  <!-- LEFT COLUMN (65%): Evidence & Submission Materials -->
+  <div class="review-evidence-column">
+    <!-- Project Header Card -->
+    <div class="card" style="margin-bottom:1.5rem;padding:1.75rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem;flex-wrap:wrap;">
+        <span class="card-tag" style="background:var(--primary-subtle);color:var(--primary);border-color:var(--primary-border);font-weight:700;">
+          {{ project.track.name if project.track else 'General' }}
+        </span>
+        <span style="font-size:0.875rem;font-weight:700;color:var(--slate-700);">
+          Team: {{ project.team.name if project.team else 'Independent' }}
+        </span>
+        <span style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);margin-left:auto;">
+          ID: {{ project.id }}
+        </span>
+      </div>
+
+      <h1 style="font-size:1.85rem;font-weight:800;color:var(--slate-900);line-height:1.2;margin:0 0 0.5rem 0;">
+        {{ project.title }}
+      </h1>
+
+      {% if project.tagline %}
+      <p style="font-size:1.05rem;color:var(--slate-600);margin:0 0 1rem 0;font-weight:500;line-height:1.4;">
+        {{ project.tagline }}
+      </p>
+      {% endif %}
+
+      <!-- Quick Action Asset Bar -->
+      <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;padding-top:0.75rem;border-top:1px solid var(--slate-200);">
+        {% if project.demo_url %}
+        <a href="{{ project.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding:0.4rem 0.95rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.4rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Open Live Demo ↗
+        </a>
+        {% endif %}
+        {% if project.repo_url %}
+        <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:0.4rem 0.95rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.4rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          View GitHub Code ↗
+        </a>
+        {% endif %}
+        {% if project.video_url %}
+        <a href="{{ project.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:0.4rem 0.95rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.4rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+          Demo Video ↗
+        </a>
+        {% endif %}
+        {% if project.pitch_deck_url %}
+        <a href="{{ project.pitch_deck_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:0.4rem 0.95rem;font-size:0.85rem;display:inline-flex;align-items:center;gap:0.4rem;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          Pitch Deck PDF ↗
+        </a>
+        {% endif %}
+      </div>
+
+      <!-- Tech Stack Tags -->
+      {% if project.tech_tags %}
+      <div style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap;margin-top:0.85rem;">
+        <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-right:0.25rem;">Stack:</span>
+        {% for tag in project.tech_tags %}
+        <span class="card-tag" style="background:var(--slate-50);font-size:0.75rem;padding:0.15rem 0.5rem;">{{ tag }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Overview & Architecture Section -->
+    <div class="card" style="margin-bottom:1.5rem;padding:1.5rem;">
+      <h2 style="font-size:1.15rem;font-weight:700;color:var(--slate-900);margin:0 0 0.75rem 0;display:flex;align-items:center;gap:0.5rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Project Overview &amp; Architecture
+      </h2>
+      {% if project.summary %}
+      <div style="font-size:0.95rem;line-height:1.6;color:var(--slate-800);margin-bottom:1rem;background:var(--slate-50);padding:0.85rem 1rem;border-radius:var(--radius-md);border-left:3px solid var(--primary);">
+        {{ project.summary }}
+      </div>
+      {% endif %}
+      {% if project.description %}
+      <div style="font-size:0.9rem;line-height:1.65;color:var(--slate-700);white-space:pre-line;">
+        {{ project.description }}
+      </div>
+      {% else %}
+      <div style="color:var(--text-muted);font-size:0.875rem;font-style:italic;">
+        No extended description provided.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Live Demo Card -->
+    <div class="card" style="margin-bottom:1.5rem;padding:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <h2 style="font-size:1.15rem;font-weight:700;color:var(--slate-900);margin:0;display:flex;align-items:center;gap:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          Live Demo &amp; Product Experience
+        </h2>
+        {% if project.demo_url %}
+        <span class="status-chip status-open" style="font-size:0.75rem;">Verified Demo Link</span>
+        {% else %}
+        <span class="status-chip status-closed" style="font-size:0.75rem;">No Live URL</span>
+        {% endif %}
+      </div>
+
+      {% if project.demo_url %}
+      <p style="font-size:0.875rem;color:var(--text-secondary);margin:0 0 1rem 0;">
+        Open the live product in a separate window to evaluate end-to-end functionality, UI polish, and core user flows.
+      </p>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;background:var(--slate-50);padding:1rem 1.25rem;border-radius:var(--radius-md);border:1px solid var(--slate-200);">
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:0.78rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Demo URL</div>
+          <div style="font-family:var(--font-mono);font-size:0.875rem;color:var(--primary);word-break:break-all;">
+            {{ project.demo_url }}
+          </div>
+        </div>
+        <a href="{{ project.demo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding:0.5rem 1.25rem;font-size:0.9rem;white-space:nowrap;">
+          Launch Live Demo ↗
+        </a>
+      </div>
+      {% else %}
+      <div class="callout callout-info" style="margin:0;font-size:0.85rem;">
+        <strong>Notice:</strong> The team did not submit a live demo URL. Please evaluate code repository, architecture, and pitch materials instead.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- GitHub Code Repository Card & Inspection Checklist -->
+    <div class="card" style="margin-bottom:1.5rem;padding:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <h2 style="font-size:1.15rem;font-weight:700;color:var(--slate-900);margin:0;display:flex;align-items:center;gap:0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+          GitHub Code &amp; Engineering Quality
+        </h2>
+        {% if project.repo_url %}
+        <a href="{{ project.repo_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:0.3rem 0.75rem;font-size:0.8rem;">
+          Open Repository ↗
+        </a>
+        {% endif %}
+      </div>
+
+      {% if project.repo_url %}
+      <div style="font-family:var(--font-mono);font-size:0.85rem;color:var(--text-secondary);margin-bottom:1rem;background:var(--slate-50);padding:0.6rem 0.85rem;border-radius:var(--radius-sm);border:1px solid var(--slate-200);">
+        {{ project.repo_url }}
+      </div>
+
+      <!-- Repo Inspection Checklist -->
+      <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem 1.15rem;">
+        <div style="font-weight:700;font-size:0.8rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:0.6rem;">
+          Code Inspection Checklist
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
+          <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.85rem;color:var(--slate-800);cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--primary);">
+            <span>README &amp; setup instructions</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.85rem;color:var(--slate-800);cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--primary);">
+            <span>Real commit history vs template</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.85rem;color:var(--slate-800);cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--primary);">
+            <span>Modular code architecture</span>
+          </label>
+          <label style="display:flex;align-items:center;gap:0.45rem;font-size:0.85rem;color:var(--slate-800);cursor:pointer;">
+            <input type="checkbox" style="accent-color:var(--primary);">
+            <span>Error handling &amp; tests</span>
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <div class="callout callout-info" style="margin:0;font-size:0.85rem;">
+        <strong>Notice:</strong> No repository URL provided for this project.
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Pitch Deck & Video Section -->
+    <div class="card" style="margin-bottom:2rem;padding:1.5rem;">
+      <h2 style="font-size:1.15rem;font-weight:700;color:var(--slate-900);margin:0 0 1rem 0;display:flex;align-items:center;gap:0.5rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Presentation Materials &amp; Pitch Deck
+      </h2>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+        <!-- Pitch Deck Card -->
+        <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+          <div style="font-weight:700;font-size:0.85rem;color:var(--slate-800);margin-bottom:0.35rem;">
+            Pitch Deck Presentation
+          </div>
+          {% if project.pitch_deck_url %}
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 0.75rem 0;">
+            Slides communicating problem statement, market fit, and solution architecture.
+          </p>
+          <a href="{{ project.pitch_deck_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="padding:0.4rem 0.85rem;font-size:0.82rem;display:inline-flex;align-items:center;gap:0.35rem;">
+            Open Pitch Deck PDF ↗
+          </a>
+          {% else %}
+          <div style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">
+            No pitch deck submitted. Evaluate based on summary and live demo.
+          </div>
+          {% endif %}
+        </div>
+
+        <!-- Video Card -->
+        <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+          <div style="font-weight:700;font-size:0.85rem;color:var(--slate-800);margin-bottom:0.35rem;">
+            Demo Video Walkthrough
+          </div>
+          {% if project.video_url %}
+          <p style="font-size:0.8rem;color:var(--text-secondary);margin:0 0 0.75rem 0;">
+            Recorded walkthrough explaining features and workflow.
+          </p>
+          <a href="{{ project.video_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="padding:0.4rem 0.85rem;font-size:0.82rem;display:inline-flex;align-items:center;gap:0.35rem;">
+            Watch Video Walkthrough ↗
+          </a>
+          {% else %}
+          <div style="font-size:0.8rem;color:var(--text-muted);font-style:italic;">
+            No video provided — score live demo and repository directly.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN (35%): Sticky Evaluation Sidebar -->
+  <div class="review-sidebar-column">
+    <div class="card review-sticky-panel" style="padding:1.5rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;">
+        <div>
+          <div class="hero-eyebrow" style="font-size:0.7rem;">RUBRIC EVALUATION</div>
+          <h2 style="font-size:1.25rem;font-weight:800;color:var(--slate-900);margin:0;">
+            Judge Ballot
+          </h2>
+        </div>
+        <span class="role-pill role-judge" style="font-size:0.75rem;">
+          Confidential
+        </span>
+      </div>
+
+      <div class="callout callout-info" style="margin-bottom:1.25rem;padding:0.5rem 0.75rem;font-size:0.78rem;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div>
+          Your ballot is private and isolated from peer judges until organizer normalization.
+        </div>
+      </div>
+
+      <!-- Live Calculated Raw Score Summary Header -->
+      <div class="score-summary-box">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.35rem;">
+          <span style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">
+            Calculated Raw Score
+          </span>
+          <div style="font-family:var(--font-mono);font-size:1.45rem;font-weight:800;color:var(--primary);">
+            <span id="liveRawScore">{% if existing_raw %}{{ "%.2f"|format(existing_raw) }}{% else %}0.00{% endif %}</span>
+            <span style="font-size:0.85rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
+          </div>
+        </div>
+        <div class="progress-track" style="height:6px;margin-bottom:0.4rem;">
+          <div class="progress-fill" id="criteriaProgressBar" style="width:0%;"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;font-size:0.75rem;color:var(--text-secondary);">
+          <span id="criteriaCompletionStatus">0 of {{ criteria_data | length }} criteria scored</span>
+          <span id="pointsTotalLabel" style="font-family:var(--font-mono);"></span>
+        </div>
+      </div>
+
+      <!-- Criteria List Form -->
+      <form id="judgeReviewForm" onsubmit="handleReviewSubmit(event)">
+        <input type="hidden" id="formProjectId" value="{{ project.id }}">
+
+        {% for c_info in criteria_data %}
+        {% set c = c_info.criterion %}
+        {% set existing_val = existing_criteria.get(c.name) %}
+        <div class="criterion-card" id="card_{{ c.name }}" data-criterion="{{ c.name }}" data-weight="{{ c.weight }}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.25rem;">
+            <div>
+              <div style="font-weight:700;font-size:0.9rem;color:var(--slate-900);">
+                {{ loop.index }}. {{ c_info.label }}
+              </div>
+              <div style="font-size:0.78rem;color:var(--slate-600);margin-top:0.1rem;line-height:1.35;">
+                {{ c_info.guidance.question }}
+              </div>
+            </div>
+            <span class="card-tag" style="background:var(--slate-100);font-size:0.72rem;padding:0.15rem 0.45rem;white-space:nowrap;">
+              {{ c_info.pct_weight }}% weight
+            </span>
+          </div>
+
+          <!-- 1-5 Selectable Score Buttons -->
+          <div class="score-buttons-grid">
+            {% for opt in c_info.guidance.options %}
+            <button type="button"
+                    class="score-pill-btn {% if existing_val == opt.score %}active{% endif %}"
+                    data-score="{{ opt.score }}"
+                    data-criterion="{{ c.name }}"
+                    onclick="selectScore('{{ c.name }}', {{ opt.score }})"
+                    title="{{ opt.desc }}">
+              <span class="score-number">{{ opt.score }}</span>
+              <span class="score-label">{{ opt.label }}</span>
+            </button>
+            {% endfor %}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;font-size:0.72rem;">
+            <span id="desc_{{ c.name }}" style="color:var(--text-muted);font-style:italic;">
+              {% if existing_val %}
+                {% for opt in c_info.guidance.options if opt.score == existing_val %}{{ opt.desc }}{% endfor %}
+              {% else %}
+                Select a score from 1 to 5
+              {% endif %}
+            </span>
+            <span id="contrib_{{ c.name }}" style="font-family:var(--font-mono);font-weight:600;color:var(--slate-700);">
+              {% if existing_val %}
+                {{ "%.2f"|format(existing_val * c.weight) }} pts
+              {% endif %}
+            </span>
+          </div>
+          <input type="hidden" id="input_{{ c.name }}" name="{{ c.name }}" value="{{ existing_val or '' }}">
+        </div>
+        {% endfor %}
+
+        <!-- Private Feedback & Rationale -->
+        <div style="margin-top:1.25rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
+            <label for="reviewComment" style="font-weight:700;font-size:0.85rem;color:var(--slate-800);">
+              Private Evaluation Notes &amp; Rationale
+            </label>
+            <span id="commentCharCount" style="font-size:0.72rem;color:var(--text-muted);font-family:var(--font-mono);">
+              0 chars
+            </span>
+          </div>
+          <textarea id="reviewComment"
+                    rows="3"
+                    class="form-input"
+                    oninput="updateCharCount()"
+                    placeholder="Constructive feedback, technical rationale, or notes for deliberation (private to judges & organizers)..."
+                    style="font-size:0.85rem;line-height:1.45;resize:vertical;">{{ existing_score.comment if existing_score and existing_score.comment else '' }}</textarea>
+          <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">
+            &bull; Notes remain strictly confidential and isolated from other judges.
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="margin-top:1.5rem;display:flex;flex-direction:column;gap:0.75rem;">
+          <button type="button"
+                  id="submitReviewBtn"
+                  onclick="openConfirmationModal()"
+                  class="btn btn-primary"
+                  style="width:100%;padding:0.7rem;font-size:0.95rem;font-weight:700;display:flex;justify-content:center;align-items:center;gap:0.5rem;"
+                  disabled>
+            Submit Review &rarr;
+          </button>
+
+          {% if next_project %}
+          <a href="/judge/projects/{{ next_project.id }}" class="btn btn-secondary" style="width:100%;padding:0.55rem;font-size:0.85rem;text-align:center;">
+            Skip / Review Next Project ({{ next_project.title }}) &rarr;
+          </a>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal -->
+<dialog id="confirmationModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:1.75rem;max-width:520px;width:95%;margin:auto;box-shadow:var(--shadow-xl);">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
+    <div>
+      <div class="hero-eyebrow" style="font-size:0.7rem;">CONFIRM BALLOT</div>
+      <h3 style="font-size:1.25rem;font-weight:800;color:var(--slate-900);margin:0;">
+        Submit Review Ballot
+      </h3>
+      <div style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.25rem;">
+        {{ project.title }} ({{ project.team.name if project.team else 'Independent' }})
+      </div>
+    </div>
+    <button type="button" onclick="document.getElementById('confirmationModal').close()" style="background:transparent;border:none;font-size:1.5rem;color:var(--slate-400);cursor:pointer;">&times;</button>
+  </div>
+
+  <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.85rem 1rem;margin-bottom:1.25rem;">
+    <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.5rem;">
+      Score Breakdown
+    </div>
+    <div id="modalBreakdownList" style="display:flex;flex-direction:column;gap:0.4rem;font-size:0.85rem;">
+      <!-- Populated dynamically via JS -->
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding-top:0.6rem;border-top:1px solid var(--slate-200);font-weight:700;">
+      <span>Calculated Raw Score:</span>
+      <span id="modalFinalScore" style="font-family:var(--font-mono);font-size:1.15rem;color:var(--primary);"></span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+    <button type="button" onclick="document.getElementById('confirmationModal').close()" class="btn btn-secondary">
+      Edit Scores
+    </button>
+    <button type="button" id="confirmSubmitBtn" onclick="executeReviewSubmit()" class="btn btn-primary">
+      Confirm &amp; Record Ballot &check;
+    </button>
+  </div>
+</dialog>
+
+<!-- Success / Next Modal Dialog -->
+<dialog id="successModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:2rem;max-width:480px;width:95%;margin:auto;box-shadow:var(--shadow-xl);text-align:center;">
+  <div style="width:48px;height:48px;background:var(--emerald-50);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;color:var(--emerald-600);">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+  </div>
+  <h3 style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin:0 0 0.5rem 0;">
+    Review Submitted Successfully!
+  </h3>
+  <p style="font-size:0.9rem;color:var(--text-secondary);margin:0 0 1.5rem 0;">
+    Your evaluation for <strong>{{ project.title }}</strong> has been safely recorded.
+  </p>
+  <div style="display:flex;flex-direction:column;gap:0.75rem;">
+    {% if next_project %}
+    <a href="/judge/projects/{{ next_project.id }}" class="btn btn-primary" style="padding:0.75rem;font-weight:700;">
+      Review Next Project ({{ next_project.title }}) &rarr;
+    </a>
+    {% endif %}
+    <a href="/judge" class="btn btn-secondary" style="padding:0.65rem;">
+      Back to Judge Console
+    </a>
+  </div>
+</dialog>
+
+<script>
+const criteriaData = {
+  {% for c_info in criteria_data %}
+  "{{ c_info.name }}": {
+    label: {{ c_info.label | tojson }},
+    weight: {{ c_info.weight }},
+    options: {
+      {% for opt in c_info.guidance.options %}
+      {{ opt.score }}: { label: {{ opt.label | tojson }}, desc: {{ opt.desc | tojson }} },
+      {% endfor %}
+    }
+  },
+  {% endfor %}
+};
+
+const totalCriteriaCount = {{ criteria_data | length }};
+
+function selectScore(criterionName, score) {
+  // Update hidden input
+  const inputEl = document.getElementById("input_" + criterionName);
+  if (inputEl) {
+    inputEl.value = score;
+  }
+
+  // Update active pill button
+  const cardEl = document.getElementById("card_" + criterionName);
+  if (cardEl) {
+    const buttons = cardEl.querySelectorAll(".score-pill-btn");
+    buttons.forEach(btn => {
+      if (parseInt(btn.getAttribute("data-score")) === score) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
+
+    // Update description and contribution
+    const descEl = document.getElementById("desc_" + criterionName);
+    const contribEl = document.getElementById("contrib_" + criterionName);
+    const critInfo = criteriaData[criterionName];
+    if (critInfo && critInfo.options[score]) {
+      if (descEl) descEl.textContent = critInfo.options[score].desc;
+      if (contribEl) contribEl.textContent = (score * critInfo.weight).toFixed(2) + " pts";
+    }
+  }
+
+  updateLiveSummary();
+}
+
+function updateLiveSummary() {
+  let scoredCount = 0;
+  let weightedSum = 0;
+  let weightSum = 0;
+
+  for (const name in criteriaData) {
+    const inputEl = document.getElementById("input_" + name);
+    const val = inputEl ? parseInt(inputEl.value) : null;
+    const w = criteriaData[name].weight;
+    if (val && !isNaN(val)) {
+      scoredCount++;
+      weightedSum += val * w;
+      weightSum += w;
+    }
+  }
+
+  const rawScore = weightSum > 0 ? (weightedSum / weightSum).toFixed(2) : "0.00";
+  const rawScoreEl = document.getElementById("liveRawScore");
+  if (rawScoreEl) {
+    rawScoreEl.textContent = rawScore;
+  }
+
+  const pct = Math.round((scoredCount / totalCriteriaCount) * 100);
+  const progressBar = document.getElementById("criteriaProgressBar");
+  if (progressBar) {
+    progressBar.style.width = pct + "%";
+  }
+
+  const statusText = document.getElementById("criteriaCompletionStatus");
+  if (statusText) {
+    statusText.textContent = `${scoredCount} of ${totalCriteriaCount} criteria scored`;
+  }
+
+  const submitBtn = document.getElementById("submitReviewBtn");
+  if (submitBtn) {
+    if (scoredCount === totalCriteriaCount) {
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = "1";
+      submitBtn.style.cursor = "pointer";
+    } else {
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = "0.6";
+      submitBtn.style.cursor = "not-allowed";
+    }
+  }
+}
+
+function updateCharCount() {
+  const commentEl = document.getElementById("reviewComment");
+  const countEl = document.getElementById("commentCharCount");
+  if (commentEl && countEl) {
+    countEl.textContent = commentEl.value.length + " chars";
+  }
+}
+
+function openConfirmationModal() {
+  const breakdownList = document.getElementById("modalBreakdownList");
+  breakdownList.innerHTML = "";
+
+  let weightedSum = 0;
+  let weightSum = 0;
+
+  for (const name in criteriaData) {
+    const inputEl = document.getElementById("input_" + name);
+    const val = inputEl ? parseInt(inputEl.value) : 0;
+    const info = criteriaData[name];
+    const w = info.weight;
+    weightedSum += val * w;
+    weightSum += w;
+
+    const row = document.createElement("div");
+    row.style.display = "flex";
+    row.style.justifyContent = "space-between";
+    row.style.alignItems = "center";
+    row.innerHTML = `
+      <span>${info.label}</span>
+      <span style="font-family:var(--font-mono);font-weight:700;">${val} / 5 (${(val * w).toFixed(2)} pts)</span>
+    `;
+    breakdownList.appendChild(row);
+  }
+
+  const finalScore = weightSum > 0 ? (weightedSum / weightSum).toFixed(2) : "0.00";
+  document.getElementById("modalFinalScore").textContent = finalScore + " / 5.00";
+  document.getElementById("confirmationModal").showModal();
+}
+
+async function executeReviewSubmit() {
+  const confirmBtn = document.getElementById("confirmSubmitBtn");
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Saving...";
+
+  const projectId = document.getElementById("formProjectId").value;
+  const comment = document.getElementById("reviewComment").value;
+
+  const criteriaPayload = {};
+  for (const name in criteriaData) {
+    const inputEl = document.getElementById("input_" + name);
+    criteriaPayload[name] = parseInt(inputEl.value);
+  }
+
+  try {
+    const resp = await fetch("/api/judge/scores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        project_id: projectId,
+        criteria: criteriaPayload,
+        comment: comment
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      alert("Error saving review: " + (err.detail || resp.statusText));
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Confirm & Record Ballot ✓";
+      return;
+    }
+
+    document.getElementById("confirmationModal").close();
+    document.getElementById("successModal").showModal();
+  } catch (e) {
+    alert("Network error: " + e.message);
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Confirm & Record Ballot ✓";
+  }
+}
+
+// Initial state calculation on load
+window.addEventListener("DOMContentLoaded", () => {
+  updateLiveSummary();
+  updateCharCount();
+});
+</script>
+{% endblock %}

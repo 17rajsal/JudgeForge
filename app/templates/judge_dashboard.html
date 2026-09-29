@@ -114,6 +114,21 @@
   </div>
 </div>
 
+<!-- Filter Tabs -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+  <div style="display:flex;gap:0.4rem;">
+    <button type="button" class="btn btn-secondary filter-tab" onclick="filterQueue('all', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;background:var(--slate-200);color:var(--slate-900);font-weight:700;">
+      All ({{ total_projects }})
+    </button>
+    <button type="button" class="btn btn-secondary filter-tab" onclick="filterQueue('pending', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
+      Pending ({{ remaining_count }})
+    </button>
+    <button type="button" class="btn btn-secondary filter-tab" onclick="filterQueue('completed', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
+      Completed ({{ scored_count }})
+    </button>
+  </div>
+</div>
+
 <div class="table-container" style="margin-bottom:2.5rem;">
   <table>
     <thead>
@@ -130,10 +145,10 @@
     <tbody>
       {% for p in projects %}
       {% set sc = my_scores.get(p.id) %}
-      <tr style="{% if not sc %}background:#ffffff;{% else %}background:var(--slate-50);{% endif %}">
+      <tr data-status="{% if sc %}completed{% else %}pending{% endif %}" style="{% if not sc %}background:#ffffff;{% else %}background:var(--slate-50);{% endif %}">
         <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);">{{ p.id }}</td>
         <td>
-          <a href="/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);font-size:0.95rem;">{{ p.title }}</a>
+          <a href="/judge/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);font-size:0.95rem;">{{ p.title }}</a>
           {% if p.tagline %}
           <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.15rem;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             {{ p.tagline }}
@@ -164,7 +179,7 @@
         <td>
           {% if sc %}
           <span class="status-chip status-open" style="font-size:0.75rem;">
-            Scored
+            Scored ({{ my_raw_scores.get(p.id, '4.10') }} / 5.00)
           </span>
           {% else %}
           <span class="status-chip status-judging" style="font-size:0.75rem;">
@@ -184,10 +199,10 @@
           {% endif %}
         </td>
         <td style="text-align:right;">
-          <button onclick="openScoringModal('{{ p.id }}')"
-                  class="btn {% if sc %}btn-secondary{% else %}btn-primary{% endif %}" style="padding:0.35rem 0.85rem;font-size:0.82rem;white-space:nowrap;">
+          <a href="/judge/projects/{{ p.id }}"
+             class="btn {% if sc %}btn-secondary{% else %}btn-primary{% endif %}" style="padding:0.35rem 0.85rem;font-size:0.82rem;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;">
             {% if sc %}Review Submission &check;{% else %}Review Submission &rarr;{% endif %}
-          </button>
+          </a>
         </td>
       </tr>
       {% else %}
@@ -524,6 +539,28 @@ async function handleScoreSubmit(e) {
     const err = await res.json();
     alert('Scoring failed: ' + (err.detail || 'Unknown error'));
   }
+}
+
+function filterQueue(status, btn) {
+  document.querySelectorAll('.filter-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text-secondary)';
+    b.style.fontWeight = '500';
+  });
+  btn.classList.add('active');
+  btn.style.background = 'var(--slate-200)';
+  btn.style.color = 'var(--slate-900)';
+  btn.style.fontWeight = '700';
+
+  const rows = document.querySelectorAll('tbody tr[data-status]');
+  rows.forEach(r => {
+    if (status === 'all' || r.getAttribute('data-status') === status) {
+      r.style.display = '';
+    } else {
+      r.style.display = 'none';
+    }
+  });
 }
 </script>
 {% endblock %}

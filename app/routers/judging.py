@@ -13,12 +13,16 @@ router = APIRouter(tags=["Judging"])
 from app.templating import templates
 
 
+from app.services.scoring import calculate_raw_score, CRITERIA_GUIDANCE
+
+
 class ScoreSubmissionSchema(BaseModel):
     project_id: str
     functionality: Optional[int] = Field(None, ge=1, le=5)
     quality: Optional[int] = Field(None, ge=1, le=5)
     innovation: Optional[int] = Field(None, ge=1, le=5)
-    criteria: Optional[Dict[str, int]] = None
+    criteria: Optional[Dict[str, Any]] = None
+    criteria_json: Optional[str] = None
     comment: Optional[str] = ""
 
 
@@ -120,6 +124,7 @@ def submit_or_update_score(
     else:
         first_judge = db.query(Judge).first()
         judge_id = first_judge.id if first_judge else "jdg_01"
+        judge_profile = first_judge
 
     project = db.query(Project).filter(Project.id == payload.project_id).first()
     if not project:
@@ -138,24 +143,68 @@ def submit_or_update_score(
                     detail="Forbidden: Judge is not assigned to evaluate this project's track",
                 )
 
-    # Criteria parsing
-    crit = payload.criteria or {}
-    func_score = payload.functionality if payload.functionality is not None else crit.get("functionality", 3)
-    qual_score = payload.quality if payload.quality is not None else crit.get("quality", 3)
-    innov_score = payload.innovation if payload.innovation is not None else crit.get("innovation", 3)
+    # Check event criteria
+    event_criteria = db.query(RubricCriterion).filter(RubricCriterion.event_id == project.event_id).all()
+    score_dict: Dict[str, int] = {}
 
-    for crit_name, crit_val in [("functionality", func_score), ("quality", qual_score), ("innovation", innov_score)]:
-        if crit_val is None or not isinstance(crit_val, (int, float)) or not (1 <= crit_val <= 5):
+    input_criteria = payload.criteria
+    if input_criteria is None and payload.criteria_json:
+        try:
+            parsed = json.loads(payload.criteria_json)
+            if isinstance(parsed, dict):
+                input_criteria = parsed
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid criteria_json")
+
+    if input_criteria is not None:
+        # Dynamic criteria submission: require all configured event criteria
+        target_criteria = event_criteria if event_criteria else [
+            RubricCriterion(name="functionality", label="Functionality"),
+            RubricCriterion(name="quality", label="Quality"),
+            RubricCriterion(name="innovation", label="Innovation"),
+        ]
+        for c in target_criteria:
+            val = input_criteria.get(c.name)
+            if val is None:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Missing score for criterion: {c.label or c.name}",
+                )
+            try:
+                val_int = int(val)
+            except (ValueError, TypeError):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Score for {c.name} must be an integer between 1 and 5",
+                )
+            if not (1 <= val_int <= 5):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Score for {c.name} must be between 1 and 5",
+                )
+            score_dict[c.name] = val_int
+    else:
+        # Legacy submission path
+        if payload.functionality is None or payload.quality is None or payload.innovation is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Score for {crit_name} must be an integer between 1 and 5",
+                detail="Scores for functionality, quality, and innovation must be provided between 1 and 5",
             )
+        for name, val in [("functionality", payload.functionality), ("quality", payload.quality), ("innovation", payload.innovation)]:
+            if not (1 <= val <= 5):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Score for {name} must be between 1 and 5",
+                )
+            score_dict[name] = val
 
-    score_dict = {
-        "functionality": int(func_score),
-        "quality": int(qual_score),
-        "innovation": int(innov_score),
-    }
+        for c in event_criteria:
+            if c.name not in score_dict:
+                score_dict[c.name] = 3
+
+    func_score = score_dict.get("functionality")
+    qual_score = score_dict.get("quality")
+    innov_score = score_dict.get("innovation")
 
     # Upsert score
     score = (
@@ -209,7 +258,6 @@ def submit_or_update_score(
     # Dispatch outbound webhook
     try:
         from app.services.webhooks import dispatch_webhook
-        project = db.query(Project).filter(Project.id == score.project_id).first()
         if project:
             dispatch_webhook(
                 db=db,
@@ -222,6 +270,7 @@ def submit_or_update_score(
                     "functionality": score.functionality,
                     "quality": score.quality,
                     "innovation": score.innovation,
+                    "criteria": score_dict,
                     "submitted_at": score.submitted_at.isoformat() if score.submitted_at else None,
                 },
             )
@@ -271,6 +320,16 @@ def view_judge_dashboard(
     else:
         criteria = db.query(RubricCriterion).all()
 
+    my_raw_scores = {}
+    for p in projects:
+        sc = my_scores.get(p.id)
+        if sc:
+            weights = {c.name: c.weight for c in criteria if c.event_id == p.event_id}
+            if not weights:
+                weights = {c.name: c.weight for c in criteria}
+            raw = calculate_raw_score(sc, weights)
+            my_raw_scores[p.id] = f"{raw:.2f}"
+
     return templates.TemplateResponse(
         request=request,
         name="judge_dashboard.html",
@@ -280,6 +339,141 @@ def view_judge_dashboard(
             "assigned_tracks": assigned_tracks,
             "projects": projects,
             "my_scores": my_scores,
+            "my_raw_scores": my_raw_scores,
             "criteria": criteria,
+        },
+    )
+
+
+@router.get("/judge/projects/{project_id}", response_class=HTMLResponse)
+def view_judge_review_project(
+    project_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    user: Optional[User] = Depends(get_current_user_optional),
+):
+    if not user:
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"/login?next=/judge/projects/{project_id}", status_code=303)
+
+    if user.role not in ("judge", "organizer", "admin"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Only judges and organizers can access this review workspace",
+        )
+
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.status != "submitted":
+        raise HTTPException(status_code=400, detail="Cannot review an unsubmitted project draft")
+
+    if user.role == "judge":
+        judge = user.judge_profile or db.query(Judge).filter(Judge.email == user.email).first()
+        if not judge:
+            raise HTTPException(status_code=403, detail="No judge profile associated with account")
+        judge_id = judge.id
+        if judge.tracks:
+            event_assigned_tracks = {t.id for t in judge.tracks if t.event_id == project.event_id}
+            if event_assigned_tracks and project.track_id not in event_assigned_tracks:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Judge is not assigned to evaluate this project's track",
+                )
+    else:
+        first_judge = db.query(Judge).first()
+        judge = first_judge
+        judge_id = first_judge.id if first_judge else "jdg_01"
+
+    # Criteria for event
+    criteria = db.query(RubricCriterion).filter(RubricCriterion.event_id == project.event_id).order_by(RubricCriterion.id.asc()).all()
+    if not criteria:
+        criteria = db.query(RubricCriterion).all()
+
+    total_weight = sum(c.weight for c in criteria) if criteria else 1.0
+
+    criteria_data = []
+    for c in criteria:
+        pct = round((c.weight / total_weight) * 100) if total_weight > 0 else 0
+        guidance = CRITERIA_GUIDANCE.get(c.name, {
+            "question": c.description or f"Evaluate {c.label}",
+            "options": [
+                {"score": 1, "label": "Poor", "desc": "Far below expectations"},
+                {"score": 2, "label": "Fair", "desc": "Below expectations with major flaws"},
+                {"score": 3, "label": "Good", "desc": "Meets expectations"},
+                {"score": 4, "label": "Very Good", "desc": "Exceeds expectations"},
+                {"score": 5, "label": "Excellent", "desc": "Outstanding quality"},
+            ],
+        })
+        criteria_data.append({
+            "criterion": c,
+            "name": c.name,
+            "label": c.label,
+            "weight": c.weight,
+            "pct_weight": pct,
+            "guidance": guidance,
+        })
+
+    # Existing score
+    existing_score = db.query(Score).filter(Score.judge_id == judge_id, Score.project_id == project.id).first()
+    existing_criteria = {}
+    if existing_score:
+        if existing_score.criteria_json:
+            try:
+                parsed = json.loads(existing_score.criteria_json)
+                if isinstance(parsed, dict):
+                    existing_criteria = {k: int(v) for k, v in parsed.items() if isinstance(v, (int, float))}
+            except Exception:
+                pass
+        if not existing_criteria:
+            if existing_score.functionality is not None:
+                existing_criteria["functionality"] = existing_score.functionality
+            if existing_score.quality is not None:
+                existing_criteria["quality"] = existing_score.quality
+            if existing_score.innovation is not None:
+                existing_criteria["innovation"] = existing_score.innovation
+
+    existing_raw = (
+        calculate_raw_score(existing_score, {c.name: c.weight for c in criteria})
+        if existing_score
+        else None
+    )
+
+    # Next project in queue
+    q_proj = db.query(Project).filter(Project.event_id == project.event_id, Project.status == "submitted")
+    if user.role == "judge" and judge and judge.tracks:
+        assigned_tids = {t.id for t in judge.tracks if t.event_id == project.event_id}
+        if assigned_tids:
+            q_proj = q_proj.filter(Project.track_id.in_(assigned_tids))
+    all_assigned_projects = q_proj.order_by(Project.id.asc()).all()
+
+    all_scores = db.query(Score).filter(Score.judge_id == judge_id).all()
+    scored_pids = {s.project_id for s in all_scores}
+
+    other_unreviewed = [p for p in all_assigned_projects if p.id != project.id and p.id not in scored_pids]
+    next_project = other_unreviewed[0] if other_unreviewed else None
+    if not next_project:
+        other_projects = [p for p in all_assigned_projects if p.id != project.id]
+        next_project = other_projects[0] if other_projects else None
+
+    completed_count = len([p for p in all_assigned_projects if p.id in scored_pids])
+
+    return templates.TemplateResponse(
+        request=request,
+        name="judge_review.html",
+        context={
+            "user": user,
+            "judge": judge,
+            "project": project,
+            "criteria_data": criteria_data,
+            "criteria": criteria,
+            "existing_score": existing_score,
+            "existing_criteria": existing_criteria,
+            "existing_raw": existing_raw,
+            "next_project": next_project,
+            "total_assigned": len(all_assigned_projects),
+            "completed_count": completed_count,
+            "remaining_count": max(0, len(all_assigned_projects) - completed_count),
         },
     )

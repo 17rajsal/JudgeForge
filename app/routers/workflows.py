@@ -28,8 +28,20 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db), user=Depen
     db.flush()
     for name in dict.fromkeys(t.strip() for t in payload.tracks):
         db.add(Track(id="trk_" + secrets.token_hex(12), event_id=event.id, name=name))
-    for name in ("functionality", "quality", "innovation"):
-        db.add(RubricCriterion(id="crit_" + secrets.token_hex(12), event_id=event.id, name=name, label=name.title(), weight=1.0))
+    from app.services.scoring import DEFAULT_FIVE_CRITERIA
+    for c_def in DEFAULT_FIVE_CRITERIA:
+        db.add(
+            RubricCriterion(
+                id="crit_" + secrets.token_hex(12),
+                event_id=event.id,
+                name=c_def["name"],
+                label=c_def["label"],
+                description=c_def["description"],
+                weight=c_def["weight"],
+                min_score=1,
+                max_score=5,
+            )
+        )
     db.add(AuditLog(user_id=user.id, action="CREATE_EVENT", target_type="Event", target_id=event.id, details=event.name))
     db.commit()
     return {"id": event.id, "name": event.name}
