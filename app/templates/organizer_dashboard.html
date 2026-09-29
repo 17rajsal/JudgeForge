@@ -95,7 +95,7 @@
     <div>
       <h3 style="font-size:1.25rem;color:var(--slate-900);">Judging Progress &amp; Deliberation Quota</h3>
       <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.2rem;">
-        Monitor real-time evaluation throughput across assigned judges and unreviewed projects.
+        Monitor real-time evaluation throughput across assigned judges and project coverage.
       </p>
     </div>
     <div style="display:flex;gap:0.5rem;align-items:center;">
@@ -105,45 +105,75 @@
     </div>
   </div>
 
+  <!-- Attention Warnings if zero or below target -->
+  {% if judging_progress and judging_progress.zero_review_count > 0 %}
+  <div class="callout callout-danger" style="margin-bottom:1.25rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <strong>Review Coverage Alert:</strong> {{ judging_progress.zero_review_count }} project(s) have no judge reviews yet.
+    </div>
+  </div>
+  {% endif %}
+
+  {% if judging_progress and judging_progress.below_target_count > 0 %}
+  <div class="callout callout-warning" style="margin-bottom:1.25rem;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div>
+      <strong>Deliberation Quota:</strong> {{ judging_progress.below_target_count }} project(s) have fewer than the target number of reviews (target: {{ judging_progress.target_reviews_per_project }} reviews/project).
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Progress Bar -->
   <div class="progress-track" style="height:10px;margin-bottom:1.25rem;">
     <div class="progress-fill" style="width: {{ judging_progress.completion_pct if judging_progress else 0 }}%;"></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:1rem;">
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:1rem;">
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
       <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Reviews Completed</div>
       <div style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin-top:0.2rem;">
-        {{ judging_progress.completed_reviews if judging_progress else 0 }} <span style="font-size:0.85rem;font-weight:500;color:var(--text-secondary);">/ {{ judging_progress.expected_reviews if judging_progress else 0 }} expected</span>
+        {{ judging_progress.completed_reviews if judging_progress else 0 }} <span style="font-size:0.85rem;font-weight:500;color:var(--text-secondary);">/ {{ judging_progress.expected_reviews if judging_progress else 0 }}</span>
       </div>
-      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Across {{ judging_progress.total_submissions if judging_progress else 0 }} submitted projects</div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">{{ judging_progress.total_submissions if judging_progress else 0 }} submitted projects</div>
     </div>
 
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
       <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Unreviewed Projects</div>
-      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.zero_review_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
+      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.zero_review_count > 0 %}var(--rose-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
         {{ judging_progress.zero_review_count if judging_progress else 0 }}
       </div>
       <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
-        {% if judging_progress and judging_progress.zero_review_count > 0 %}
-          Pending first review
-        {% else %}
-          All projects evaluated &check;
-        {% endif %}
+        {% if judging_progress and judging_progress.zero_review_count > 0 %}Pending first evaluation{% else %}All projects started &check;{% endif %}
       </div>
     </div>
 
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
-      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Inactive Judges</div>
-      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.inactive_judge_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
-        {{ judging_progress.inactive_judge_count if judging_progress else 0 }}
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Below Target Quota</div>
+      <div style="font-size:1.35rem;font-weight:800;color:{% if judging_progress and judging_progress.below_target_count > 0 %}var(--amber-600){% else %}var(--emerald-600){% endif %};margin-top:0.2rem;">
+        {{ judging_progress.below_target_count if judging_progress else 0 }}
       </div>
       <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
-        {% if judging_progress and judging_progress.inactive_judge_count > 0 %}
-          0 evaluations submitted
-        {% else %}
-          All assigned judges active &check;
-        {% endif %}
+        Target: {{ judging_progress.target_reviews_per_project if judging_progress else 2 }} reviews each
+      </div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Fully Reviewed</div>
+      <div style="font-size:1.35rem;font-weight:800;color:var(--emerald-600);margin-top:0.2rem;">
+        {{ judging_progress.fully_reviewed_count if judging_progress else 0 }}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">Met or exceeded quota</div>
+    </div>
+
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;">Judge Activity</div>
+      <div style="font-size:1.1rem;font-weight:700;color:var(--slate-900);margin-top:0.2rem;">
+        <span style="color:var(--emerald-600);">{{ judging_progress.judges_complete | length if judging_progress and judging_progress.judges_complete else 0 }} done</span> &bull;
+        <span style="color:var(--amber-600);">{{ judging_progress.judges_in_progress | length if judging_progress and judging_progress.judges_in_progress else 0 }} active</span>
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.25rem;">
+        {{ judging_progress.judges_not_started | length if judging_progress and judging_progress.judges_not_started else 0 }} not started
       </div>
     </div>
   </div>
@@ -171,7 +201,10 @@
         Configure rubric criteria weights. Changing weights dynamically triggers Z-score re-normalization across all submissions.
       </p>
     </div>
-    <span class="card-tag">Dynamic Calibration</span>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);">Total Configured Weight: {{ total_rubric_weight }}</span>
+      <span class="card-tag">Dynamic Calibration</span>
+    </div>
   </div>
 
   <form id="rubricForm" onsubmit="handleRubricUpdate(event)" style="display:flex;flex-wrap:wrap;gap:1.25rem;align-items:flex-end;margin-top:0.5rem;">
@@ -376,47 +409,119 @@
 </div>
 {% endif %}
 
-<!-- Section: Live Results & Normalized Standings -->
-<div class="page-header" style="margin-bottom:1rem;">
-  <div>
-    <h2>Live Results &amp; Normalized Rankings</h2>
-    <div class="page-subtitle">Deterministic rankings derived from Z-score normalized criteria averages.</div>
+<!-- Section: Normalization Lab & Fairness Analysis -->
+<div class="card" style="margin-bottom:2.5rem;padding:1.75rem;">
+  <div class="card-header" style="margin-bottom:1.25rem;">
+    <div>
+      <div class="hero-eyebrow" style="font-size:0.75rem;margin-bottom:0.25rem;">STATISTICAL CALIBRATION</div>
+      <h2 style="font-size:1.4rem;color:var(--slate-900);margin:0;">Normalization Lab &amp; Fairness Analysis</h2>
+      <p style="color:var(--text-secondary);font-size:0.9rem;margin-top:0.25rem;">
+        Adjusts for differences in judge scoring tendency (strictness vs. leniency) using per-judge Z-score standardization rescaled to the 1.0–5.0 rubric range.
+      </p>
+    </div>
+    <span class="card-tag" style="background:var(--emerald-50);color:var(--emerald-800);border-color:var(--emerald-200);font-weight:700;">
+      Fairness Engine Active
+    </span>
   </div>
-</div>
 
-<div class="table-container" style="margin-bottom:2.5rem;">
-  <table>
-    <thead>
-      <tr>
-        <th style="width:65px;">Rank</th>
-        <th>Project Title</th>
-        <th>Track</th>
-        <th>Team</th>
-        <th>Reviews</th>
-        <th>Raw Score</th>
-        <th>Normalized Score</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in leaderboard %}
-      <tr>
-        <td style="font-weight:800;font-size:1.1rem;color:{% if loop.index == 1 %}var(--amber-600){% elif loop.index <= 3 %}var(--primary-600){% else %}var(--slate-500){% endif %};">
-          #{{ row.rank }}
-        </td>
-        <td>
-          <a href="/projects/{{ row.project_id }}" style="font-weight:700;color:var(--slate-900);">{{ row.title }}</a>
-        </td>
-        <td><span class="card-tag">{{ row.track_name }}</span></td>
-        <td>{{ row.team_name }}</td>
-        <td>{{ row.review_count }}</td>
-        <td style="font-family:var(--font-mono);">{{ '%.3f' | format(row.raw_score) }}</td>
-        <td style="font-family:var(--font-mono);font-weight:700;color:var(--emerald-600);font-size:1rem;">
-          {{ '%.4f' | format(row.normalized_score) }}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <!-- 6-Step Methodology Walkthrough -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.75rem;">
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">1. Weighted Raw Score</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        Computes composite rating from Functionality, Quality, and Innovation using organizer weights.
+      </div>
+    </div>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">2. Judge Baseline Profile</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        Computes each judge's mean (&mu;<sub>j</sub>) and standard deviation (&sigma;<sub>j</sub>) across all their reviews.
+      </div>
+    </div>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">3. Z-Score Standardization</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        Calculates <em>z = (raw - &mu;<sub>j</sub>) / &sigma;<sub>j</sub></em> to eliminate reviewer strictness or leniency.
+      </div>
+    </div>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">4. Scale Re-Mapping</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        Maps standardized scores back to the 1.0–5.0 competition scale: <em>&mu;<sub>global</sub> + z &times; &sigma;<sub>global</sub></em>.
+      </div>
+    </div>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">5. Independent Aggregation</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        Averages available calibrated reviews per project, neutralizing sparse or unbalanced judge assignments.
+      </div>
+    </div>
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
+      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">6. Zero-Variance Defense</div>
+      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
+        If a judge scores all entries identically (&sigma;<sub>j</sub> = 0), z is defined as 0, mapping neutrally to the global average.
+      </div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:70px;">Rank</th>
+          <th>Project Title</th>
+          <th>Track</th>
+          <th>Raw Rank</th>
+          <th>Movement</th>
+          <th>Raw Average</th>
+          <th>Normalized Score</th>
+          <th>Score Adjustment</th>
+          <th>Reviews</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in leaderboard %}
+        {% set shift = row.normalized_score - row.raw_score %}
+        <tr>
+          <td style="font-weight:800;font-size:1.1rem;color:{% if loop.index == 1 %}var(--amber-600){% elif loop.index <= 3 %}var(--primary-600){% else %}var(--slate-500){% endif %};">
+            #{{ row.rank }}
+          </td>
+          <td>
+            <a href="/projects/{{ row.project_id }}" style="font-weight:700;color:var(--slate-900);">{{ row.title }}</a>
+            <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">{{ row.team_name }}</div>
+          </td>
+          <td><span class="card-tag">{{ row.track_name }}</span></td>
+          <td style="font-family:var(--font-mono);color:var(--text-muted);">#{{ row.raw_rank }}</td>
+          <td>
+            {% if row.rank_delta > 0 %}
+            <span class="role-pill" style="background:#ecfdf5;color:#047857;border-color:#a7f3d0;font-weight:700;" title="Gained {{ row.rank_delta }} ranks after adjusting for strict judging">
+              &uarr; {{ row.rank_delta }}
+            </span>
+            {% elif row.rank_delta < 0 %}
+            <span class="role-pill" style="background:#fffbeb;color:#b45309;border-color:#fde68a;font-weight:700;" title="Shifted {{ row.rank_delta }} ranks after adjusting for lenient judging">
+              &darr; {{ row.rank_delta | abs }}
+            </span>
+            {% else %}
+            <span class="role-pill" style="background:var(--slate-100);color:var(--slate-600);border-color:var(--slate-200);font-weight:600;" title="Rank unchanged by normalization">
+              =
+            </span>
+            {% endif %}
+          </td>
+          <td style="font-family:var(--font-mono);font-size:0.9rem;">{{ '%.2f' | format(row.raw_score) }}</td>
+          <td>
+            <div style="font-family:var(--font-mono);font-weight:800;color:var(--emerald-600);font-size:1.05rem;" title="Adjusted for differences in judge scoring tendency.">
+              {{ '%.2f' | format(row.normalized_score) }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
+            </div>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:0.85rem;color:{% if shift > 0.001 %}var(--emerald-600){% elif shift < -0.001 %}var(--amber-600){% else %}var(--text-muted){% endif %};">
+            {% if shift > 0.001 %}+{{ '%.2f' | format(shift) }}{% elif shift < -0.001 %}{{ '%.2f' | format(shift) }}{% else %}0.00{% endif %}
+          </td>
+          <td style="font-family:var(--font-mono);font-size:0.85rem;color:var(--slate-700);">{{ row.review_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- Section: Judge Progress Overview -->
@@ -625,7 +730,7 @@ async function handlePublish() {
   if (zeroCount > 0) {
     promptMsg += `Notice: ${zeroCount} project(s) currently have 0 submitted evaluations.\n`;
   }
-  promptMsg += "\nPublishing will make the official normalized rankings, podium, and awards publicly visible at /results.";
+  promptMsg += "\nPublishing makes the aggregated final leaderboard public. Individual judge ballots, private feedback and judge-to-project scoring details remain private.";
 
   if (!confirm(promptMsg)) return;
 

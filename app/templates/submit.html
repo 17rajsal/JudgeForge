@@ -234,6 +234,12 @@ async function handleSubmitProject(e, targetStatus) {
     return;
   }
 
+  if (targetStatus === 'submitted') {
+    if (!confirm('Are you ready to finalize your submission? Once submitted, your entry will be locked for evaluation and visible in the competition gallery.')) {
+      return;
+    }
+  }
+
   const payload = {
     event_id: "{{ event.id }}",
     title: title,
@@ -248,6 +254,9 @@ async function handleSubmitProject(e, targetStatus) {
     pitch_deck_url: deckUrl || null,
     status: targetStatus || 'submitted'
   };
+
+  const submitButtons = document.querySelectorAll('button[type="button"]');
+  submitButtons.forEach(btn => btn.disabled = true);
 
   try {
     const res = await fetch('/api/projects', {

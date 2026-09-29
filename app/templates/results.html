@@ -208,7 +208,7 @@
           <th>Track</th>
           <th>Team</th>
           <th>Reviews</th>
-          <th>Raw Avg</th>
+          <th>Raw Average</th>
           <th>Normalized Score</th>
         </tr>
       </thead>
@@ -243,9 +243,11 @@
           <td><span class="card-tag">{{ row.track_name }}</span></td>
           <td>{{ row.team_name }}</td>
           <td>{{ row.review_count }}</td>
-          <td style="font-family:var(--font-mono);font-size:0.88rem;">{{ '%.3f' | format(row.raw_score) }}</td>
-          <td style="font-family:var(--font-mono);font-weight:700;color:var(--emerald-600);font-size:1rem;">
-            {{ '%.4f' | format(row.normalized_score) }}
+          <td style="font-family:var(--font-mono);font-size:0.88rem;">{{ '%.2f' | format(row.raw_score) }}</td>
+          <td>
+            <span style="font-family:var(--font-mono);font-weight:800;color:var(--emerald-600);font-size:1.05rem;" title="Adjusted for differences in judge scoring tendency.">
+              {{ '%.2f' | format(row.normalized_score) }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
+            </span>
           </td>
         </tr>
         {% else %}

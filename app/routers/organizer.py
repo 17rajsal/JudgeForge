@@ -83,11 +83,25 @@ def get_judging_progress(
         if score_count == 0:
             inactive_judges.append(j_info)
 
-    zero_review_projects = [
-        {"id": p.id, "title": p.title, "track_name": p.track.name if p.track else ""}
-        for p in projects
-        if len(p.scores) == 0
-    ]
+    target_reviews = min(2, total_judges) if total_judges > 0 else 1
+
+    zero_review_projects = []
+    below_target_projects = []
+    fully_reviewed_projects = []
+
+    for p in projects:
+        sc_cnt = len(p.scores)
+        p_data = {"id": p.id, "title": p.title, "track_name": p.track.name if p.track else "", "review_count": sc_cnt}
+        if sc_cnt == 0:
+            zero_review_projects.append(p_data)
+        elif sc_cnt < target_reviews:
+            below_target_projects.append(p_data)
+        else:
+            fully_reviewed_projects.append(p_data)
+
+    judges_not_started = [j for j in judge_progress if j["scored_count"] == 0]
+    judges_in_progress = [j for j in judge_progress if 0 < j["scored_count"] < total_projects]
+    judges_complete = [j for j in judge_progress if total_projects > 0 and j["scored_count"] >= total_projects]
 
     tracks = db.query(Track).filter(Track.event_id == event_id).all() if event_id else db.query(Track).all()
     track_stats = []
@@ -115,8 +129,16 @@ def get_judging_progress(
         "total_scores": total_scores,
         "expected_reviews": expected_reviews,
         "completion_pct": min(100, completion_pct),
+        "target_reviews_per_project": target_reviews,
         "zero_review_count": len(zero_review_projects),
         "zero_review_projects": zero_review_projects,
+        "below_target_count": len(below_target_projects),
+        "below_target_projects": below_target_projects,
+        "fully_reviewed_count": len(fully_reviewed_projects),
+        "fully_reviewed_projects": fully_reviewed_projects,
+        "judges_not_started": judges_not_started,
+        "judges_in_progress": judges_in_progress,
+        "judges_complete": judges_complete,
         "inactive_judges_count": len(inactive_judges),
         "inactive_judges": inactive_judges,
         "judges": judge_progress,
@@ -190,28 +212,57 @@ def view_organizer_dashboard(
     completed_reviews = db.query(Score).join(Project).filter(Project.event_id == event.id).count() if event else 0
     completion_pct = round((completed_reviews / max(1, expected_reviews)) * 100) if expected_reviews > 0 else 0
 
-    zero_review_projects = [
-        {"id": p.id, "title": p.title, "track_name": p.track.name if p.track else ""}
-        for p in event_projects
-        if len(p.scores) == 0
-    ]
+    target_reviews = min(2, total_assigned_judges) if total_assigned_judges > 0 else 1
 
-    inactive_judges = []
+    zero_review_projects = []
+    below_target_projects = []
+    fully_reviewed_projects = []
+
+    for p in event_projects:
+        sc_cnt = len(p.scores)
+        p_data = {"id": p.id, "title": p.title, "track_name": p.track.name if p.track else "", "review_count": sc_cnt}
+        if sc_cnt == 0:
+            zero_review_projects.append(p_data)
+        elif sc_cnt < target_reviews:
+            below_target_projects.append(p_data)
+        else:
+            fully_reviewed_projects.append(p_data)
+
+    judges_not_started = []
+    judges_in_progress = []
+    judges_complete = []
+
     for j in event_judges:
         j_count = db.query(Score).join(Project).filter(Project.event_id == event.id, Score.judge_id == j.id).count() if event else 0
+        j_info = {"id": j.id, "name": j.name, "email": j.email, "reviewed_count": j_count}
         if j_count == 0:
-            inactive_judges.append({"id": j.id, "name": j.name, "email": j.email})
+            judges_not_started.append(j_info)
+        elif total_event_submissions > 0 and j_count >= total_event_submissions:
+            judges_complete.append(j_info)
+        else:
+            judges_in_progress.append(j_info)
+
+    total_rubric_weight = round(sum(c.weight for c in criteria), 2) if criteria else 3.0
 
     judging_progress = {
         "total_submissions": total_event_submissions,
         "total_judges": total_assigned_judges,
+        "target_reviews_per_project": target_reviews,
         "expected_reviews": expected_reviews,
         "completed_reviews": completed_reviews,
         "completion_pct": min(100, completion_pct),
         "zero_review_projects": zero_review_projects,
         "zero_review_count": len(zero_review_projects),
-        "inactive_judges": inactive_judges,
-        "inactive_judge_count": len(inactive_judges),
+        "below_target_projects": below_target_projects,
+        "below_target_count": len(below_target_projects),
+        "fully_reviewed_projects": fully_reviewed_projects,
+        "fully_reviewed_count": len(fully_reviewed_projects),
+        "judges_not_started": judges_not_started,
+        "judges_in_progress": judges_in_progress,
+        "judges_complete": judges_complete,
+        "inactive_judges": judges_not_started,
+        "inactive_judge_count": len(judges_not_started),
+        "total_rubric_weight": total_rubric_weight,
     }
 
     return templates.TemplateResponse(
@@ -225,6 +276,7 @@ def view_organizer_dashboard(
             "tracks": tracks,
             "judges": judges,
             "criteria": criteria,
+            "total_rubric_weight": total_rubric_weight,
             "prizes": prizes,
             "all_users": all_users,
             "audit_logs": audit_logs,

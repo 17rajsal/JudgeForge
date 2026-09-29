@@ -143,7 +143,7 @@
           {% endif %}
         </td>
         <td style="text-align:right;">
-          <button onclick="openScoringModal('{{ p.id }}', '{{ p.title | escape }}', {{ sc.functionality if sc and sc.functionality else 3 }}, {{ sc.quality if sc and sc.quality else 3 }}, {{ sc.innovation if sc and sc.innovation else 3 }}, '{{ (sc.comment or '') | escape }}')" 
+          <button onclick="openScoringModal('{{ p.id }}')"
                   class="btn {% if sc %}btn-secondary{% else %}btn-primary{% endif %}" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
             {% if sc %}Edit Score{% else %}Score Now{% endif %}
           </button>
@@ -161,97 +161,121 @@
 </div>
 
 <!-- Scoring Modal Dialog -->
-<dialog id="scoringModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:2rem;max-width:580px;width:94%;margin:auto;box-shadow:var(--shadow-xl);">
+<dialog id="scoringModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:2rem;max-width:760px;width:95%;margin:auto;box-shadow:var(--shadow-xl);">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1rem;">
-    <div>
-      <h3 id="modalTitle" style="font-size:1.35rem;font-weight:800;color:var(--slate-900);">Score Project</h3>
-      <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.15rem;">Calibrated rubric scoring (1 to 5 scale) with organizer weight preview.</p>
+    <div style="flex:1;padding-right:1rem;">
+      <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.35rem;">
+        <span class="card-tag" id="modalTrackBadge">Track</span>
+        <span id="modalTeamName" style="font-size:0.85rem;font-weight:700;color:var(--slate-800);">Team</span>
+      </div>
+      <h3 id="modalTitle" style="font-size:1.45rem;font-weight:800;color:var(--slate-900);line-height:1.25;">Score Project</h3>
+      <div id="modalTagline" style="font-size:0.9rem;color:var(--slate-600);margin-top:0.25rem;font-weight:500;"></div>
+      <div id="modalMembersList" style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;margin-top:0.35rem;"></div>
     </div>
-    <button type="button" onclick="document.getElementById('scoringModal').close()" style="background:transparent;border:none;font-size:1.4rem;color:var(--slate-400);cursor:pointer;line-height:1;">&times;</button>
+    <button type="button" onclick="document.getElementById('scoringModal').close()" style="background:transparent;border:none;font-size:1.6rem;color:var(--slate-400);cursor:pointer;line-height:1;">&times;</button>
+  </div>
+
+  <!-- Project Materials Toolbar -->
+  <div id="modalAssetToolbar" style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;padding:0.75rem 1rem;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);margin-bottom:1.25rem;">
+    <!-- Populated dynamically via JS -->
   </div>
 
   <!-- Peer Isolation Confidentiality Notice -->
-  <div style="display:flex;gap:0.5rem;align-items:center;background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-sm);padding:0.5rem 0.75rem;font-size:0.78rem;color:var(--slate-700);margin-bottom:1.25rem;">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-    <span><strong>Confidential Review:</strong> Your evaluation is private. Peer judge scores and comments remain strictly isolated.</span>
+  <div class="callout callout-info" style="margin-bottom:1.25rem;padding:0.65rem 0.85rem;font-size:0.82rem;">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <div>
+      <strong>Confidential Evaluation:</strong> Your evaluation is private. Peer judge scores and comments are isolated by the backend.
+    </div>
   </div>
   
   <form id="scoreForm" onsubmit="handleScoreSubmit(event)">
     <input type="hidden" id="modalProjectId">
 
-    <!-- Functionality -->
-    <div class="form-group" style="margin-bottom:1.15rem;">
+    <!-- Functionality Criterion -->
+    <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalFunc" style="font-weight:700;">
-          Functionality (1 - 5) *
+        <label for="modalFunc" style="font-weight:700;font-size:0.95rem;">
+          1. Functionality (1 - 5) *
         </label>
-        <span class="card-tag" id="weightBadgeFunc" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="card-tag" id="weightBadgeFunc" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+          <span id="contribFunc" style="font-size:0.72rem;color:var(--text-secondary);font-family:var(--font-mono);"></span>
+        </div>
       </div>
       <input type="number" id="modalFunc" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.25rem;margin-top:0.35rem;font-size:0.7rem;color:var(--text-secondary);text-align:center;line-height:1.2;">
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>1</strong><br>Broken</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>2</strong><br>Major bugs</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>3</strong><br>Working MVP</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>4</strong><br>Robust</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>5</strong><br>Flawless</div>
+      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>broken / critical flows fail</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>partially working / major gaps</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>working MVP</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>works reliably with minor issues</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>complete, reliable and polished</div>
       </div>
     </div>
 
-    <!-- Code & Design Quality -->
-    <div class="form-group" style="margin-bottom:1.15rem;">
+    <!-- Code & Design Quality Criterion -->
+    <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalQual" style="font-weight:700;">
-          Code &amp; Architecture Quality (1 - 5) *
+        <label for="modalQual" style="font-weight:700;font-size:0.95rem;">
+          2. Code &amp; Design Quality (1 - 5) *
         </label>
-        <span class="card-tag" id="weightBadgeQual" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="card-tag" id="weightBadgeQual" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+          <span id="contribQual" style="font-size:0.72rem;color:var(--text-secondary);font-family:var(--font-mono);"></span>
+        </div>
       </div>
       <input type="number" id="modalQual" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.25rem;margin-top:0.35rem;font-size:0.7rem;color:var(--text-secondary);text-align:center;line-height:1.2;">
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>1</strong><br>Unpolished</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>2</strong><br>Messy</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>3</strong><br>Clean &amp; UI</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>4</strong><br>High Craft</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>5</strong><br>Production</div>
+      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>fragile / poorly structured</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>architecture/UX problems</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>reasonably clean implementation</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>strong architecture and UX</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>production-quality engineering</div>
       </div>
     </div>
 
-    <!-- Innovation & Creativity -->
-    <div class="form-group" style="margin-bottom:1.15rem;">
+    <!-- Innovation & Creativity Criterion -->
+    <div class="form-group" style="margin-bottom:1.35rem;">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-        <label for="modalInnov" style="font-weight:700;">
-          Innovation &amp; Creativity (1 - 5) *
+        <label for="modalInnov" style="font-weight:700;font-size:0.95rem;">
+          3. Innovation &amp; Creativity (1 - 5) *
         </label>
-        <span class="card-tag" id="weightBadgeInnov" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <span class="card-tag" id="weightBadgeInnov" style="font-size:0.72rem;background:var(--slate-100);">Weight: 1.0</span>
+          <span id="contribInnov" style="font-size:0.72rem;color:var(--text-secondary);font-family:var(--font-mono);"></span>
+        </div>
       </div>
       <input type="number" id="modalInnov" min="1" max="5" value="3" required oninput="updateWeightedPreview()" class="form-input" style="font-size:1rem;font-weight:700;padding:0.4rem 0.75rem;">
-      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.25rem;margin-top:0.35rem;font-size:0.7rem;color:var(--text-secondary);text-align:center;line-height:1.2;">
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>1</strong><br>Clone</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>2</strong><br>Familiar</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>3</strong><br>Creative</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>4</strong><br>Distinctive</div>
-        <div style="padding:0.2rem;background:var(--slate-50);border-radius:3px;"><strong>5</strong><br>Breakthrough</div>
+      <div style="display:grid;grid-template-columns:repeat(5, 1fr);gap:0.35rem;margin-top:0.4rem;font-size:0.72rem;color:var(--text-secondary);line-height:1.25;">
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>1</strong><br>standard/common clone</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>2</strong><br>limited originality</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>3</strong><br>meaningful creative decisions</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>4</strong><br>distinctive approach</div>
+        <div style="padding:0.35rem;background:var(--slate-50);border-radius:4px;border:1px solid var(--slate-200);"><strong>5</strong><br>breakthrough insight</div>
       </div>
     </div>
 
     <!-- Live Weighted Raw Score Preview Banner -->
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.85rem 1.15rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.15rem;">
+    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1.25rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
       <div>
         <span style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">Calculated Raw Score Preview</span>
-        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">Weighted across organizer criteria</div>
+        <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">Formula: &sum;(score &times; weight) / &sum;(weights)</div>
       </div>
-      <div id="modalWeightedPreview" style="font-family:var(--font-mono);font-size:1.25rem;font-weight:800;color:var(--primary-700);">
+      <div id="modalWeightedPreview" style="font-family:var(--font-mono);font-size:1.35rem;font-weight:800;color:var(--primary-700);">
         3.00 / 5.00
       </div>
     </div>
 
-    <div class="form-group">
+    <div class="form-group" style="margin-bottom:1.5rem;">
       <label for="modalComment" style="font-weight:700;">Private Notes &amp; Rationale</label>
-      <textarea id="modalComment" rows="3" placeholder="Constructive evaluation remarks (isolated until final normalization)..."></textarea>
+      <textarea id="modalComment" rows="3" placeholder="Constructive evaluation remarks (isolated from peers until final deliberation)..."></textarea>
     </div>
 
-    <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;padding-top:1.25rem;border-top:1px solid var(--slate-200);">
       <button type="button" onclick="document.getElementById('scoringModal').close()" class="btn btn-secondary">Cancel</button>
-      <button type="submit" class="btn btn-primary">Save Score</button>
+      <div style="display:flex;gap:0.75rem;align-items:center;">
+        <button type="submit" onclick="window.saveAndNext = false;" class="btn btn-secondary">Save Review</button>
+        <button type="submit" onclick="window.saveAndNext = true;" class="btn btn-primary">Save &amp; Next &rarr;</button>
+      </div>
     </div>
   </form>
 </dialog>
@@ -262,6 +286,32 @@ const criteriaWeights = {
   "{{ c.name }}": {{ c.weight }},
   {% endfor %}
 };
+
+const assignedProjects = [
+  {% for p in projects %}
+  {% set sc = my_scores.get(p.id) %}
+  {
+    id: "{{ p.id }}",
+    title: {{ p.title | tojson }},
+    tagline: {{ (p.tagline or "") | tojson }},
+    summary: {{ (p.summary or "") | tojson }},
+    description: {{ (p.description or "") | tojson }},
+    track: "{{ p.track.name if p.track else 'General' }}",
+    team: "{{ p.team.name if p.team else 'Independent' }}",
+    members: [{% if p.team and p.team.members %}{% for m in p.team.members %}"{{ m.email }}"{% if not loop.last %},{% endif %}{% endfor %}{% endif %}],
+    tech_tags: [{% if p.tech_tags %}{% for t in p.tech_tags %}"{{ t }}"{% if not loop.last %},{% endif %}{% endfor %}{% endif %}],
+    repo_url: "{{ p.repo_url or '' }}",
+    demo_url: "{{ p.demo_url or '' }}",
+    video_url: "{{ p.video_url or '' }}",
+    pitch_deck_url: "{{ p.pitch_deck_url or '' }}",
+    score_f: {{ sc.functionality if sc and sc.functionality else 3 }},
+    score_q: {{ sc.quality if sc and sc.quality else 3 }},
+    score_i: {{ sc.innovation if sc and sc.innovation else 3 }},
+    comment: {{ ((sc.comment or "") if sc else "") | tojson }},
+    is_scored: {{ 'true' if sc else 'false' }}
+  }{% if not loop.last %},{% endif %}
+  {% endfor %}
+];
 
 function updateWeightedPreview() {
   const f = parseFloat(document.getElementById('modalFunc').value) || 1;
@@ -279,17 +329,69 @@ function updateWeightedPreview() {
   if (previewEl) {
     previewEl.textContent = rawWeighted.toFixed(2) + ' / 5.00';
   }
+
+  // Update contribution spans
+  const cFunc = document.getElementById('contribFunc');
+  const cQual = document.getElementById('contribQual');
+  const cInnov = document.getElementById('contribInnov');
+  if (cFunc) cFunc.textContent = `Contrib: ${(f * wf / (totalW || 1)).toFixed(2)} pts (${(wf / (totalW || 1) * 100).toFixed(0)}%)`;
+  if (cQual) cQual.textContent = `Contrib: ${(q * wq / (totalW || 1)).toFixed(2)} pts (${(wq / (totalW || 1) * 100).toFixed(0)}%)`;
+  if (cInnov) cInnov.textContent = `Contrib: ${(i * wi / (totalW || 1)).toFixed(2)} pts (${(wi / (totalW || 1) * 100).toFixed(0)}%)`;
 }
 
-function openScoringModal(projId, projTitle, f, q, i, comment) {
-  document.getElementById('modalProjectId').value = projId;
-  document.getElementById('modalTitle').innerText = 'Score: ' + projTitle;
-  document.getElementById('modalFunc').value = f;
-  document.getElementById('modalQual').value = q;
-  document.getElementById('modalInnov').value = i;
-  document.getElementById('modalComment').value = comment || '';
+function openScoringModal(projId) {
+  const proj = assignedProjects.find(p => p.id === projId);
+  if (!proj) return;
 
-  // Update weight badges
+  document.getElementById('modalProjectId').value = proj.id;
+  document.getElementById('modalTitle').innerText = proj.title;
+  document.getElementById('modalTagline').innerText = proj.tagline || '';
+  document.getElementById('modalTrackBadge').innerText = proj.track;
+  document.getElementById('modalTeamName').innerText = 'Team: ' + proj.team;
+
+  // Members
+  const memList = document.getElementById('modalMembersList');
+  memList.innerHTML = '';
+  if (proj.members && proj.members.length > 0) {
+    proj.members.forEach(m => {
+      const chip = document.createElement('span');
+      chip.className = 'role-pill role-participant';
+      chip.style.fontSize = '0.72rem';
+      chip.style.padding = '0.1rem 0.5rem';
+      chip.innerText = m;
+      memList.appendChild(chip);
+    });
+  }
+
+  // Asset Toolbar
+  const bar = document.getElementById('modalAssetToolbar');
+  bar.innerHTML = '';
+  let hasLinks = false;
+  if (proj.repo_url) {
+    hasLinks = true;
+    bar.innerHTML += `<a href="${proj.repo_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.65rem;">GitHub Repo &rarr;</a>`;
+  }
+  if (proj.demo_url) {
+    hasLinks = true;
+    bar.innerHTML += `<a href="${proj.demo_url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="font-size:0.78rem;padding:0.25rem 0.65rem;">Live Demo &rarr;</a>`;
+  }
+  if (proj.video_url) {
+    hasLinks = true;
+    bar.innerHTML += `<a href="${proj.video_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.65rem;">Demo Video &rarr;</a>`;
+  }
+  if (proj.pitch_deck_url) {
+    hasLinks = true;
+    bar.innerHTML += `<a href="${proj.pitch_deck_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.65rem;">Pitch Deck &rarr;</a>`;
+  }
+  bar.innerHTML += `<a href="/projects/${proj.id}" target="_blank" class="btn btn-secondary" style="font-size:0.78rem;padding:0.25rem 0.65rem;">Full Details &rarr;</a>`;
+
+  // Scores
+  document.getElementById('modalFunc').value = proj.score_f || 3;
+  document.getElementById('modalQual').value = proj.score_q || 3;
+  document.getElementById('modalInnov').value = proj.score_i || 3;
+  document.getElementById('modalComment').value = proj.comment || '';
+
+  // Weights
   const wf = criteriaWeights["functionality"] !== undefined ? criteriaWeights["functionality"] : 1.0;
   const wq = criteriaWeights["quality"] !== undefined ? criteriaWeights["quality"] : 1.0;
   const wi = criteriaWeights["innovation"] !== undefined ? criteriaWeights["innovation"] : 1.0;
@@ -326,6 +428,33 @@ async function handleScoreSubmit(e) {
   });
 
   if (res.ok) {
+    // Update local project in assignedProjects
+    const proj = assignedProjects.find(p => p.id === projId);
+    if (proj) {
+      proj.score_f = f;
+      proj.score_q = q;
+      proj.score_i = i;
+      proj.comment = comment;
+      proj.is_scored = true;
+    }
+
+    if (window.saveAndNext) {
+      // Find next unreviewed or next project in order
+      const curIdx = assignedProjects.findIndex(p => p.id === projId);
+      let nextProj = assignedProjects.find((p, idx) => idx > curIdx && !p.is_scored);
+      if (!nextProj) {
+        nextProj = assignedProjects.find(p => !p.is_scored && p.id !== projId);
+      }
+      if (!nextProj && curIdx + 1 < assignedProjects.length) {
+        nextProj = assignedProjects[curIdx + 1];
+      }
+
+      if (nextProj) {
+        openScoringModal(nextProj.id);
+        return;
+      }
+    }
+
     document.getElementById('scoringModal').close();
     window.location.reload();
   } else {

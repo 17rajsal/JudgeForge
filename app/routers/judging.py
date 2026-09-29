@@ -125,16 +125,36 @@ def submit_or_update_score(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    if project.status != "submitted":
+        raise HTTPException(status_code=400, detail="Cannot score an unsubmitted project draft")
+
+    # If caller is a judge, ensure they are assigned to this project's track within this event
+    if current_user.role == "judge":
+        if judge_profile and judge_profile.tracks:
+            event_assigned_tracks = {t.id for t in judge_profile.tracks if t.event_id == project.event_id}
+            if event_assigned_tracks and project.track_id not in event_assigned_tracks:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Forbidden: Judge is not assigned to evaluate this project's track",
+                )
+
     # Criteria parsing
     crit = payload.criteria or {}
     func_score = payload.functionality if payload.functionality is not None else crit.get("functionality", 3)
     qual_score = payload.quality if payload.quality is not None else crit.get("quality", 3)
     innov_score = payload.innovation if payload.innovation is not None else crit.get("innovation", 3)
 
+    for crit_name, crit_val in [("functionality", func_score), ("quality", qual_score), ("innovation", innov_score)]:
+        if crit_val is None or not isinstance(crit_val, (int, float)) or not (1 <= crit_val <= 5):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Score for {crit_name} must be an integer between 1 and 5",
+            )
+
     score_dict = {
-        "functionality": func_score,
-        "quality": qual_score,
-        "innovation": innov_score,
+        "functionality": int(func_score),
+        "quality": int(qual_score),
+        "innovation": int(innov_score),
     }
 
     # Upsert score

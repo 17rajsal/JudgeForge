@@ -81,6 +81,8 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
                 "pitch_deck_url": p.pitch_deck_url or "",
                 "tech_stack": p.tech_stack or "",
                 "rank": idx + 1,
+                "raw_rank": idx + 1,
+                "rank_delta": 0,
             }
             for idx, p in enumerate(projects)
         ]
@@ -177,11 +179,17 @@ def compute_leaderboard(db: Session, event_id: Optional[str] = None) -> List[Dic
             "tech_stack": p.tech_stack or "",
         })
 
+    # Calculate ranking before normalization (Raw Rank)
+    raw_sorted = sorted(results, key=lambda x: (x["raw_score"], x["project_id"]), reverse=True)
+    raw_rank_map = {item["project_id"]: idx + 1 for idx, item in enumerate(raw_sorted)}
+
     # Sort descending by normalized score, then raw score, then project_id
-    results.sort(key=lambda x: (x["normalized_score"], x["raw_score"]), reverse=True)
+    results.sort(key=lambda x: (x["normalized_score"], x["raw_score"], x["project_id"]), reverse=True)
 
     for rank, item in enumerate(results, start=1):
         item["rank"] = rank
+        item["raw_rank"] = raw_rank_map.get(item["project_id"], rank)
+        item["rank_delta"] = item["raw_rank"] - rank
 
     return results
 
