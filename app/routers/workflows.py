@@ -1,15 +1,14 @@
 import datetime as dt
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.auth import get_current_user, require_organizer, require_participant_or_organizer
-from app.models import Event, Track, Team, TeamMember, TeamInvite, AuditLog, RubricCriterion
+from app.models import Event, Track, Team, TeamMember, TeamInvite, AuditLog, RubricCriterion, Project
+from app.templating import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/templates")
 
 class EventCreate(BaseModel):
     name: str = Field(min_length=1, max_length=150)
@@ -39,7 +38,35 @@ def create_event(payload: EventCreate, db: Session = Depends(get_db), user=Depen
 def workspace(request: Request, db: Session = Depends(get_db), user=Depends(get_current_user)):
     events = db.query(Event).order_by(Event.created_at.desc()).all()
     teams = db.query(Team).join(TeamMember).filter(TeamMember.user_id == user.id).all()
-    return templates.TemplateResponse(request=request, name="workspace.html", context={"user":user,"events":events,"teams":teams})
+    team_ids = [t.id for t in teams]
+    user_projects = (
+        db.query(Project).filter(Project.team_id.in_(team_ids)).order_by(Project.submitted_at.desc()).all()
+        if team_ids
+        else []
+    )
+    has_draft = any(p.status == "draft" for p in user_projects)
+    has_submitted = any(p.status == "submitted" for p in user_projects)
+    active_event = events[0] if events else None
+    active_event_closed = active_event.is_closed if active_event else False
+    all_closed = all(e.is_closed for e in events) if events else True
+    results_published = any(e.results_published for e in events)
+
+    return templates.TemplateResponse(
+        request=request,
+        name="workspace.html",
+        context={
+            "user": user,
+            "events": events,
+            "teams": teams,
+            "user_projects": user_projects,
+            "has_draft": has_draft,
+            "has_submitted": has_submitted,
+            "active_event": active_event,
+            "active_event_closed": active_event_closed,
+            "all_closed": all_closed,
+            "results_published": results_published,
+        },
+    )
 
 @router.post("/api/teams/{team_id}/invites", status_code=201)
 def invite(team_id: str, db: Session = Depends(get_db), user=Depends(require_participant_or_organizer)):

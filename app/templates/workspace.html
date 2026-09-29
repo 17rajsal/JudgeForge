@@ -28,21 +28,28 @@
 </div>
 
 <!-- Workflow Steps -->
+{% set step2_done = has_draft or has_submitted %}
+{% set step2_active = (not step2_done) and (teams | length > 0 or not active_event_closed) %}
+{% set step3_done = has_submitted %}
+{% set step3_active = (not step3_done) and has_draft and (not active_event_closed) %}
+{% set step4_done = results_published %}
+{% set step4_active = (not step4_done) and (has_submitted or active_event_closed) %}
+
 <div class="steps-nav">
   <div class="step-item completed">
     <div class="step-number">&check;</div>
-    <span>1. Account Created</span>
+    <span>1. Account Setup</span>
   </div>
-  <div class="step-item active">
-    <div class="step-number">2</div>
+  <div class="step-item {% if step2_done %}completed{% elif step2_active %}active{% endif %}">
+    <div class="step-number">{% if step2_done %}&check;{% else %}2{% endif %}</div>
     <span>2. Team &amp; Draft</span>
   </div>
-  <div class="step-item">
-    <div class="step-number">3</div>
+  <div class="step-item {% if step3_done %}completed{% elif step3_active %}active{% endif %}">
+    <div class="step-number">{% if step3_done %}&check;{% else %}3{% endif %}</div>
     <span>3. Finalize Submission</span>
   </div>
-  <div class="step-item">
-    <div class="step-number">4</div>
+  <div class="step-item {% if step4_done %}completed{% elif step4_active %}active{% endif %}">
+    <div class="step-number">{% if step4_done %}&check;{% else %}4{% endif %}</div>
     <span>4. Review &amp; Results</span>
   </div>
 </div>
@@ -50,9 +57,15 @@
 <!-- Top KPI Cards -->
 <div class="stat-grid">
   <div class="stat-card">
-    <div class="stat-card-label">Active Events</div>
+    <div class="stat-card-label">Competitions</div>
     <div class="stat-card-value">{{ events | length }}</div>
-    <div class="stat-card-hint">Open for participation</div>
+    <div class="stat-card-hint">
+      {% if all_closed %}
+        Submissions closed
+      {% else %}
+        Submissions open
+      {% endif %}
+    </div>
   </div>
   <div class="stat-card">
     <div class="stat-card-label">Your Teams</div>
@@ -67,9 +80,21 @@
   <div class="stat-card">
     <div class="stat-card-label">Submission Action</div>
     <div style="margin-top:0.4rem;">
+      {% if active_event_closed %}
+      <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;" title="Submissions closed for competition" aria-disabled="true">
+        Submissions closed
+      </span>
+      {% else %}
       <a href="/submit" class="btn btn-primary">+ New Project</a>
+      {% endif %}
     </div>
-    <div class="stat-card-hint">Draft or final entry</div>
+    <div class="stat-card-hint">
+      {% if active_event_closed %}
+        Deadline passed
+      {% else %}
+        Draft or final entry
+      {% endif %}
+    </div>
   </div>
 </div>
 
@@ -81,7 +106,7 @@
       <span class="card-tag">{{ events | length }} Available</span>
     </div>
     <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:1.25rem;">
-      Hackathon competitions and configured prize pools open for registration.
+      Hackathon competitions and configured prize pools.
     </p>
 
     <div style="display:flex;flex-direction:column;gap:1rem;flex:1;">
@@ -89,14 +114,23 @@
       <div style="background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:1rem;">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:0.5rem;flex-wrap:wrap;">
           <div>
-            <h3 style="font-size:1rem;font-weight:600;">{{ e.name }}</h3>
-            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
-              Deadline: <strong>{{ e.submissions_close }} UTC</strong>
+            <div style="display:flex;align-items:center;gap:0.5rem;">
+              <h3 style="font-size:1rem;font-weight:600;margin:0;">{{ e.name }}</h3>
+              <span class="{{ e.status_class }}" style="font-size:0.75rem;">{{ e.status_label }}</span>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;">
+              Deadline: <strong>{{ e.submissions_close.strftime('%b %d, %Y %H:%M UTC') if e.submissions_close else 'Ended' }}</strong>
             </div>
           </div>
-          <a href="/submit?event_id={{ e.id }}" class="btn btn-secondary">
+          {% if e.is_closed %}
+          <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.82rem;" title="Submissions closed" aria-disabled="true">
+            Submissions closed
+          </span>
+          {% else %}
+          <a href="/submit?event_id={{ e.id }}" class="btn btn-secondary" style="font-size:0.82rem;">
             Submit &rarr;
           </a>
+          {% endif %}
         </div>
 
         {% if e.prizes %}
@@ -175,6 +209,56 @@
     </div>
   </div>
 </div>
+
+{% if user_projects %}
+<!-- User Projects & Drafts -->
+<div class="card" style="margin-bottom:2rem;">
+  <div class="card-header">
+    <div>
+      <h2 style="font-size:1.15rem;">Your Team Submissions &amp; Drafts</h2>
+      <p style="font-size:0.85rem;color:var(--text-secondary);margin-top:0.2rem;">
+        Entries and working drafts associated with your competition teams.
+      </p>
+    </div>
+    <span class="card-tag">{{ user_projects | length }} Entries</span>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:0.75rem;margin-top:0.75rem;">
+    {% for prj in user_projects %}
+    <div style="display:flex;justify-content:space-between;align-items:center;background:var(--slate-50);border:1px solid var(--card-border);border-radius:var(--radius-md);padding:0.85rem 1rem;flex-wrap:wrap;gap:0.75rem;">
+      <div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <strong style="color:var(--text-primary);">{{ prj.title }}</strong>
+          <span class="card-tag" style="font-size:0.72rem;{% if prj.status == 'submitted' %}background:var(--success-bg);color:var(--success);border-color:var(--success-border);{% else %}background:var(--warning-bg);color:var(--warning);border-color:var(--warning-border);{% endif %}">
+            {{ prj.status | upper }}
+          </span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.2rem;">
+          Track: <strong>{{ prj.track.name if prj.track else 'General' }}</strong> &middot; Team: <strong>{{ prj.team.name if prj.team else 'Independent' }}</strong>
+        </div>
+      </div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        {% if prj.status == 'submitted' %}
+        <a href="/projects/{{ prj.id }}" class="btn btn-secondary" style="font-size:0.82rem;">
+          View Entry &rarr;
+        </a>
+        {% else %}
+          {% if prj.event and prj.event.is_closed %}
+          <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;font-size:0.82rem;" title="Submissions closed. Draft is read-only." aria-disabled="true">
+            Draft (Closed)
+          </span>
+          {% else %}
+          <a href="/submit?event_id={{ prj.event_id }}&project_id={{ prj.id }}" class="btn btn-primary" style="font-size:0.82rem;">
+            Edit / Finalize Draft &rarr;
+          </a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
 
 {% if user.role in ['organizer', 'admin'] %}
 <!-- Organizer/Admin Event Creator -->

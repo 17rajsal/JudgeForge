@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Event, Prize
@@ -13,7 +13,6 @@ from app.services.certificates import (
 )
 
 router = APIRouter(tags=["Certificates"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _get_project_certificate_meta(project: Project, db: Session):

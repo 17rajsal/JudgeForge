@@ -74,7 +74,7 @@ app = FastAPI(
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-templates = Jinja2Templates(directory="app/templates")
+from app.templating import templates
 
 app.include_router(health.router)
 app.include_router(auth.router)

@@ -4,7 +4,7 @@ from app.models import PasswordCredential
 from app.passwords import hash_password
 from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -13,7 +13,6 @@ from app.auth import get_current_user, get_current_user_optional, require_organi
 from app.services.scoring import compute_leaderboard, generate_results_csv
 
 router = APIRouter(tags=["Organizer"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 class RubricUpdateSchema(BaseModel):

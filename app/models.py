@@ -66,6 +66,44 @@ class Event(Base):
     votes = relationship("CommunityVote", back_populates="event", cascade="all, delete-orphan")
     vouchers = relationship("VotingVoucher", back_populates="event", cascade="all, delete-orphan")
 
+    @property
+    def is_closed(self) -> bool:
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        close_time = self.submissions_close
+        if close_time and close_time.tzinfo is None:
+            close_time = close_time.replace(tzinfo=datetime.timezone.utc)
+        return now_utc > close_time if close_time else False
+
+    @property
+    def status_label(self) -> str:
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        if self.results_published:
+            return "Results published"
+
+        v_opens = self.voting_opens
+        if v_opens and v_opens.tzinfo is None:
+            v_opens = v_opens.replace(tzinfo=datetime.timezone.utc)
+        v_closes = self.voting_closes
+        if v_closes and v_closes.tzinfo is None:
+            v_closes = v_closes.replace(tzinfo=datetime.timezone.utc)
+
+        if v_opens and v_closes and v_opens <= now_utc <= v_closes:
+            return "Voting open"
+        elif v_opens and not v_closes and now_utc >= v_opens:
+            return "Voting open"
+
+        if self.is_closed:
+            return "Submissions closed"
+        return "Submissions open"
+
+    @property
+    def status_class(self) -> str:
+        if self.results_published or self.status_label == "Voting open":
+            return "stat-open"
+        if self.is_closed:
+            return "stat-closed"
+        return "stat-open"
+
 
 class Track(Base):
     __tablename__ = "tracks"

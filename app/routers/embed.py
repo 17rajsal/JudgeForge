@@ -1,13 +1,12 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
+from app.templating import templates
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Project, Event, Track
 
 router = APIRouter(prefix="/embed", tags=["Embed"])
-templates = Jinja2Templates(directory="app/templates")
 
 
 def _relax_frame_headers(response: Response):

@@ -3,7 +3,6 @@ import json
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -11,7 +10,7 @@ from app.models import Score, Judge, Project, RubricCriterion, User, AuditLog, T
 from app.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(tags=["Judging"])
-templates = Jinja2Templates(directory="app/templates")
+from app.templating import templates
 
 
 class ScoreSubmissionSchema(BaseModel):

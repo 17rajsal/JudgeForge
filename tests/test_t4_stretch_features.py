@@ -819,3 +819,48 @@ def test_security_project_status_validation(client):
         "status": "published_winner",
     }, headers=ORG)
     assert bad_res.status_code == 422
+
+
+def test_ux_closed_event_states_and_deadline_protection(client):
+    """Verifies that closed events display consistent disabled states across gallery,
+    workspace, submit page, and navbar, while preserving backend deadline rejection."""
+    # 1. Gallery
+    gallery_res = client.get("/projects")
+    assert gallery_res.status_code == 200
+    html = gallery_res.text
+    assert "Submissions closed" in html
+    assert "+ Submit Project" not in html
+
+    # 2. Workspace
+    workspace_res = client.get("/workspace", cookies={"session": "prt_2e88"})
+    assert workspace_res.status_code == 200
+    ws_html = workspace_res.text
+    assert "Submissions closed" in ws_html
+    assert "Deadline passed" in ws_html
+    # Should not have active "+ New Project" link
+    assert "+ New Project" not in ws_html
+
+    # 3. Submit page
+    submit_res = client.get("/submit", cookies={"session": "prt_2e88"})
+    assert submit_res.status_code == 200
+    sub_html = submit_res.text
+    assert "Submissions Closed" in sub_html or "Submissions closed" in sub_html
+    assert "disabled" in sub_html
+    assert "aria-disabled=\"true\"" in sub_html
+    # Submit button should not be an actionable enabled button
+    assert "Submit Final Entry" not in sub_html
+
+    # 4. Navbar across pages reflects closed status
+    assert "nav-closed-tag" in gallery_res.text
+    assert "nav-closed-tag" in ws_html
+    assert "nav-closed-tag" in sub_html
+
+    # 5. Backend deadline protection remains intact
+    post_res = client.post("/api/projects", json={
+        "title": "Blocked Closed Project",
+        "track_id": "trk_01",
+        "summary": "Should be rejected by backend deadline",
+        "event_id": "evt_01",
+    }, headers=PARTICIPANT)
+    assert post_res.status_code == 400
+    assert "closed" in post_res.json()["detail"].lower()

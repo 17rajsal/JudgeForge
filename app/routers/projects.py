@@ -3,7 +3,6 @@ import secrets
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -15,7 +14,7 @@ from app.auth import (
 )
 
 router = APIRouter(tags=["Projects"])
-templates = Jinja2Templates(directory="app/templates")
+from app.templating import templates
 
 
 class ProjectCreateSchema(BaseModel):

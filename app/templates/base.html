@@ -39,9 +39,13 @@
         </a>
       </li>
       <li>
-        <a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}">
+        {% set nav_closed = is_closed if is_closed is defined else (event.is_closed if event is defined and event else get_default_event_closed()) %}
+        <a href="/submit" class="{% if request.url.path == '/submit' %}active{% endif %}" {% if nav_closed %}title="Submissions closed for competition"{% endif %}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           Submit
+          {% if nav_closed %}
+          <span class="nav-closed-tag">Closed</span>
+          {% endif %}
         </a>
       </li>
       {% if user and user.role in ['judge', 'organizer', 'admin'] %}

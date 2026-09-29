@@ -13,8 +13,8 @@
 
   <div class="event-banner">
     <div class="event-stat">
-      <span>Submissions:</span>
-      <span class="stat-closed">Closed ({{ event.submissions_close.strftime('%b %d, %Y %H:%M UTC') if event and event.submissions_close else 'Ended' }})</span>
+      <span>Status:</span>
+      <span class="{{ event.status_class if event else 'stat-closed' }}">{{ event.status_label if event else 'Submissions closed' }}</span>
     </div>
     <div class="event-stat">
       <span>Submitted Projects:</span>
@@ -25,7 +25,13 @@
       <span class="stat-val">{{ tracks | length }}</span>
     </div>
     <div style="margin-left:auto;">
+      {% if event and not event.is_closed %}
       <a href="/submit" class="btn btn-primary">+ Submit Project</a>
+      {% else %}
+      <span class="btn btn-secondary" style="opacity:0.65;cursor:not-allowed;" title="Submissions closed for this competition" aria-disabled="true">
+        Submissions closed
+      </span>
+      {% endif %}
     </div>
   </div>
 </div>

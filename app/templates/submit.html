@@ -10,11 +10,11 @@
       <div class="step-number">&check;</div>
       <span>1. Event &amp; Team</span>
     </div>
-    <div class="step-item active">
-      <div class="step-number">2</div>
+    <div class="step-item {% if not is_closed %}active{% else %}completed{% endif %}">
+      <div class="step-number">{% if not is_closed %}2{% else %}&check;{% endif %}</div>
       <span>2. Project Details</span>
     </div>
-    <div class="step-item">
+    <div class="step-item {% if is_closed %}active{% endif %}">
       <div class="step-number">3</div>
       <span>3. Judging Review</span>
     </div>
@@ -29,11 +29,9 @@
         </p>
       </div>
       <div>
-        {% if is_closed %}
-        <span class="stat-closed">Submissions Closed</span>
-        {% else %}
-        <span class="stat-open">Submissions Open</span>
-        {% endif %}
+        <span class="{{ event.status_class if event else 'stat-closed' }}">
+          {{ event.status_label if event else 'Submissions closed' }}
+        </span>
       </div>
     </div>
 
@@ -56,13 +54,13 @@
     <form onsubmit="handleSubmitProject(event)">
       <div class="form-group">
         <label for="projTitle">Project Title *</label>
-        <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled{% endif %}>
+        <input type="text" id="projTitle" placeholder="e.g. Glass Signal" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
         <small>Provide a clear, descriptive title for your entry.</small>
       </div>
 
       <div class="form-group">
         <label for="projTrack">Competition Track *</label>
-        <select id="projTrack" required {% if is_closed %}disabled{% endif %}>
+        <select id="projTrack" required {% if is_closed %}disabled aria-disabled="true"{% endif %}>
           {% for t in tracks %}
           <option value="{{ t.id }}">{{ t.name }}</option>
           {% endfor %}
@@ -72,25 +70,39 @@
 
       <div class="form-group">
         <label for="projSummary">Architecture Summary &amp; Overview</label>
-        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." {% if is_closed %}disabled{% endif %}></textarea>
+        <textarea id="projSummary" rows="4" placeholder="Describe the technical solution, architecture, offline characteristics, and verification results..." {% if is_closed %}disabled aria-disabled="true"{% endif %}></textarea>
         <small>Evaluators review this summary during judging rounds.</small>
       </div>
 
       <div class="form-group">
         <label for="projRepo">Repository URL</label>
-        <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled{% endif %}>
+        <input type="url" id="projRepo" placeholder="https://github.com/..." {% if is_closed %}disabled aria-disabled="true"{% endif %}>
         <small>Link to source repository, README documentation, and verification scripts.</small>
       </div>
 
+      {% if is_closed %}
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
+        <span style="font-size:0.85rem;color:var(--text-muted);">
+          Submissions closed for this event. Project creation and finalization are disabled.
+        </span>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <a href="/projects" class="btn btn-secondary">Back to Gallery</a>
+          <button type="button" class="btn btn-secondary" disabled aria-disabled="true" title="Submissions closed. Deadline has passed.">
+            Submissions Closed
+          </button>
+        </div>
+      </div>
+      {% else %}
       <div style="display:flex;justify-content:flex-end;align-items:center;gap:0.75rem;margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--card-border);">
         <a href="/projects" class="btn btn-secondary">Cancel</a>
-        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary" {% if is_closed %}disabled{% endif %}>
+        <button type="button" onclick="handleSubmitProject(event, 'draft')" class="btn btn-secondary">
           Save Draft
         </button>
-        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary" {% if is_closed %}disabled{% endif %}>
+        <button type="button" onclick="handleSubmitProject(event, 'submitted')" class="btn btn-primary">
           Submit Final Entry
         </button>
       </div>
+      {% endif %}
     </form>
   </div>
 </div>
@@ -98,6 +110,10 @@
 <script>
 async function handleSubmitProject(e, targetStatus) {
   e.preventDefault();
+  {% if is_closed %}
+  alert('Submissions are closed for this event. New entries are disabled.');
+  return;
+  {% endif %}
   const title = document.getElementById('projTitle').value.trim();
   const trackId = document.getElementById('projTrack').value;
   const summary = document.getElementById('projSummary').value.trim();
