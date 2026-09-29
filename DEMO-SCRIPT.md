@@ -52,7 +52,7 @@ Record the actual application and terminal; do not substitute slides or simulate
     ```bash
     pytest -v
     ```
-    Show **47 passed** tests across authentication, submissions, judging, isolation, community voting, and enterprise API features.
+    Show **51 passed** tests across authentication, submissions, judging, isolation, community voting, and enterprise API features.
 
 - **4:50–5:00 — Repository, Documentation, & License**
   - Show GitHub repository, `spec.md`, `ARCHITECTURE.md`, `DATA-MODEL.md`, `JUDGING.md`, and MIT license.

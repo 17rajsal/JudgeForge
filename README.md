@@ -204,7 +204,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Release Verification and Current Limits
 
-- **Release Verification**: 47 automated tests passed (`pytest -v`) using isolated in-memory databases with automatic teardown.
+- **Release Verification**: 51 automated tests passed (`pytest -v`) using isolated in-memory databases with automatic teardown.
 - **Docker Compose Status**: Container built cleanly (`docker compose build --no-cache`) and running container verified healthy via Docker internal healthcheck (`docker inspect --format '{{.State.Health.Status}}' judgeforge-app` -> `healthy`).
 - **Official Acceptance Checker**: All seven official acceptance checks passed on port 8000 (`7/7 PASS` via `python run.py .dogfood.toml`). Output captured in `acceptance-report.txt`.
 - **Runtime Dependencies**: Zero hosted-service or cloud dependencies. The application executes completely offline. Note: building the Docker image for the first time requires network access or a pre-populated Docker cache to download Python packages; after the image is created, the runtime operates entirely offline.
