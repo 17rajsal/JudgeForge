@@ -1,7 +1,7 @@
 # Release Evidence & Submission Checklist
 
 ### Verification Evidence
-- [x] **Automated Test Suite**: **51/51 tests passed** in pytest (`pytest -v`).
+- [x] **Automated Test Suite**: **75/75 tests passed** in pytest (`pytest -q`).
 - [x] **Official Acceptance Checker**: **7/7 checks passed** (`python run.py .dogfood.toml` -> claimed T1 T2, verified T1 T2). Real checker output captured in `acceptance-report.txt`.
 - [x] **Docker Container Health**: Image built cleanly without cache (`docker compose build --no-cache`) and running container verified healthy via Docker internal healthcheck (`docker inspect --format '{{.State.Health.Status}}' judgeforge-app` -> `healthy`).
 - [x] **HTTP Liveness**: `GET /health` returns `{"status": "ok"}` on port 8000.

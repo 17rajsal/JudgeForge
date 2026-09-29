@@ -345,3 +345,82 @@ def test_17_existing_official_acceptance_routes_stay_unchanged():
     assert client.get("/judge").status_code in (200, 302)  # HTML page
     assert client.get("/api/export.csv", headers=ORG_HEADERS).status_code == 200
     assert client.get("/workspace", headers=PARTICIPANT_HEADERS).status_code == 200
+
+
+def test_18_normalization_analysis_remains_event_scoped():
+    """Verify Normalization Lab and leaderboard computation remain strictly event-scoped."""
+    client = TestClient(app)
+    future_close = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=7)).isoformat()
+
+    # Event A
+    ev_a = client.post(
+        "/api/events",
+        json={"name": "Event Scoping A", "submissions_close": future_close, "tracks": ["Track Scope A"]},
+        headers=ORG_HEADERS,
+    ).json()
+
+    # Event B
+    ev_b = client.post(
+        "/api/events",
+        json={"name": "Event Scoping B", "submissions_close": future_close, "tracks": ["Track Scope B"]},
+        headers=ORG_HEADERS,
+    ).json()
+
+    with SessionLocal() as db:
+        t_a = db.query(Track).filter_by(event_id=ev_a["id"]).first()
+        t_b = db.query(Track).filter_by(event_id=ev_b["id"]).first()
+        t_a_id = t_a.id
+        t_b_id = t_b.id
+
+    # Create project in Event A
+    p_a = client.post(
+        "/api/projects",
+        json={"event_id": ev_a["id"], "track_id": t_a_id, "title": "Unique Project Alpha Event A", "summary": "A"},
+        headers=PARTICIPANT_HEADERS,
+    ).json()
+
+    # Create project in Event B
+    p_b = client.post(
+        "/api/projects",
+        json={"event_id": ev_b["id"], "track_id": t_b_id, "title": "Unique Project Beta Event B", "summary": "B"},
+        headers=PARTICIPANT_HEADERS,
+    ).json()
+
+    # Score both
+    client.post(
+        "/api/judge/scores",
+        json={"project_id": p_a["id"], "functionality": 5, "quality": 4, "innovation": 5},
+        headers=JUDGE_A_HEADERS,
+    )
+    client.post(
+        "/api/judge/scores",
+        json={"project_id": p_b["id"], "functionality": 3, "quality": 3, "innovation": 3},
+        headers=JUDGE_A_HEADERS,
+    )
+
+    # Database level check
+    with SessionLocal() as db:
+        lb_a = compute_leaderboard(db, event_id=ev_a["id"])
+        lb_b = compute_leaderboard(db, event_id=ev_b["id"])
+
+        assert len(lb_a) == 1
+        assert lb_a[0]["project_id"] == p_a["id"]
+        assert lb_a[0]["title"] == "Unique Project Alpha Event A"
+
+        assert len(lb_b) == 1
+        assert lb_b[0]["project_id"] == p_b["id"]
+        assert lb_b[0]["title"] == "Unique Project Beta Event B"
+
+    # HTML Organizer dashboard Normalization Lab check (scoped by project link)
+    res_html_a = client.get(f"/organizer?event_id={ev_a['id']}", headers=ORG_HEADERS)
+    assert res_html_a.status_code == 200
+    assert f"/projects/{p_a['id']}" in res_html_a.text
+    assert f"/projects/{p_b['id']}" not in res_html_a.text
+    assert "Normalized Score:" in res_html_a.text
+    assert "Statistical Normalization Methodology" in res_html_a.text
+    assert "auditFilterAction" in res_html_a.text  # Audit filter UI present
+
+    res_html_b = client.get(f"/organizer?event_id={ev_b['id']}", headers=ORG_HEADERS)
+    assert res_html_b.status_code == 200
+    assert f"/projects/{p_b['id']}" in res_html_b.text
+    assert f"/projects/{p_a['id']}" not in res_html_b.text

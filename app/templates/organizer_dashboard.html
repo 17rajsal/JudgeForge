@@ -424,99 +424,73 @@
     </span>
   </div>
 
-  <!-- 6-Step Methodology Walkthrough -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-bottom:1.75rem;">
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">1. Weighted Raw Score</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        Computes composite rating from Functionality, Quality, and Innovation using organizer weights.
-      </div>
-    </div>
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">2. Judge Baseline Profile</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        Computes each judge's mean (&mu;<sub>j</sub>) and standard deviation (&sigma;<sub>j</sub>) across all their reviews.
-      </div>
-    </div>
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">3. Z-Score Standardization</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        Calculates <em>z = (raw - &mu;<sub>j</sub>) / &sigma;<sub>j</sub></em> to eliminate reviewer strictness or leniency.
-      </div>
-    </div>
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">4. Scale Re-Mapping</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        Maps standardized scores back to the 1.0–5.0 competition scale: <em>&mu;<sub>global</sub> + z &times; &sigma;<sub>global</sub></em>.
-      </div>
-    </div>
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">5. Independent Aggregation</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        Averages available calibrated reviews per project, neutralizing sparse or unbalanced judge assignments.
-      </div>
-    </div>
-    <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:0.9rem 1rem;">
-      <div style="font-size:0.75rem;font-weight:800;color:var(--primary-700);text-transform:uppercase;">6. Zero-Variance Defense</div>
-      <div style="font-size:0.8rem;color:var(--slate-700);margin-top:0.25rem;line-height:1.4;">
-        If a judge scores all entries identically (&sigma;<sub>j</sub> = 0), z is defined as 0, mapping neutrally to the global average.
-      </div>
-    </div>
+  <!-- Normalization Methodology Summary -->
+  <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1.25rem;margin-bottom:1.5rem;">
+    <h4 style="font-size:0.95rem;font-weight:700;color:var(--slate-900);margin:0 0 0.5rem 0;">Statistical Normalization Methodology</h4>
+    <ul style="margin:0;padding-left:1.25rem;font-size:0.875rem;color:var(--slate-700);line-height:1.6;">
+      <li><strong>Weighted rubric produces raw score:</strong> Evaluator inputs across Functionality, Quality, and Innovation are weighted according to organizer criteria to produce a composite raw score.</li>
+      <li><strong>Judges may be strict or lenient:</strong> Reviewers naturally operate with differing internal baselines; raw averages unfairly penalize projects assigned to harsh judges.</li>
+      <li><strong>Scores are normalized per judge:</strong> Each judge's evaluations are standardized using their personal mean (&mu;<sub>j</sub>) and standard deviation (&sigma;<sub>j</sub>) to compute relative Z-scores.</li>
+      <li><strong>Normalized values are mapped back to the 1–5 scale:</strong> Standardized values are projected onto the global competition distribution (<em>&mu;<sub>global</sub> + z &times; &sigma;<sub>global</sub></em>) and clamped to the 1.0–5.0 rubric range.</li>
+      <li><strong>Project final score averages available normalized reviews:</strong> Aggregates calibrated ratings, neutralizing sparse assignments and judge panel imbalances.</li>
+      <li><strong>Zero-variance judges contribute neutrally:</strong> If a judge awards identical scores to all assigned projects (&sigma;<sub>j</sub> = 0), their Z-score defaults safely to 0.0, mapping neutrally to the competition average without division-by-zero errors.</li>
+    </ul>
   </div>
 
   <div class="table-container">
     <table>
       <thead>
         <tr>
-          <th style="width:70px;">Rank</th>
-          <th>Project Title</th>
-          <th>Track</th>
-          <th>Raw Rank</th>
-          <th>Movement</th>
+          <th>Project</th>
           <th>Raw Average</th>
           <th>Normalized Score</th>
-          <th>Score Adjustment</th>
-          <th>Reviews</th>
+          <th>Raw Rank</th>
+          <th>Normalized Rank</th>
+          <th>Rank Movement</th>
+          <th style="text-align:right;">Review Count</th>
         </tr>
       </thead>
       <tbody>
         {% for row in leaderboard %}
-        {% set shift = row.normalized_score - row.raw_score %}
         <tr>
-          <td style="font-weight:800;font-size:1.1rem;color:{% if loop.index == 1 %}var(--amber-600){% elif loop.index <= 3 %}var(--primary-600){% else %}var(--slate-500){% endif %};">
+          <td>
+            <a href="/projects/{{ row.project_id }}" style="font-weight:700;color:var(--slate-900);">{{ row.title }}</a>
+            <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">
+              {{ row.team_name }} &bull; <span class="card-tag" style="font-size:0.7rem;padding:0.1rem 0.4rem;">{{ row.track_name }}</span>
+            </div>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:0.9rem;">
+            {{ '%.2f' | format(row.raw_score) }}
+          </td>
+          <td>
+            <span style="font-family:var(--font-mono);font-weight:800;color:var(--emerald-600);font-size:0.95rem;">
+              Normalized Score: {{ '%.2f' | format(row.normalized_score) }} / 5
+            </span>
+          </td>
+          <td style="font-family:var(--font-mono);color:var(--text-muted);">
+            #{{ row.raw_rank }}
+          </td>
+          <td style="font-weight:800;font-size:1.05rem;color:{% if loop.index == 1 %}var(--amber-600){% elif loop.index <= 3 %}var(--primary-600){% else %}var(--slate-700){% endif %};">
             #{{ row.rank }}
           </td>
           <td>
-            <a href="/projects/{{ row.project_id }}" style="font-weight:700;color:var(--slate-900);">{{ row.title }}</a>
-            <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:0.15rem;">{{ row.team_name }}</div>
-          </td>
-          <td><span class="card-tag">{{ row.track_name }}</span></td>
-          <td style="font-family:var(--font-mono);color:var(--text-muted);">#{{ row.raw_rank }}</td>
-          <td>
             {% if row.rank_delta > 0 %}
             <span class="role-pill" style="background:#ecfdf5;color:#047857;border-color:#a7f3d0;font-weight:700;" title="Gained {{ row.rank_delta }} ranks after adjusting for strict judging">
-              &uarr; {{ row.rank_delta }}
+              &uarr; +{{ row.rank_delta }}
             </span>
             {% elif row.rank_delta < 0 %}
             <span class="role-pill" style="background:#fffbeb;color:#b45309;border-color:#fde68a;font-weight:700;" title="Shifted {{ row.rank_delta }} ranks after adjusting for lenient judging">
-              &darr; {{ row.rank_delta | abs }}
+              &darr; {{ row.rank_delta }}
             </span>
             {% else %}
             <span class="role-pill" style="background:var(--slate-100);color:var(--slate-600);border-color:var(--slate-200);font-weight:600;" title="Rank unchanged by normalization">
-              =
+              = 0
             </span>
             {% endif %}
           </td>
-          <td style="font-family:var(--font-mono);font-size:0.9rem;">{{ '%.2f' | format(row.raw_score) }}</td>
-          <td>
-            <div style="font-family:var(--font-mono);font-weight:800;color:var(--emerald-600);font-size:1.05rem;" title="Adjusted for differences in judge scoring tendency.">
-              {{ '%.2f' | format(row.normalized_score) }} <span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">/ 5.00</span>
-            </div>
+          <td style="font-family:var(--font-mono);font-size:0.9rem;color:var(--slate-700);text-align:right;">
+            {{ row.review_count }}
           </td>
-          <td style="font-family:var(--font-mono);font-size:0.85rem;color:{% if shift > 0.001 %}var(--emerald-600){% elif shift < -0.001 %}var(--amber-600){% else %}var(--text-muted){% endif %};">
-            {% if shift > 0.001 %}+{{ '%.2f' | format(shift) }}{% elif shift < -0.001 %}{{ '%.2f' | format(shift) }}{% else %}0.00{% endif %}
-          </td>
-          <td style="font-family:var(--font-mono);font-size:0.85rem;color:var(--slate-700);">{{ row.review_count }}</td>
         </tr>
         {% endfor %}
       </tbody>
@@ -571,23 +545,50 @@
   </div>
 </div>
 
+<div class="card" style="margin-bottom:1.5rem;padding:1rem;">
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+    <div style="flex:1;min-width:180px;">
+      <input type="text" id="auditFilterAction" placeholder="Filter by action (e.g. SCORE, PUBLISH)..."
+             oninput="filterAuditLogs()" class="input" style="width:100%;padding:0.4rem 0.65rem;font-size:0.85rem;">
+    </div>
+    <div style="flex:1;min-width:180px;">
+      <input type="text" id="auditFilterActor" placeholder="Filter by actor (user ID)..."
+             oninput="filterAuditLogs()" class="input" style="width:100%;padding:0.4rem 0.65rem;font-size:0.85rem;">
+    </div>
+    <div style="flex:1;min-width:180px;">
+      <input type="text" id="auditFilterTarget" placeholder="Filter by target / details..."
+             oninput="filterAuditLogs()" class="input" style="width:100%;padding:0.4rem 0.65rem;font-size:0.85rem;">
+    </div>
+    <button type="button" onclick="resetAuditFilters()" class="btn btn-secondary" style="padding:0.4rem 0.75rem;font-size:0.85rem;">
+      Clear Filters
+    </button>
+  </div>
+</div>
+
 <div class="table-container">
   <table>
     <thead>
       <tr>
-        <th style="width:180px;">Timestamp</th>
+        <th style="width:170px;">Timestamp</th>
         <th style="width:140px;">Action</th>
+        <th style="width:120px;">Actor</th>
         <th style="width:160px;">Target</th>
         <th>Details</th>
       </tr>
     </thead>
     <tbody>
       {% for log in audit_logs %}
-      <tr>
+      <tr class="audit-row"
+          data-action="{{ log.action | lower }}"
+          data-actor="{{ (log.user_id or '') | lower }}"
+          data-target="{{ log.target_type | lower }}:{{ log.target_id | lower }} {{ (log.details or '') | lower }}">
         <td style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-muted);">
           {{ log.created_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}
         </td>
         <td><span class="card-tag" style="background:var(--slate-100);color:var(--slate-700);border-color:var(--slate-200);">{{ log.action }}</span></td>
+        <td style="font-family:var(--font-mono);font-size:0.85rem;color:var(--primary-700);font-weight:600;">
+          {{ log.user_id or 'system' }}
+        </td>
         <td style="font-family:var(--font-mono);font-size:0.85rem;color:var(--slate-700);">{{ log.target_type }}:{{ log.target_id }}</td>
         <td style="color:var(--slate-600);font-size:0.85rem;">{{ log.details or '-' }}</td>
       </tr>
@@ -1023,6 +1024,30 @@ async function handleImportBulk(e) {
   } catch (err) {
     out.innerHTML = `<span style="color:var(--rose-600);">Invalid JSON format: ${err.message}</span>`;
   }
+}
+
+function filterAuditLogs() {
+  const act = (document.getElementById('auditFilterAction')?.value || '').toLowerCase().trim();
+  const usr = (document.getElementById('auditFilterActor')?.value || '').toLowerCase().trim();
+  const tgt = (document.getElementById('auditFilterTarget')?.value || '').toLowerCase().trim();
+
+  document.querySelectorAll('.audit-row').forEach(row => {
+    const rAct = row.getAttribute('data-action') || '';
+    const rUsr = row.getAttribute('data-actor') || '';
+    const rTgt = row.getAttribute('data-target') || '';
+    const match = (!act || rAct.includes(act)) && (!usr || rUsr.includes(usr)) && (!tgt || rTgt.includes(tgt));
+    row.style.display = match ? '' : 'none';
+  });
+}
+
+function resetAuditFilters() {
+  const actInput = document.getElementById('auditFilterAction');
+  const usrInput = document.getElementById('auditFilterActor');
+  const tgtInput = document.getElementById('auditFilterTarget');
+  if (actInput) actInput.value = '';
+  if (usrInput) usrInput.value = '';
+  if (tgtInput) tgtInput.value = '';
+  filterAuditLogs();
 }
 </script>
 {% endblock %}

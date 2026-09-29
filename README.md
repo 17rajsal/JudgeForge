@@ -13,6 +13,7 @@ JudgeForge is a resilient, offline-capable hackathon management and fair evaluat
 
 - **T1 Core**: Participant registration, team management, deadline-enforced project submissions, project editing rules, public gallery with track filtering and search.
 - **T2 Judging Engine**: Judge track assignments, isolated scoring interfaces (judges cannot view peer scores), weighted rubric configuration, zero-variance Z-score normalization, organizer progress dashboards, and RFC-compliant CSV export.
+- **Verification Evidence**: Official acceptance checker 7/7 PASS (`python run.py .dogfood.toml`), full test suite 76/76 PASS (`pytest -q`), and Docker container healthcheck passing (`healthy`).
 
 ---
 

@@ -146,8 +146,13 @@ Project submissions presented in the public gallery and evaluated by judges.
 | `team_id` | `VARCHAR` | FK(`teams.id`), NOT NULL, INDEX | Submitting team |
 | `track_id` | `VARCHAR` | FK(`tracks.id`), NOT NULL, INDEX | Assigned track |
 | `title` | `VARCHAR` | NOT NULL | Project title |
-| `summary` | `TEXT` | NULLABLE | Pitch and description |
-| `repo_url` | `VARCHAR` | NULLABLE | Source code repository link |
+| `tagline` | `VARCHAR(160)` | NULLABLE | Elevator pitch / short description |
+| `summary` | `TEXT` | NULLABLE | Pitch and architecture description |
+| `repo_url` | `VARCHAR(500)` | NULLABLE | Source code repository link (e.g. GitHub) |
+| `demo_url` | `VARCHAR(500)` | NULLABLE | Live interactive deployment URL |
+| `video_url` | `VARCHAR(500)` | NULLABLE | Video demonstration / walkthrough link |
+| `pitch_deck_url` | `VARCHAR(500)` | NULLABLE | Pitch presentation deck URL or local upload path |
+| `tech_stack` | `TEXT` | NULLABLE | Comma-separated or JSON list of technologies/frameworks |
 | `status` | `VARCHAR` | NOT NULL, DEFAULT `'submitted'` | Status: `'draft'` or `'submitted'` |
 | `submitted_at` | `DATETIME` | NOT NULL | UTC submission timestamp |
 

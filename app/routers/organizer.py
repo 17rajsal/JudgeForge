@@ -196,7 +196,7 @@ def view_organizer_dashboard(
     tracks = db.query(Track).filter(Track.event_id == event.id).all() if event else db.query(Track).all()
     judges = db.query(Judge).all()
     criteria = db.query(RubricCriterion).filter(RubricCriterion.event_id == event.id).all() if event else db.query(RubricCriterion).all()
-    audit_logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(20).all()
+    audit_logs = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(100).all()
     prizes = db.query(Prize).filter(Prize.event_id == event.id).all() if event else []
     all_users = db.query(User).order_by(User.role.asc(), User.email.asc()).all() if user.role == "admin" else []
 
