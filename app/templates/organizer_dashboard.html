@@ -398,15 +398,16 @@
   <!-- View Mode (Default) -->
   <div id="rubricViewMode" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:1rem;margin-top:0.5rem;">
     {% for c in criteria %}
+    {% set pct = ((c.weight / (total_rubric_weight if total_rubric_weight > 0 else 1)) * 100) | round | int %}
     <div style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem;">
         <span style="font-weight:700;font-size:0.95rem;color:var(--slate-900);">{{ c.label }}</span>
         <span class="card-tag" style="font-weight:800;font-size:0.8rem;background:white;">
-          Weight: {{ c.weight }}
+          {{ pct }}% (Weight: {{ c.weight }})
         </span>
       </div>
       <div style="font-size:0.78rem;font-weight:600;color:var(--primary);margin-bottom:0.4rem;">
-        {{ '%.1f' | format((c.weight / (total_rubric_weight if total_rubric_weight > 0 else 1)) * 100) }}% raw contribution
+        {{ pct }}% raw contribution
       </div>
       <p style="font-size:0.82rem;color:var(--text-secondary);margin:0;line-height:1.4;">
         {{ c.description or 'Evaluated on 1–5 scale by assigned panel judges.' }}
@@ -1036,7 +1037,7 @@ async function handleRubricUpdate(e) {
   }
   if (warnEl) warnEl.style.display = 'none';
 
-  const res = await fetch('/api/organizer/rubric', {
+  const res = await fetch('/api/organizer/rubric{% if event %}?event_id={{ event.id }}{% endif %}', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ weights: weights })

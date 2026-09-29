@@ -4,27 +4,146 @@ from sqlalchemy.orm import Session
 from app.models import Project, Score, Judge, RubricCriterion, Track, Team
 
 
+import json
+
 def calculate_raw_score(score: Score, criteria_weights: Dict[str, float]) -> float:
-    # Use criteria weights or default 1.0
+    """
+    Calculates weighted raw score using dynamic criteria from score.criteria_json,
+    falling back to legacy columns (functionality, quality, innovation) if criteria_json is absent.
+    Matches values against criteria_weights and ignores unknown/unconfigured values.
+    """
+    scores_dict: Dict[str, float] = {}
+
+    # 1. Parse score.criteria_json safely
+    if getattr(score, "criteria_json", None):
+        try:
+            parsed = json.loads(score.criteria_json)
+            if isinstance(parsed, dict):
+                scores_dict = {str(k): float(v) for k, v in parsed.items() if isinstance(v, (int, float))}
+        except Exception:
+            scores_dict = {}
+
+    # 2. For legacy score records: construct equivalent criteria data from legacy columns when criteria_json is absent
+    if not scores_dict:
+        if score.functionality is not None:
+            scores_dict["functionality"] = float(score.functionality)
+        if score.quality is not None:
+            scores_dict["quality"] = float(score.quality)
+        if score.innovation is not None:
+            scores_dict["innovation"] = float(score.innovation)
+
+    if not scores_dict:
+        return 0.0
+
+    # 3. Calculate weighted raw score using all configured criteria matching criteria_weights
     w_sum = 0.0
     s_sum = 0.0
 
-    scores_dict = {}
-    if score.functionality is not None:
-        scores_dict["functionality"] = score.functionality
-    if score.quality is not None:
-        scores_dict["quality"] = score.quality
-    if score.innovation is not None:
-        scores_dict["innovation"] = score.innovation
-
     for name, val in scores_dict.items():
-        w = criteria_weights.get(name, 1.0)
-        s_sum += val * w
-        w_sum += w
+        if name in criteria_weights:
+            w = criteria_weights[name]
+            if w > 0:
+                s_sum += val * w
+                w_sum += w
+
+    # Fallback if no configured criteria matched criteria_weights (e.g. legacy fallback)
+    if w_sum == 0.0:
+        for name, val in scores_dict.items():
+            w = criteria_weights.get(name, 1.0)
+            if w > 0:
+                s_sum += val * w
+                w_sum += w
 
     if w_sum == 0.0:
         return 0.0
-    return s_sum / w_sum
+    return round(s_sum / w_sum, 4)
+
+
+DEFAULT_FIVE_CRITERIA = [
+    {
+        "name": "functionality",
+        "label": "Functionality & Completeness",
+        "description": "Does the project actually work and deliver its core promise?",
+        "weight": 0.25,
+    },
+    {
+        "name": "innovation",
+        "label": "Innovation & Problem Solving",
+        "description": "How original and meaningful is the solution?",
+        "weight": 0.20,
+    },
+    {
+        "name": "quality",
+        "label": "GitHub Code & Engineering Quality",
+        "description": "How strong is the actual implementation behind the project?",
+        "weight": 0.25,
+    },
+    {
+        "name": "live_demo",
+        "label": "Live Demo & Product Experience",
+        "description": "How convincing is the working product experience?",
+        "weight": 0.20,
+    },
+    {
+        "name": "presentation",
+        "label": "Pitch Deck & Presentation",
+        "description": "How clearly does the team communicate the problem, solution and value?",
+        "weight": 0.10,
+    },
+]
+
+CRITERIA_GUIDANCE = {
+    "functionality": {
+        "question": "Does the project actually work and deliver its core promise?",
+        "options": [
+            {"score": 1, "label": "Broken", "desc": "Core workflow does not work."},
+            {"score": 2, "label": "Partial", "desc": "Some functionality works, but major parts are missing."},
+            {"score": 3, "label": "Working MVP", "desc": "Core use case works end-to-end."},
+            {"score": 4, "label": "Strong", "desc": "Feature-complete for the hackathon scope with only minor issues."},
+            {"score": 5, "label": "Excellent", "desc": "Reliable, polished and convincingly complete."},
+        ],
+    },
+    "innovation": {
+        "question": "How original and meaningful is the solution?",
+        "options": [
+            {"score": 1, "label": "Conventional", "desc": "Mostly a standard implementation with little differentiation."},
+            {"score": 2, "label": "Some Originality", "desc": "Contains a few interesting ideas."},
+            {"score": 3, "label": "Creative", "desc": "Uses a meaningful or thoughtful approach."},
+            {"score": 4, "label": "Distinctive", "desc": "Clearly differentiates itself technically or as a product."},
+            {"score": 5, "label": "Exceptional", "desc": "Highly original solution with strong problem-solving insight."},
+        ],
+    },
+    "quality": {
+        "question": "How strong is the actual implementation behind the project?",
+        "options": [
+            {"score": 1, "label": "Weak", "desc": "Very incomplete, unclear or fragile implementation."},
+            {"score": 2, "label": "Basic", "desc": "Working code but substantial architecture/quality problems."},
+            {"score": 3, "label": "Solid", "desc": "Readable structure and reasonable implementation quality."},
+            {"score": 4, "label": "Strong", "desc": "Good architecture, maintainability and engineering decisions."},
+            {"score": 5, "label": "Excellent", "desc": "Exceptionally clean, well-structured and production-minded implementation."},
+        ],
+    },
+    "live_demo": {
+        "question": "How convincing is the working product experience?",
+        "options": [
+            {"score": 1, "label": "Not Demonstrable", "desc": "Demo is unavailable or core experience fails."},
+            {"score": 2, "label": "Rough", "desc": "Demo works partially but has major UX/reliability issues."},
+            {"score": 3, "label": "Good MVP", "desc": "Main workflow is usable and understandable."},
+            {"score": 4, "label": "Polished", "desc": "Smooth experience with strong usability."},
+            {"score": 5, "label": "Excellent", "desc": "Highly polished, reliable and impressive live product experience."},
+        ],
+    },
+    "presentation": {
+        "question": "How clearly does the team communicate the problem, solution and value?",
+        "options": [
+            {"score": 1, "label": "Unclear", "desc": "Problem and solution are difficult to understand."},
+            {"score": 2, "label": "Basic", "desc": "Core idea is explained but lacks clarity/detail."},
+            {"score": 3, "label": "Clear", "desc": "Problem, solution and implementation are understandable."},
+            {"score": 4, "label": "Strong", "desc": "Well-structured, convincing presentation."},
+            {"score": 5, "label": "Excellent", "desc": "Very clear, concise and persuasive presentation backed by strong evidence."},
+        ],
+    },
+}
 
 
 def get_criteria_weights(db: Session, event_id: Optional[str] = None) -> Dict[str, float]:

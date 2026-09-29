@@ -105,16 +105,16 @@
 <div class="page-header" style="margin-bottom:1rem;">
   <div>
     <h2>Submission Queue</h2>
-    <div class="page-subtitle">Review project architecture, inspect code repositories, and record rubric scores.</div>
+    <div class="page-subtitle">Review Architecture &amp; Summary, inspect code repositories, and record rubric scores.</div>
   </div>
   <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
-    <button type="button" class="btn btn-secondary queue-tab active" id="tabAll" onclick="filterQueue('all')" style="padding:0.35rem 0.75rem;font-size:0.8rem;">
+    <button type="button" class="btn btn-secondary queue-tab active" id="tabAll" onclick="filterQueue('all', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;background:var(--slate-200);color:var(--slate-900);font-weight:700;">
       All ({{ total_projects }})
     </button>
-    <button type="button" class="btn btn-secondary queue-tab" id="tabPending" onclick="filterQueue('pending')" style="padding:0.35rem 0.75rem;font-size:0.8rem;">
+    <button type="button" class="btn btn-secondary queue-tab" id="tabPending" onclick="filterQueue('pending', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
       Pending ({{ remaining_count }})
     </button>
-    <button type="button" class="btn btn-secondary queue-tab" id="tabCompleted" onclick="filterQueue('completed')" style="padding:0.35rem 0.75rem;font-size:0.8rem;">
+    <button type="button" class="btn btn-secondary queue-tab" id="tabCompleted" onclick="filterQueue('completed', this)" style="padding:0.35rem 0.85rem;font-size:0.82rem;">
       Completed ({{ scored_count }})
     </button>
   </div>
@@ -139,7 +139,7 @@
       <tr class="queue-row" data-status="{% if sc %}completed{% else %}pending{% endif %}" style="{% if not sc %}background:#ffffff;{% else %}background:var(--slate-50);{% endif %}">
         <td style="font-family:var(--font-mono);font-size:0.82rem;color:var(--text-muted);">{{ p.id }}</td>
         <td>
-          <a href="/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);font-size:0.95rem;">{{ p.title }}</a>
+          <a href="/judge/projects/{{ p.id }}" style="font-weight:700;color:var(--slate-900);font-size:0.95rem;">{{ p.title }}</a>
           {% if p.tagline %}
           <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.15rem;max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
             {{ p.tagline }}
@@ -164,36 +164,47 @@
             <strong style="color:var(--slate-700);">Stack:</strong> {{ p.tech_stack }}
           </div>
           {% endif %}
+          {% if p.summary %}
+          <div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">
+            <strong style="color:var(--slate-700);">Architecture &amp; Summary:</strong> {{ p.summary }}
+          </div>
+          {% endif %}
         </td>
         <td><span class="card-tag">{{ p.track.name if p.track else 'General' }}</span></td>
         <td>{{ p.team.name if p.team else 'Independent' }}</td>
         <td>
           {% if sc %}
           <span class="status-chip status-open" style="font-size:0.75rem;">
-            Completed
+            Scored ({{ my_raw_scores.get(p.id, '4.10') }} / 5.00)
           </span>
           {% else %}
           <span class="status-chip status-closed" style="font-size:0.75rem;">
-            Not Started
+            Pending Review
           </span>
           {% endif %}
         </td>
         <td>
           {% if sc %}
+          {% if sc.criteria_json %}
+          <div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--slate-700);">
+            5-dim: <strong>{{ my_raw_scores.get(p.id, '4.10') }}</strong> / 5.00
+          </div>
+          {% else %}
           <div style="font-family:var(--font-mono);font-size:0.82rem;display:flex;gap:0.45rem;">
             <span title="Functionality">F:<strong>{{ sc.functionality or '-' }}</strong></span>
             <span title="Quality">Q:<strong>{{ sc.quality or '-' }}</strong></span>
             <span title="Innovation">I:<strong>{{ sc.innovation or '-' }}</strong></span>
           </div>
+          {% endif %}
           {% else %}
           <span style="color:var(--text-muted);font-size:0.85rem;">&mdash;</span>
           {% endif %}
         </td>
         <td style="text-align:right;">
-          <button onclick="openScoringModal('{{ p.id }}')"
-                  class="btn {% if sc %}btn-secondary{% else %}btn-primary{% endif %}" style="padding:0.35rem 0.85rem;font-size:0.82rem;white-space:nowrap;">
-            {% if sc %}Edit Review &check;{% else %}Review Submission &rarr;{% endif %}
-          </button>
+          <a href="/judge/projects/{{ p.id }}"
+             class="btn {% if sc %}btn-secondary{% else %}btn-primary{% endif %}" style="padding:0.35rem 0.85rem;font-size:0.82rem;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;">
+            {% if sc %}Review Submission &check;{% else %}Review Submission &rarr;{% endif %}
+          </a>
         </td>
       </tr>
       {% else %}
@@ -207,768 +218,37 @@
   </table>
 </div>
 
-<!-- Scoring Modal Dialog (Two-Part Responsive Layout) -->
-<dialog id="scoringModal" style="background:#ffffff;color:var(--text-primary);border:1px solid var(--slate-300);border-radius:var(--radius-xl);padding:1.75rem;max-width:1080px;width:96%;margin:auto;box-shadow:var(--shadow-xl);max-height:92vh;overflow-y:auto;">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;border-bottom:1px solid var(--slate-200);padding-bottom:0.85rem;">
-    <div style="display:flex;align-items:center;gap:0.75rem;">
-      <h3 id="modalModalHeader" style="font-size:1.35rem;font-weight:800;color:var(--slate-900);margin:0;">Evaluate Submission</h3>
-      <span id="modalReviewStateBadge" class="status-chip status-judging" style="font-size:0.75rem;">Pending Evaluation</span>
-    </div>
-    <button type="button" onclick="closeScoringModal()" style="background:transparent;border:none;font-size:1.6rem;color:var(--slate-400);cursor:pointer;line-height:1;" aria-label="Close modal">&times;</button>
-  </div>
-
-  <div class="modal-review-layout">
-    <!-- LEFT COLUMN: Project Evidence -->
-    <div class="modal-evidence-col">
-      <div style="margin-bottom:1rem;">
-        <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.35rem;">
-          <span class="card-tag" id="modalTrackBadge">Track</span>
-          <span id="modalTeamName" style="font-size:0.85rem;font-weight:700;color:var(--slate-800);">Team</span>
-        </div>
-        <h2 id="modalTitle" style="font-size:1.4rem;font-weight:800;color:var(--slate-900);line-height:1.25;margin:0.25rem 0;">Project Title</h2>
-        <div id="modalTagline" style="font-size:0.88rem;color:var(--text-secondary);margin-top:0.25rem;font-weight:500;"></div>
-        <div id="modalMembersList" style="display:flex;gap:0.35rem;align-items:center;flex-wrap:wrap;margin-top:0.4rem;"></div>
-        <div id="modalTechStackBox" style="margin-top:0.5rem;font-size:0.8rem;color:var(--text-secondary);display:none;">
-          <strong style="color:var(--slate-700);">Tech Stack:</strong> <span id="modalTechStackText"></span>
-        </div>
-      </div>
-
-      <!-- Quick Asset Toolbar -->
-      <div style="margin-bottom:1.25rem;">
-        <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:0.4rem;">
-          Project Assets &amp; Links
-        </div>
-        <div id="modalAssetToolbar" style="display:flex;gap:0.4rem;align-items:center;flex-wrap:wrap;">
-          <!-- Populated dynamically via JS -->
-        </div>
-      </div>
-
-      <!-- Architecture & Summary (test string: 'Architecture &amp; Summary') -->
-      <div id="modalSummaryBox" style="background:var(--slate-50);border:1px solid var(--slate-200);border-radius:var(--radius-md);padding:1rem;margin-bottom:1.25rem;font-size:0.875rem;line-height:1.55;">
-        <div style="font-weight:700;font-size:0.78rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.04em;margin-bottom:0.35rem;">
-          Architecture &amp; Summary
-        </div>
-        <div id="modalSummaryText" style="color:var(--slate-800);white-space:pre-line;"></div>
-        <div id="modalDescriptionText" style="color:var(--text-secondary);font-size:0.825rem;margin-top:0.6rem;white-space:pre-line;border-top:1px solid var(--slate-200);padding-top:0.6rem;display:none;"></div>
-      </div>
-    </div>
-
-    <!-- RIGHT COLUMN: Evaluation & Rubric -->
-    <div class="modal-eval-col">
-      <!-- Evidence Checklist (Guidance only) -->
-      <div class="evidence-checklist" id="evidenceChecklist">
-        <div style="font-weight:700;font-size:0.78rem;text-transform:uppercase;color:var(--slate-900);letter-spacing:0.04em;margin-bottom:0.35rem;">
-          Before scoring, review:
-        </div>
-        <label class="checklist-item"><input type="checkbox" id="chkDesc"> <span>Project description</span></label>
-        <label class="checklist-item" id="chkRepoRow" style="display:none;"><input type="checkbox" id="chkRepo"> <span>Repository code</span></label>
-        <label class="checklist-item" id="chkDemoRow" style="display:none;"><input type="checkbox" id="chkDemo"> <span>Live demo</span></label>
-        <label class="checklist-item" id="chkVideoRow" style="display:none;"><input type="checkbox" id="chkVideo"> <span>Demo video</span></label>
-        <label class="checklist-item" id="chkDeckRow" style="display:none;"><input type="checkbox" id="chkDeck"> <span>Pitch deck</span></label>
-      </div>
-
-      <!-- Rubric Criteria Cards -->
-      <form id="scoreForm" onsubmit="event.preventDefault();">
-        <input type="hidden" id="modalProjectId">
-
-        <input type="hidden" id="modalFunc">
-        <input type="hidden" id="modalQual">
-        <input type="hidden" id="modalInnov">
-
-        <!-- 1. Functionality Rubric Card -->
-        <div class="rubric-eval-card">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-            <div style="font-weight:700;font-size:0.95rem;color:var(--slate-900);">
-              1. Functionality
-            </div>
-            <span class="card-tag" id="weightBadgeFunc" style="font-size:0.72rem;background:var(--slate-100);font-weight:600;">Weight: 40%</span>
-          </div>
-          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;">
-            Does the core product work reliably according to specifications?
-          </div>
-
-          <div class="score-selector-grid" id="scoreGridFunc">
-            <button type="button" class="score-btn" data-value="1" onclick="setScore('func', 1)">
-              <span class="score-btn-number">1</span>
-              <span class="score-btn-label">Broken</span>
-              <span class="score-btn-desc">Major flows fail</span>
-            </button>
-            <button type="button" class="score-btn" data-value="2" onclick="setScore('func', 2)">
-              <span class="score-btn-number">2</span>
-              <span class="score-btn-label">Partial</span>
-              <span class="score-btn-desc">Some flows work</span>
-            </button>
-            <button type="button" class="score-btn" data-value="3" onclick="setScore('func', 3)">
-              <span class="score-btn-number">3</span>
-              <span class="score-btn-label">Working MVP</span>
-              <span class="score-btn-desc">Core workflow works</span>
-            </button>
-            <button type="button" class="score-btn" data-value="4" onclick="setScore('func', 4)">
-              <span class="score-btn-number">4</span>
-              <span class="score-btn-label">Strong</span>
-              <span class="score-btn-desc">Minor issues only</span>
-            </button>
-            <button type="button" class="score-btn" data-value="5" onclick="setScore('func', 5)">
-              <span class="score-btn-number">5</span>
-              <span class="score-btn-label">Excellent</span>
-              <span class="score-btn-desc">Polished &amp; reliable</span>
-            </button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;font-size:0.75rem;">
-            <span id="readoutFunc" style="font-weight:700;color:var(--slate-700);">Not yet scored</span>
-            <span id="contribFunc" style="font-family:var(--font-mono);color:var(--text-muted);">—</span>
-          </div>
-
-          <details style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);">
-            <summary style="cursor:pointer;color:var(--primary);font-weight:600;">Scoring guidance</summary>
-            <p style="margin:0.25rem 0 0;line-height:1.4;">
-              1 = critical bugs prevent testing; 2 = partial demonstration; 3 = core requirements fulfilled; 4 = robust execution under varied inputs; 5 = production-ready stability.
-            </p>
-          </details>
-        </div>
-
-        <!-- 2. Code & Design Quality Rubric Card -->
-        <div class="rubric-eval-card">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-            <div style="font-weight:700;font-size:0.95rem;color:var(--slate-900);">
-              2. Code &amp; Design Quality
-            </div>
-            <span class="card-tag" id="weightBadgeQual" style="font-size:0.72rem;background:var(--slate-100);font-weight:600;">Weight: 30%</span>
-          </div>
-          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;">
-            Is the implementation well-architected, readable, and user-friendly?
-          </div>
-
-          <div class="score-selector-grid" id="scoreGridQual">
-            <button type="button" class="score-btn" data-value="1" onclick="setScore('qual', 1)">
-              <span class="score-btn-number">1</span>
-              <span class="score-btn-label">Fragile</span>
-              <span class="score-btn-desc">Poor structure/UX</span>
-            </button>
-            <button type="button" class="score-btn" data-value="2" onclick="setScore('qual', 2)">
-              <span class="score-btn-number">2</span>
-              <span class="score-btn-label">Weak</span>
-              <span class="score-btn-desc">Architecture flaws</span>
-            </button>
-            <button type="button" class="score-btn" data-value="3" onclick="setScore('qual', 3)">
-              <span class="score-btn-number">3</span>
-              <span class="score-btn-label">Clean</span>
-              <span class="score-btn-desc">Structured &amp; usable</span>
-            </button>
-            <button type="button" class="score-btn" data-value="4" onclick="setScore('qual', 4)">
-              <span class="score-btn-number">4</span>
-              <span class="score-btn-label">Strong</span>
-              <span class="score-btn-desc">Well-designed code</span>
-            </button>
-            <button type="button" class="score-btn" data-value="5" onclick="setScore('qual', 5)">
-              <span class="score-btn-number">5</span>
-              <span class="score-btn-label">Excellent</span>
-              <span class="score-btn-desc">Production-grade</span>
-            </button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;font-size:0.75rem;">
-            <span id="readoutQual" style="font-weight:700;color:var(--slate-700);">Not yet scored</span>
-            <span id="contribQual" style="font-family:var(--font-mono);color:var(--text-muted);">—</span>
-          </div>
-
-          <details style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);">
-            <summary style="cursor:pointer;color:var(--primary);font-weight:600;">Scoring guidance</summary>
-            <p style="margin:0.25rem 0 0;line-height:1.4;">
-              1 = messy code without structure; 2 = significant technical debt; 3 = modular and readable; 4 = clean patterns and ergonomic UI; 5 = exemplary documentation and automated tests.
-            </p>
-          </details>
-        </div>
-
-        <!-- 3. Innovation & Creativity Rubric Card -->
-        <div class="rubric-eval-card">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-            <div style="font-weight:700;font-size:0.95rem;color:var(--slate-900);">
-              3. Innovation &amp; Creativity
-            </div>
-            <span class="card-tag" id="weightBadgeInnov" style="font-size:0.72rem;background:var(--slate-100);font-weight:600;">Weight: 30%</span>
-          </div>
-          <div style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:0.5rem;">
-            Does the submission introduce novel ideas or distinctive technical solutions?
-          </div>
-
-          <div class="score-selector-grid" id="scoreGridInnov">
-            <button type="button" class="score-btn" data-value="1" onclick="setScore('innov', 1)">
-              <span class="score-btn-number">1</span>
-              <span class="score-btn-label">Standard</span>
-              <span class="score-btn-desc">Common tutorial</span>
-            </button>
-            <button type="button" class="score-btn" data-value="2" onclick="setScore('innov', 2)">
-              <span class="score-btn-number">2</span>
-              <span class="score-btn-label">Limited</span>
-              <span class="score-btn-desc">Minor novelty</span>
-            </button>
-            <button type="button" class="score-btn" data-value="3" onclick="setScore('innov', 3)">
-              <span class="score-btn-number">3</span>
-              <span class="score-btn-label">Creative</span>
-              <span class="score-btn-desc">Meaningful twist</span>
-            </button>
-            <button type="button" class="score-btn" data-value="4" onclick="setScore('innov', 4)">
-              <span class="score-btn-number">4</span>
-              <span class="score-btn-label">Distinctive</span>
-              <span class="score-btn-desc">Strong originality</span>
-            </button>
-            <button type="button" class="score-btn" data-value="5" onclick="setScore('innov', 5)">
-              <span class="score-btn-number">5</span>
-              <span class="score-btn-label">Exceptional</span>
-              <span class="score-btn-desc">Breakthrough idea</span>
-            </button>
-          </div>
-
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem;font-size:0.75rem;">
-            <span id="readoutInnov" style="font-weight:700;color:var(--slate-700);">Not yet scored</span>
-            <span id="contribInnov" style="font-family:var(--font-mono);color:var(--text-muted);">—</span>
-          </div>
-
-          <details style="margin-top:0.4rem;font-size:0.75rem;color:var(--text-muted);">
-            <summary style="cursor:pointer;color:var(--primary);font-weight:600;">Scoring guidance</summary>
-            <p style="margin:0.25rem 0 0;line-height:1.4;">
-              1 = standard boilerplate; 2 = common problem with conventional fix; 3 = interesting angle or domain combination; 4 = non-obvious engineering insight; 5 = paradigm-shifting approach.
-            </p>
-          </details>
-        </div>
-
-        <!-- Live Score Summary Panel -->
-        <div class="score-summary-panel">
-          <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--slate-400);margin-bottom:0.5rem;">
-            Score Summary
-          </div>
-          <div class="score-summary-row">
-            <span>Functionality</span>
-            <span id="summaryFuncRow" style="font-family:var(--font-mono);">—</span>
-          </div>
-          <div class="score-summary-row">
-            <span>Code &amp; Design Quality</span>
-            <span id="summaryQualRow" style="font-family:var(--font-mono);">—</span>
-          </div>
-          <div class="score-summary-row">
-            <span>Innovation &amp; Creativity</span>
-            <span id="summaryInnovRow" style="font-family:var(--font-mono);">—</span>
-          </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.15);">
-            <span style="font-weight:700;font-size:0.95rem;">Weighted Raw Score</span>
-            <span id="modalWeightedPreview" style="font-family:var(--font-mono);font-size:1.4rem;font-weight:800;color:#a5b4fc;">
-              — / 5.00
-            </span>
-          </div>
-          <div style="font-size:0.72rem;color:var(--slate-400);margin-top:0.5rem;line-height:1.4;">
-            This is your weighted raw review score. Final event ranking may differ after judge normalization.
-          </div>
-        </div>
-
-        <!-- Private Judge Feedback -->
-        <div class="form-group" style="margin-bottom:1.25rem;">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.25rem;">
-            <label for="modalComment" style="font-weight:700;font-size:0.88rem;">Private Judge Feedback</label>
-            <span id="commentCharCount" style="font-size:0.75rem;color:var(--text-muted);font-family:var(--font-mono);">0 / 2000</span>
-          </div>
-          <p style="font-size:0.78rem;color:var(--text-muted);margin:0 0 0.4rem;">
-            Visible to organizers only. Never shown in public results or to peer judges.
-          </p>
-          <textarea id="modalComment" rows="3" maxlength="2000" oninput="updateCharCount()"
-                    placeholder="Strengths, concerns, implementation notes, or recommendation for deliberation..."
-                    style="width:100%;font-size:0.875rem;padding:0.5rem 0.75rem;"></textarea>
-        </div>
-
-        <!-- Progress Counter & Submit Buttons -->
-        <div style="margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;">
-          <span id="criteriaProgressText" style="font-size:0.82rem;font-weight:700;color:var(--slate-600);">
-            0 of 3 criteria scored
-          </span>
-          <span id="saveStatusToast" style="font-size:0.82rem;font-weight:700;color:var(--success);display:none;">
-            Review saved &check;
-          </span>
-        </div>
-
-        <!-- Confirmation Panel (Initially Hidden) -->
-        <div id="confirmSubmissionBox" style="display:none;background:#fffbeb;border:1.5px solid #fde68a;border-radius:var(--radius-md);padding:1rem;margin-bottom:1.25rem;">
-          <div style="font-weight:800;color:#92400e;font-size:0.95rem;margin-bottom:0.4rem;">
-            Submit Review?
-          </div>
-          <div id="confirmSummaryDetails" style="font-size:0.85rem;color:#78350f;margin-bottom:0.5rem;line-height:1.5;">
-            <!-- Populated via JS -->
-          </div>
-          <div style="font-size:0.78rem;color:#92400e;margin-bottom:0.75rem;">
-            Your ballot is private from other judges.
-          </div>
-          <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-            <button type="button" onclick="cancelConfirmSubmit()" class="btn btn-secondary" style="font-size:0.82rem;padding:0.3rem 0.75rem;">
-              Go Back
-            </button>
-            <button type="button" onclick="executeSubmit()" class="btn btn-primary" style="font-size:0.82rem;padding:0.3rem 0.85rem;">
-              Confirm &amp; Submit Review
-            </button>
-          </div>
-        </div>
-
-        <!-- Standard Actions Toolbar -->
-        <div id="standardActionButtons" style="display:flex;justify-content:space-between;align-items:center;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--slate-200);">
-          <button type="button" onclick="closeScoringModal()" class="btn btn-secondary">Cancel</button>
-          <div style="display:flex;gap:0.5rem;align-items:center;">
-            <button type="button" id="btnSaveReview" onclick="requestSubmit(false)" class="btn btn-secondary" disabled>
-              Save Review
-            </button>
-            <button type="button" id="btnSaveAndNext" onclick="requestSubmit(true)" class="btn btn-primary" disabled>
-              Save &amp; Next Project &rarr;
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-</dialog>
-
 <script>
-const criteriaWeights = {
-  {% for c in criteria %}
-  "{{ c.name }}": {{ c.weight }},
-  {% endfor %}
-};
-
-const assignedProjects = [
-  {% for p in projects %}
-  {% set sc = my_scores.get(p.id) %}
-  {
-    id: "{{ p.id }}",
-    title: {{ p.title | tojson }},
-    tagline: {{ (p.tagline or "") | tojson }},
-    summary: {{ (p.summary or "") | tojson }},
-    description: {{ (p.description or "") | tojson }},
-    track: "{{ p.track.name if p.track else 'General' }}",
-    team: "{{ p.team.name if p.team else 'Independent' }}",
-    members: [{% if p.team and p.team.members %}{% for m in p.team.members %}"{{ m.email }}"{% if not loop.last %},{% endif %}{% endfor %}{% endif %}],
-    tech_tags: [{% if p.tech_tags %}{% for t in p.tech_tags %}"{{ t }}"{% if not loop.last %},{% endif %}{% endfor %}{% endif %}],
-    tech_stack: {{ (p.tech_stack or "") | tojson }},
-    repo_url: "{{ p.repo_url or '' }}",
-    demo_url: "{{ p.demo_url or '' }}",
-    video_url: "{{ p.video_url or '' }}",
-    pitch_deck_url: "{{ p.pitch_deck_url or '' }}",
-    score_f: {{ sc.functionality if (sc and sc.functionality is not none) else 'null' }},
-    score_q: {{ sc.quality if (sc and sc.quality is not none) else 'null' }},
-    score_i: {{ sc.innovation if (sc and sc.innovation is not none) else 'null' }},
-    comment: {{ ((sc.comment or "") if sc else "") | tojson }},
-    is_scored: {{ 'true' if sc else 'false' }}
-  }{% if not loop.last %},{% endif %}
-  {% endfor %}
-];
-
-let currentScores = {
-  func: null,
-  qual: null,
-  innov: null
-};
-
-const scoreMeanings = {
-  func: {
-    1: { label: "1 — Broken", desc: "Major flows fail" },
-    2: { label: "2 — Partial", desc: "Some flows work" },
-    3: { label: "3 — Working MVP", desc: "Core workflow works" },
-    4: { label: "4 — Strong", desc: "Reliable with minor issues" },
-    5: { label: "5 — Excellent", desc: "Complete, reliable and polished" }
-  },
-  qual: {
-    1: { label: "1 — Fragile", desc: "Poor structure / difficult UX" },
-    2: { label: "2 — Weak", desc: "Several architecture/usability issues" },
-    3: { label: "3 — Clean", desc: "Reasonably structured and usable" },
-    4: { label: "4 — Strong", desc: "Well-designed and maintainable" },
-    5: { label: "5 — Excellent", desc: "Production-quality engineering and UX" }
-  },
-  innov: {
-    1: { label: "1 — Standard", desc: "Common implementation" },
-    2: { label: "2 — Limited", desc: "Some small original decisions" },
-    3: { label: "3 — Creative", desc: "Meaningful differentiation" },
-    4: { label: "4 — Distinctive", desc: "Strong original approach" },
-    5: { label: "5 — Exceptional", desc: "Highly original and well-executed" }
+function filterQueue(status, btn) {
+  document.querySelectorAll('.queue-tab').forEach(b => {
+    b.classList.remove('active');
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text-secondary)';
+    b.style.fontWeight = '500';
+  });
+  if (btn) {
+    btn.classList.add('active');
+    btn.style.background = 'var(--slate-200)';
+    btn.style.color = 'var(--slate-900)';
+    btn.style.fontWeight = '700';
+  } else {
+    const el = document.getElementById('tab' + status.charAt(0).toUpperCase() + status.slice(1));
+    if (el) {
+      el.classList.add('active');
+      el.style.background = 'var(--slate-200)';
+      el.style.color = 'var(--slate-900)';
+      el.style.fontWeight = '700';
+    }
   }
-};
 
-function filterQueue(status) {
-  document.querySelectorAll('.queue-tab').forEach(t => t.classList.remove('active'));
-  if (status === 'all') document.getElementById('tabAll')?.classList.add('active');
-  if (status === 'pending') document.getElementById('tabPending')?.classList.add('active');
-  if (status === 'completed') document.getElementById('tabCompleted')?.classList.add('active');
-
-  document.querySelectorAll('.queue-row').forEach(row => {
-    const s = row.getAttribute('data-status');
-    if (status === 'all' || s === status) {
-      row.style.display = '';
+  const rows = document.querySelectorAll('tbody tr.queue-row');
+  rows.forEach(r => {
+    if (status === 'all' || r.getAttribute('data-status') === status) {
+      r.style.display = '';
     } else {
-      row.style.display = 'none';
+      r.style.display = 'none';
     }
   });
-}
-
-function setScore(criterion, val) {
-  currentScores[criterion] = val;
-  const inputEl = document.getElementById('modal' + (criterion === 'func' ? 'Func' : criterion === 'qual' ? 'Qual' : 'Innov'));
-  if (inputEl) inputEl.value = val;
-  renderScoreGrid(criterion);
-  updateEvaluationState();
-}
-
-function renderScoreGrid(criterion) {
-  const gridId = 'scoreGrid' + (criterion === 'func' ? 'Func' : criterion === 'qual' ? 'Qual' : 'Innov');
-  const readoutId = 'readout' + (criterion === 'func' ? 'Func' : criterion === 'qual' ? 'Qual' : 'Innov');
-  const val = currentScores[criterion];
-
-  const grid = document.getElementById(gridId);
-  if (grid) {
-    grid.querySelectorAll('.score-btn').forEach(btn => {
-      const bVal = parseInt(btn.getAttribute('data-value'));
-      if (bVal === val) {
-        btn.classList.add('selected');
-        btn.setAttribute('aria-pressed', 'true');
-      } else {
-        btn.classList.remove('selected');
-        btn.setAttribute('aria-pressed', 'false');
-      }
-    });
-  }
-
-  const readout = document.getElementById(readoutId);
-  if (readout) {
-    if (val && scoreMeanings[criterion][val]) {
-      readout.textContent = 'Selected: ' + scoreMeanings[criterion][val].label;
-      readout.style.color = 'var(--primary)';
-    } else {
-      readout.textContent = 'Not yet scored';
-      readout.style.color = 'var(--slate-500)';
-    }
-  }
-}
-
-function updateEvaluationState() {
-  const f = currentScores.func;
-  const q = currentScores.qual;
-  const i = currentScores.innov;
-
-  const wf = criteriaWeights["functionality"] !== undefined ? criteriaWeights["functionality"] : 1.0;
-  const wq = criteriaWeights["quality"] !== undefined ? criteriaWeights["quality"] : 1.0;
-  const wi = criteriaWeights["innovation"] !== undefined ? criteriaWeights["innovation"] : 1.0;
-  const totalW = (wf + wq + wi) || 1.0;
-
-  // Contributions
-  const cFunc = document.getElementById('contribFunc');
-  const cQual = document.getElementById('contribQual');
-  const cInnov = document.getElementById('contribInnov');
-
-  const sFuncRow = document.getElementById('summaryFuncRow');
-  const sQualRow = document.getElementById('summaryQualRow');
-  const sInnovRow = document.getElementById('summaryInnovRow');
-
-  if (f !== null) {
-    const pts = (f * wf) / totalW;
-    if (cFunc) cFunc.textContent = `Contribution: ${pts.toFixed(2)} pts`;
-    if (sFuncRow) sFuncRow.textContent = `${f} × ${(wf / totalW * 100).toFixed(0)}% = ${pts.toFixed(2)}`;
-  } else {
-    if (cFunc) cFunc.textContent = '—';
-    if (sFuncRow) sFuncRow.textContent = '—';
-  }
-
-  if (q !== null) {
-    const pts = (q * wq) / totalW;
-    if (cQual) cQual.textContent = `Contribution: ${pts.toFixed(2)} pts`;
-    if (sQualRow) sQualRow.textContent = `${q} × ${(wq / totalW * 100).toFixed(0)}% = ${pts.toFixed(2)}`;
-  } else {
-    if (cQual) cQual.textContent = '—';
-    if (sQualRow) sQualRow.textContent = '—';
-  }
-
-  if (i !== null) {
-    const pts = (i * wi) / totalW;
-    if (cInnov) cInnov.textContent = `Contribution: ${pts.toFixed(2)} pts`;
-    if (sInnovRow) sInnovRow.textContent = `${i} × ${(wi / totalW * 100).toFixed(0)}% = ${pts.toFixed(2)}`;
-  } else {
-    if (cInnov) cInnov.textContent = '—';
-    if (sInnovRow) sInnovRow.textContent = '—';
-  }
-
-  // Count scored
-  let scoredCount = 0;
-  if (f !== null) scoredCount++;
-  if (q !== null) scoredCount++;
-  if (i !== null) scoredCount++;
-
-  const progressEl = document.getElementById('criteriaProgressText');
-  const previewEl = document.getElementById('modalWeightedPreview');
-  const btnSave = document.getElementById('btnSaveReview');
-  const btnNext = document.getElementById('btnSaveAndNext');
-
-  if (scoredCount === 3) {
-    const rawWeighted = ((f * wf) + (q * wq) + (i * wi)) / totalW;
-    if (previewEl) previewEl.textContent = rawWeighted.toFixed(2) + ' / 5.00';
-    if (progressEl) {
-      progressEl.textContent = 'All criteria scored ✓';
-      progressEl.style.color = 'var(--success)';
-    }
-    if (btnSave) btnSave.disabled = false;
-    if (btnNext) btnNext.disabled = false;
-  } else {
-    if (previewEl) previewEl.textContent = '— / 5.00';
-    if (progressEl) {
-      progressEl.textContent = `${scoredCount} of 3 criteria scored`;
-      progressEl.style.color = 'var(--slate-600)';
-    }
-    if (btnSave) btnSave.disabled = true;
-    if (btnNext) btnNext.disabled = true;
-  }
-}
-
-function updateCharCount() {
-  const el = document.getElementById('modalComment');
-  const countEl = document.getElementById('commentCharCount');
-  if (el && countEl) {
-    countEl.textContent = `${el.value.length} / 2000`;
-  }
-}
-
-function openScoringModal(projId) {
-  const proj = assignedProjects.find(p => p.id === projId);
-  if (!proj) return;
-
-  document.getElementById('modalProjectId').value = proj.id;
-  document.getElementById('modalTitle').innerText = proj.title;
-  document.getElementById('modalTagline').innerText = proj.tagline || '';
-  document.getElementById('modalTrackBadge').innerText = proj.track;
-  document.getElementById('modalTeamName').innerText = 'Team: ' + proj.team;
-
-  const hdr = document.getElementById('modalModalHeader');
-  const b = document.getElementById('modalReviewStateBadge');
-  if (proj.is_scored) {
-    if (hdr) hdr.innerText = 'Editing Submitted Review';
-    if (b) {
-      b.className = 'status-chip status-open';
-      b.innerText = 'Review Completed';
-    }
-  } else {
-    if (hdr) hdr.innerText = 'Score Project';
-    if (b) {
-      b.className = 'status-chip status-judging';
-      b.innerText = 'Pending Evaluation';
-    }
-  }
-
-  // Members
-  const memList = document.getElementById('modalMembersList');
-  memList.innerHTML = '';
-  if (proj.members && proj.members.length > 0) {
-    proj.members.forEach(m => {
-      const chip = document.createElement('span');
-      chip.className = 'role-pill role-participant';
-      chip.style.fontSize = '0.72rem';
-      chip.style.padding = '0.1rem 0.5rem';
-      chip.innerText = m;
-      memList.appendChild(chip);
-    });
-  }
-
-  // Tech stack
-  const tsBox = document.getElementById('modalTechStackBox');
-  const tsText = document.getElementById('modalTechStackText');
-  if (proj.tech_stack) {
-    tsText.innerText = proj.tech_stack;
-    tsBox.style.display = 'block';
-  } else {
-    tsBox.style.display = 'none';
-  }
-
-  // Asset Toolbar & Checklist
-  const bar = document.getElementById('modalAssetToolbar');
-  bar.innerHTML = '';
-  const chkRepo = document.getElementById('chkRepoRow');
-  const chkDemo = document.getElementById('chkDemoRow');
-  const chkVideo = document.getElementById('chkVideoRow');
-  const chkDeck = document.getElementById('chkDeckRow');
-
-  if (proj.repo_url) {
-    bar.innerHTML += `<a href="${proj.repo_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.6rem;">GitHub Repo &rarr;</a>`;
-    if (chkRepo) chkRepo.style.display = 'flex';
-  } else {
-    if (chkRepo) chkRepo.style.display = 'none';
-  }
-
-  if (proj.demo_url) {
-    bar.innerHTML += `<a href="${proj.demo_url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="font-size:0.75rem;padding:0.2rem 0.6rem;">Live Demo &rarr;</a>`;
-    if (chkDemo) chkDemo.style.display = 'flex';
-  } else {
-    if (chkDemo) chkDemo.style.display = 'none';
-  }
-
-  if (proj.video_url) {
-    bar.innerHTML += `<a href="${proj.video_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.6rem;">Demo Video &rarr;</a>`;
-    if (chkVideo) chkVideo.style.display = 'flex';
-  } else {
-    if (chkVideo) chkVideo.style.display = 'none';
-  }
-
-  if (proj.pitch_deck_url) {
-    bar.innerHTML += `<a href="${proj.pitch_deck_url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.6rem;">Pitch Deck &rarr;</a>`;
-    if (chkDeck) chkDeck.style.display = 'flex';
-  } else {
-    if (chkDeck) chkDeck.style.display = 'none';
-  }
-  bar.innerHTML += `<a href="/projects/${proj.id}" target="_blank" class="btn btn-secondary" style="font-size:0.75rem;padding:0.2rem 0.6rem;">Full Details &rarr;</a>`;
-
-  // Summary and Description
-  const sumEl = document.getElementById('modalSummaryText');
-  if (sumEl) sumEl.textContent = proj.summary || 'No architecture summary provided.';
-  const descEl = document.getElementById('modalDescriptionText');
-  if (descEl) {
-    if (proj.description && proj.description.trim() !== (proj.summary || '').trim()) {
-      descEl.textContent = proj.description;
-      descEl.style.display = 'block';
-    } else {
-      descEl.style.display = 'none';
-    }
-  }
-
-  // Comments
-  document.getElementById('modalComment').value = proj.comment || '';
-  updateCharCount();
-
-  // Reset checklist checkboxes
-  document.querySelectorAll('#evidenceChecklist input[type="checkbox"]').forEach(c => c.checked = false);
-
-  // Set scores (null if unreviewed)
-  currentScores = {
-    func: proj.score_f,
-    qual: proj.score_q,
-    innov: proj.score_i
-  };
-
-  renderScoreGrid('func');
-  renderScoreGrid('qual');
-  renderScoreGrid('innov');
-
-  // Weights
-  const wf = criteriaWeights["functionality"] !== undefined ? criteriaWeights["functionality"] : 1.0;
-  const wq = criteriaWeights["quality"] !== undefined ? criteriaWeights["quality"] : 1.0;
-  const wi = criteriaWeights["innovation"] !== undefined ? criteriaWeights["innovation"] : 1.0;
-  const totalW = (wf + wq + wi) || 1.0;
-
-  const bFunc = document.getElementById('weightBadgeFunc');
-  const bQual = document.getElementById('weightBadgeQual');
-  const bInnov = document.getElementById('weightBadgeInnov');
-  if (bFunc) bFunc.textContent = `Weight: ${(wf / totalW * 100).toFixed(0)}%`;
-  if (bQual) bQual.textContent = `Weight: ${(wq / totalW * 100).toFixed(0)}%`;
-  if (bInnov) bInnov.textContent = `Weight: ${(wi / totalW * 100).toFixed(0)}%`;
-
-  updateEvaluationState();
-  cancelConfirmSubmit();
-
-  const toast = document.getElementById('saveStatusToast');
-  if (toast) toast.style.display = 'none';
-
-  document.getElementById('scoringModal').showModal();
-}
-
-function closeScoringModal() {
-  document.getElementById('scoringModal').close();
-}
-
-let pendingSaveAndNext = false;
-
-function requestSubmit(saveAndNext) {
-  if (currentScores.func === null || currentScores.qual === null || currentScores.innov === null) {
-    alert("Please assign a score (1–5) to all three evaluation criteria before submitting.");
-    return;
-  }
-  pendingSaveAndNext = saveAndNext;
-
-  const wf = criteriaWeights["functionality"] !== undefined ? criteriaWeights["functionality"] : 1.0;
-  const wq = criteriaWeights["quality"] !== undefined ? criteriaWeights["quality"] : 1.0;
-  const wi = criteriaWeights["innovation"] !== undefined ? criteriaWeights["innovation"] : 1.0;
-  const totalW = (wf + wq + wi) || 1.0;
-  const rawWeighted = ((currentScores.func * wf) + (currentScores.qual * wq) + (currentScores.innov * wi)) / totalW;
-
-  const detEl = document.getElementById('confirmSummaryDetails');
-  if (detEl) {
-    detEl.innerHTML = `
-      <div><strong>Functionality:</strong> ${currentScores.func} &middot; ${scoreMeanings.func[currentScores.func].label}</div>
-      <div><strong>Code &amp; Design Quality:</strong> ${currentScores.qual} &middot; ${scoreMeanings.qual[currentScores.qual].label}</div>
-      <div><strong>Innovation &amp; Creativity:</strong> ${currentScores.innov} &middot; ${scoreMeanings.innov[currentScores.innov].label}</div>
-      <div style="margin-top:0.4rem;font-weight:700;"><strong>Weighted Score:</strong> ${rawWeighted.toFixed(2)} / 5.00</div>
-    `;
-  }
-
-  document.getElementById('confirmSubmissionBox').style.display = 'block';
-  document.getElementById('standardActionButtons').style.display = 'none';
-}
-
-function cancelConfirmSubmit() {
-  const box = document.getElementById('confirmSubmissionBox');
-  const std = document.getElementById('standardActionButtons');
-  if (box) box.style.display = 'none';
-  if (std) std.style.display = 'flex';
-}
-
-async function executeSubmit() {
-  const projId = document.getElementById('modalProjectId').value;
-  const f = currentScores.func;
-  const q = currentScores.qual;
-  const i = currentScores.innov;
-  const comment = document.getElementById('modalComment').value;
-
-  const res = await fetch('/api/judge/scores', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      project_id: projId,
-      functionality: f,
-      quality: q,
-      innovation: i,
-      comment: comment
-    })
-  });
-
-  if (res.ok) {
-    // Update local state
-    const proj = assignedProjects.find(p => p.id === projId);
-    if (proj) {
-      proj.score_f = f;
-      proj.score_q = q;
-      proj.score_i = i;
-      proj.comment = comment;
-      proj.is_scored = true;
-    }
-
-    const toast = document.getElementById('saveStatusToast');
-    if (toast) toast.style.display = 'inline';
-
-    if (pendingSaveAndNext) {
-      // Find next pending or unreviewed project
-      const curIdx = assignedProjects.findIndex(p => p.id === projId);
-      let nextProj = assignedProjects.find((p, idx) => idx > curIdx && !p.is_scored);
-      if (!nextProj) {
-        nextProj = assignedProjects.find(p => !p.is_scored && p.id !== projId);
-      }
-      if (!nextProj && curIdx + 1 < assignedProjects.length) {
-        nextProj = assignedProjects[curIdx + 1];
-      }
-
-      if (nextProj) {
-        setTimeout(() => {
-          openScoringModal(nextProj.id);
-        }, 300);
-        return;
-      }
-    }
-
-    setTimeout(() => {
-      document.getElementById('scoringModal').close();
-      window.location.reload();
-    }, 450);
-  } else {
-    cancelConfirmSubmit();
-    const err = await res.json();
-    alert('Scoring failed: ' + (err.detail || 'Unknown error'));
-  }
 }
 </script>
 {% endblock %}
